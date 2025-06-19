@@ -31,6 +31,14 @@ Définir et centraliser toute la logique technique liée au système de combat�
 
 ---
 
+## Gameplay de base
+
+> Tout ce qui concerne la logique Dash/Roll/Jump, gestion stamina associée, flags de mouvement, VFX, etc. est désormais **centralisé dans le doc dédié : [BasicGameplay_Architecture.md]**.
+>  
+> Ce document “Combat” reste dédié à la logique d’attaque, lock-on, dégâts, enchaînements, IA ennemie, etc.
+
+---
+
 ## 🔁 Pipeline de fonctionnement
 
 1. Input “attaque/defense” reçu via Enhanced Input
@@ -64,6 +72,6 @@ Définir et centraliser toute la logique technique liée au système de combat�
 ## 🕒 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : [JJ/MM/AAAA]
+- Dernière mise à jour : [19/06/2025]
 
 ---

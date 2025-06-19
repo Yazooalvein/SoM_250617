@@ -36,6 +36,17 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 
 ---
 
+### 18/06/2025 — [Ton nom]
+- Refactoring complet du pipeline “Gameplay de base” du personnage :  
+    - Segmentation du code entre Dash, Roll, Jump, Flags, Stamina.
+    - Ajout de “BasicGameplay_Architecture.md” pour centraliser tout ce qui concerne le mouvement, les consommations de stamina, les flags anti-spam, et les feedbacks VFX (jump trail, etc.).
+    - Mise à jour de Stats_Architecture.md (ajout des coûts action, pipeline d’init, enrichissement du switch SetStatValue).
+    - Mise à jour de HUD_Architecture.md (ordre d’appel initialisation/ref, bindings supplémentaires si besoin).
+    - Nettoyage du doc Combat pour le réserver à l’attaque/lock-on/IA.
+- Convention : tout ajout d’action principale ou stat associée doit être documenté dans le doc “Gameplay de base”.
+
+---
+
 ### [À compléter à chaque évolution]
 
 - **[JJ/MM/AAAA] — [Auteur]**
@@ -55,6 +66,6 @@ Ce document doit être systématiquement mis à jour à chaque modification sign
 ## 📜 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : [JJ/MM/AAAA]
+- Dernière mise à jour : [19/06/2025]
 
 ---
