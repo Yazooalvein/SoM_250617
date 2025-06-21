@@ -46,6 +46,29 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 - Convention : tout ajout d’action principale ou stat associée doit être documenté dans le doc “Gameplay de base”.
 
 ---
+[2025-06-21]
+
+- Import complet du système Lock-On, refactorisation et ajouts :
+    - Détection continue à chaque switch de cible.
+    - Clamp vertical du pitch caméra (min/max).
+    - TODO : Ajout du système d’unlock auto hors rayon.
+- Menu Radial importé et refactorisé :
+    - Structure dynamique (n slots), gestion rotation/alignement, orientation icônes (anti-spin TODO).
+    - TODO : Ajout struct config, dispatcher sélection, logique de désactivation réutilisable pour d’autres menus.
+- Import et refonte complète du système de Combo :
+    - Passage ComboStepArray -> ComboStepMap (accès direct, suppression des boucles sur input).
+    - Nouvelle fonction centralisée HandleAttack, PlayAttackMontage dédiée.
+    - Mise en place du pattern “accès direct + gestion StepID/NextStepID”.
+    - Factorisation GetOwningMesh dans le composant.
+    - Ajout prints pour debug complet du flow.
+    - Ancienne logique par Custom Event/ForEach en cours de suppression.
+    - TODO : Finaliser la gestion NextStepID lors du notify de fin d’animation (layer “notify” à debugger).
+    - TODO : Nettoyage final des anciens Events.
+    - DEBUG EN COURS (cf. doc Combo System Architecture pour détail).
+
+- Mise à jour des architectures techniques Combo/Lock-On/UI.
+
+---
 
 ### [À compléter à chaque évolution]
 
@@ -66,6 +89,6 @@ Ce document doit être systématiquement mis à jour à chaque modification sign
 ## 📜 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : [19/06/2025]
+- Dernière mise à jour : [21/06/2025]
 
 ---

@@ -52,10 +52,14 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 ## 🧭 Historique / changelog
 
 - **Création : 17/06/2025**
-- Dernière mise à jour : [JJ/MM/AAAA]
+- Dernière mise à jour : [21/06/2025]
 
 ---
 
+- 20/06/2025 : Début refactorisation majeure systèmes Combo/LockOn/RadialMenu.
+- 21/06/2025 : Migration Combo en Map, pipeline centralisé, debug en cours. Voir Combo System Architecture.
+
+---
 ## 📌 Note
 
 Ce fichier est la **porte d’entrée** de toute la documentation technique.  

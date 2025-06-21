@@ -51,6 +51,15 @@ Décrire l’architecture complète de l’interface utilisateur du projet :
 
 ---
 
+## TODO / Roadmap UI — Menu Radial
+
+- [ ] Remplacer l’array de textures par une struct dédiée pour chaque slot (data-driven, extensible).
+- [ ] Implémenter un dispatcher (event) pour la sélection de slot, décorrélé de la logique controller.
+- [ ] Ajouter une logique de désactivation/lock de slot (pour cooldown, indisponibilité, etc.), réutilisable pour d’autres menus radiaux.
+- [ ] Finaliser la gestion “anti-spin” pour les icônes (correctif à appliquer à chaque update de slot, pas juste à l’initialisation).
+
+---
+
 ## 🔗 Liens & docs associées
 
 - [Journal_Modifications.md]
