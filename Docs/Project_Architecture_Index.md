@@ -58,6 +58,8 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 
 - 20/06/2025 : Début refactorisation majeure systèmes Combo/LockOn/RadialMenu.
 - 21/06/2025 : Migration Combo en Map, pipeline centralisé, debug en cours. Voir Combo System Architecture.
+- 21/06/2025 : Refactorisation majeure du système de combos (modularité, fenêtre dynamique, base multi-armes prête).  
+- Validation du menu radial dynamique (UI), lock-on stable.
 
 ---
 ## 📌 Note

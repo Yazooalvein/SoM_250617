@@ -60,6 +60,23 @@ Décrire l’architecture actuelle, les couches (“layers”) effectives, le wo
 5. **Gestion du Reset**
     - ResetCombo appelé en cas d’erreur/fin de chaîne ou après montage (via notify).
     - TODO : affiner la gestion CanAttack & window.
+---
+
+## ✅ État au 21/06/2025
+
+- Système de combo factorisé : TMap<Name, FComboStep> pour accès direct, scalable et lisible.
+- ComboStepMap remplie dynamiquement via DataTable_FCombo au BeginPlay, filtrée par arme et niveau.
+- Nouvelle gestion dynamique de la fenêtre de combo :  
+    - Utilisation du “Get Play Length” du montage pour définir la durée réelle de la combo window (plus de valeurs codées en dur dans la struct, sauf multiplicateur optionnel).
+    - À chaque attaque, timer ResetCombo cleané puis relancé pour empêcher les resets fantômes et garantir une fenêtre dynamique.
+    - Variable “IsInComboWindow” gérée dans le flow.
+- Gestion propre de l’input (Started/Completed), suppression effective du spam d’attaque, prise en compte du relâchement (anti-repeat).
+- Prêt pour extension vers le multi-armes (TODO/feuille de route à compléter).
+- Toutes les anciennes boucles/forEach et CustomEvents d’attaque sont obsolètes ou en phase de suppression finale.
+- Journalisation/débug à chaque layer validée.
+
+---
+
 
 ---
 
@@ -74,11 +91,13 @@ Décrire l’architecture actuelle, les couches (“layers”) effectives, le wo
 
 ## 🗺️ TODO / Roadmap
 
-- [ ] Finaliser la gestion de la fenêtre combo via notify d’animation (input accepté uniquement pendant la window).
+- [x] Gestion dynamique de la fenêtre combo par timer (lié à la durée réelle du montage d’attaque, scalable par struct).
 - [ ] Nettoyer totalement la logique d’input ancienne.
-- [ ] Documenter tous les edge cases (erreur data, mauvais StepID, etc.).
-- [ ] Factoriser la logique pour autres personnages ou IA.
+- [ ] Ajouter l’option de multiplicateur de fenêtre combo par coup (facultatif, pour ajustement finesse).
+- [ ] Factoriser la logique pour autres personnages ou IA (et extension multi-armes, à trancher : dataTable unique ou multiple).
 - [ ] Prévoir le branchement UI/feedbacks FX/SFX.
+- [ ] (À venir) Ajout d’une gestion ultra-précise par notify pour l’ouverture/fermeture des fenêtres de combo (optionnel, polish).
+
 
 ---
 
@@ -97,3 +116,9 @@ Décrire l’architecture actuelle, les couches (“layers”) effectives, le wo
     - Début intégration de la gestion via notify d’animation.
     - Ajout du tag “DEBUG EN COURS” (logs/prints actifs).
     - TODO/cleaning précisé dans la feuille de route.
+
+- **21/06/2025** :
+    - Mise en place de la gestion dynamique de la fenêtre de combo par timer, synchronisée avec la durée réelle du montage via “Get Play Length”.
+    - Debug et validation du flux combo (anti-repeat, ResetCombo propre).
+    - Prêt pour tests multi-armes et extension struct.
+

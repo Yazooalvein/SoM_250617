@@ -46,7 +46,7 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 - Convention : tout ajout d’action principale ou stat associée doit être documenté dans le doc “Gameplay de base”.
 
 ---
-[2025-06-21]
+### 19-20/06/2025
 
 - Import complet du système Lock-On, refactorisation et ajouts :
     - Détection continue à chaque switch de cible.
@@ -67,6 +67,21 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
     - DEBUG EN COURS (cf. doc Combo System Architecture pour détail).
 
 - Mise à jour des architectures techniques Combo/Lock-On/UI.
+
+---
+### 21/06/2025
+
+- Refactorisation complète du système de ComboManagerComponent (BP_ComboManagerComponent) :
+    - Passage d’un système en array/loop à une map (TMap<Name, FComboStep>) pour la gestion des étapes de combos, factorisation et clarté améliorée.
+    - Liaison dynamique avec Datatable_FCombo.
+    - Ajout de la gestion dynamique de la fenêtre de combo avec timer, basé sur la durée réelle de l’Anim Montage (“Get Play Length”).
+    - Ajout du bool “IsInComboWindow” et clean des timers à chaque coup.
+    - Liaison propre avec l’input (Reset Combo, gestion “CanAttack” sur Started/Completed).
+    - Système désormais prêt à accueillir la gestion multi-armes ultérieure (TODO structuré dans la doc).
+    - Debug et journalisation des étapes internes, validation du flux BP.
+    - TODO : Gestion multi-armes, fenêtrage par sections, DataTable unifiée ou multiple à trancher plus tard.
+
+**Avancement : Combo jouable, propre, et entièrement modulable.**
 
 ---
 
