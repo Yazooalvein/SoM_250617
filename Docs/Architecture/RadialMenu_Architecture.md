@@ -4,90 +4,111 @@
 
 ## 📌 Objectif du module
 
-Décrire l’architecture du système de menu radial :
-- Navigation dynamique (armes, objets, sorts…)
-- Interaction manette/clavier, menu circulaire évolutif
-- Intégration avec le Stat System, l’UI, le PlayerController, l’IMC
+Décrire l’architecture du système de menu radial d’armes :
+- Navigation circulaire dynamique (armes, objets…)
+- Gestion scalable (ajout automatique des slots selon découverte)
+- Support clavier/souris & gamepad (IMC/IA)
+- Sélection, validation et passage à l’équipement joueur
 
 ---
 
 ## 🧩 Composants principaux
 
-- **WBP_RadialMenu** (UserWidget principal)
-- **WBP_RadialSlot** (widget slot individuel)
-- **BP_PlayerController** (contrôle de l’affichage, input, relais UI)
-- **Canvas_RadialMenu** (container principal du menu)
-- **Struct actuelle** : Array de textures (SlotIcons)
-- **Struct à prévoir** : `FRadialMenuSlotData` (voir TODO)
-- **Input Mapping Context (IMC_ARPG_Main)** (actions : ouverture/fermeture, rotation, sélection)
+- **WBP_RadialMenu** (UserWidget principal, logique centrale)
+- **WBP_RadialSlot** (widget slot individuel, affichage de l’icône/infos)
+- **BP_PlayerController** (création/affichage/fermeture radial, relais input)
+- **Struct : FRadialMenuSlotData** (cf. roadmap, version actuelle : RowName, Icon, autres infos si besoin)
+- **Arrays dynamiques :**
+    - `SlotIcons` (`Array<Texture2D>`) — icônes pour chaque slot
+    - `SlotRowNames` (`Array<Name>`) — RowName DataTable de chaque arme
+- **Variables :**
+    - `CurrentSelectedIndex` (`int`) — index du slot sélectionné
+    - `RadialSlots` (`Array<WidgetRef>`) — refs aux widgets slots UI
+    - `bIsRadialMenuOpen` (`bool`)
 
 ---
 
 ## 📦 Variables, Fonctions & Structures clés
 
-### **Variables principales (extraites de la dernière version BP)**
-- `bIsRadialMenuOpen` (bool) : État du menu
-- `CurrentSelectedIndex` (int) : Index du slot sélectionné
-- `RadialSlots` (Array) : Références slots UI
-- `SlotIcons` (Array<Texture2D>) : Icônes associées aux slots (structure à enrichir)
-- `RadialMenuWidgetRef` (WBP_RadialMenu) : Référence courante du widget radial
+- **Struct `FRadialMenuSlotData`** *(roadmap, à généraliser)* :
+    - `RowName` (Name)
+    - `Icon` (Texture2D)
+    - *(option : Nom, Stat, Rareté, Locked, etc.)*
 
-### **Fonctions principales**
-- `OpenRadialMenu()`
-- `CloseRadialMenu()`
-- `ToggleRadialMenu()`
-- `InitializeRadialMenu()`
-- `GenerateRadialSlots()`
-- `UpdateSelectedIndex(int)`
-- `RotateRadialMenu(int)`
-- `SelectCurrentSlot()`
-- `ResetRadialMenu()`
+- **Fonctions principales :**
+    - `OpenRadialMenu()`
+    - `CloseRadialMenu()`
+    - `InitializeRadialMenu(Array<Name> DiscoveredWeapons)`
+    - `GenerateRadialSlots()`
+    - `UpdateSelectedIndex(int)`
+    - `ValidateSelectedSlot()`
+    - `ResetRadialMenu()`
 
 ---
 
 ## 🔁 Pipeline de fonctionnement
 
-1. **Ouverture via input dédié**
-   - Création du widget, ajout au viewport, passage en mode pause, gestion du focus input.
+1. **Ouverture (input dédié)**
+    - Le PlayerController crée le widget RadialMenu et lui transmet la liste d’armes débloquées (`DiscoveredWeapons`/`SlotRowNames`), et icons associées.
+    - Ajoute au viewport, passe le jeu en pause (si besoin), bascule input en mode UI.
+
 2. **Génération dynamique des slots**
-   - À partir de `SlotIcons` (ou futur `FRadialMenuSlotData`), création des widgets slots et placement radial dynamique via RenderTranslation.
-3. **Navigation et rotation**
-   - Input IMC : gauche/droite (pad/stick), rotation du menu autour du curseur principal.
-   - Mise à jour de l’index sélectionné, feedback visuel sur le slot actif.
-4. **Sélection d’un slot**
-   - Validation de la sélection (action contextuelle, changement d’arme, usage d’objet, etc.)
-   - Relais au Controller ou au système d’action associé.
+    - Boucle sur les `DiscoveredWeapons` (RowNames)
+    - Pour chaque :
+        - Lookup DT_Weapons → récupère Icon (et autres infos)
+        - Ajoute dans `SlotIcons`/`SlotRowNames`
+        - Crée le WBP_RadialSlot associé, le place radialement via RenderTranslation
+    - Slots alimentés dans le même ordre que les arrays.
+
+3. **Navigation/Highlight**
+    - Input gauche/droite (stick/dpad/souris) met à jour `CurrentSelectedIndex`
+    - Highlight dynamique du slot sélectionné
+    - Aucune rotation de l’array : l’index fait foi
+
+4. **Sélection/validation**
+    - À l’input “Valider” (IMC/IA, universel)
+        - Le widget lit : `SlotRowNames[CurrentSelectedIndex]`
+        - Relaye ce RowName via le controller au BP_Character (Set ChoosenWeapon / EquipWeapon)
+    - Feedback visuel sur la sélection
+
 5. **Fermeture**
-   - Remove from Parent du widget, reset des variables, sortie du mode pause, retour au contrôle du personnage.
+    - Suppression du widget, reset des variables, retour input “Game Only”
 
 ---
 
-## 🗺️ Roadmap locale / TODO
+## 🛠️ Patterns & best practices
 
-- [ ] **Remplacer l’array de textures par une struct dédiée `FRadialMenuSlotData`**
-  - Gérer icône, nom, état, quantité, cooldown… par slot pour un système data-driven extensible.
-- [ ] **Implémenter un dispatcher/événement Blueprint**
-  - Pour permettre au widget de notifier le controller d’une sélection/fermeture, sans couplage direct (meilleure modularité).
-- [ ] **Ajouter la logique de désactivation/lock de slot**
-  - Pour désactiver certains slots selon le contexte (cooldown, indisponibilité, restriction gameplay).
-- [ ] (Bonus) **Prévoir un fallback visuel/texte pour slot vide**
-  - Message, icon placeholder ou désactivation visuelle.
+- **Full data-driven** : les slots sont générés depuis la DataTable, rien n’est hardcodé
+- **Seul l’index sélectionné compte** : accès aux arrays toujours via `CurrentSelectedIndex` (jamais d’array tournant)
+- **Widget autonome** : arrays de slot locaux (SlotIcons, SlotRowNames), transmis “Expose on Spawn”
+- **Synchronisation dynamique** : chaque ouverture recharge la liste d’armes et les icons actuelles
+- **Input universel** : tout est géré par IMC/IA (clavier, souris, manette…)
+- **Séparation logique :**
+    - Le radial gère l’UI/choix
+    - Le personnage gère l’équipement effectif
 
 ---
 
-## 🔗 Liens & docs associées
+## 🗺️ TODO / Roadmap
 
-- [UI_Architecture.md]
-- [Journal_Modifications_ARPG.md]
-- [Project_Architecture_Index.md]
-- [LockOn_Architecture.md] (interaction avec le menu radial possible à terme)
-- [IMC_ARPG_Main] (mappings d’input)
+- [ ] **Généraliser struct `FRadialMenuSlotData`**
+    - Ajout d’autres datas (Nom, Stat, FX, locked…)
+- [ ] **Implémenter EventDispatcher propre**
+    - Pour signaler au Controller/Character la sélection/fermeture (plus modulaire)
+- [ ] **Ajouter la logique de “slot verrouillé” ou indispo**
+    - (pour slots non débloqués, cooldown, etc)
+- [ ] **Fallback slot vide**
+    - Gestion visuelle (placeholder, désactivation, etc)
+- [ ] **Prévoir extension pour sorts/objets/inventaire**
 
 ---
 
 ## 🕒 Historique
 
-- Création : 17/06/2025
-- Mise à jour : 19/06/2025 (import Shadow of Mana + axes d’amélioration)
+- Création initiale : 17/06/2025
+- MAJ lourde : 24/06/2025 (pipeline data-driven, arrays dynamiques, gestion par index, synchronisation avec DT_Weapons et DiscoveredWeapons, sélection input universelle)
+- Dernière mise à jour : [à compléter]
 
 ---
+
+## **Fin du doc — relu et validé par [à compléter]**

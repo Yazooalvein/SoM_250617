@@ -1,124 +1,104 @@
-# Architecture Technique — Système de Combo (DEBUG EN COURS)
+# Architecture Technique — Système de Combos
 
 ---
 
 ## 📌 Objectif du module
 
-Décrire l’architecture actuelle, les couches (“layers”) effectives, le workflow, les points de debug, et la feuille de route du système de combo, tel qu’implémenté dans la refactorisation du 20 et 21 juin 2025.
+Décrire l’architecture du système de combos du projet :
+- Gestion multi-armes, évolutive, scalable
+- DataTables de combos par type d’arme
+- Déblocage et variation des combos selon niveau d’arme
+- Lien dynamique avec le système d’armes (WeaponID, Level)
+- Pipeline d’exécution et de progression des chaînes de combos
 
 ---
 
 ## 🧩 Composants principaux
 
-- **BP_ComboManagerComponent** : composant Blueprint attaché au personnage, responsable de toute la logique combo/data.
-- **FComboStep** : struct clé, chargée via DataTable (ComboDataTable).
-- **ComboStepMap** : Map (Name → FComboStep) pour un accès direct à chaque étape.
-- **BP_PlatformingCharacter** : relai input → ComboManagerComponent.
-- **IMC_ARPG_Main** : gestion des actions “LightAttack”, “HeavyAttack” etc.
-- **AnimMontage** : asset d’animation d’attaque, section utilisée selon la combo.
+- **DT_Combo_<Type>** (DataTables combos par type d’arme, ex : DT_Combo_Sword, DT_Combo_Axe…)
+- **FComboStep** (struct combo : StepID, NextStepID, Anim, LevelMin, FX…)
+- **BP_ComboManagerComponent** (composant principal de gestion des combos, attaché au personnage)
+- **BP_PlatformingCharacter** (transmet WeaponID/Level à l’init combo)
+- **Variables clés** : ComboStepMap, CurrentComboStep, CurrentComboWindow, bComboActive…
 
 ---
 
-## 📦 Variables, Fonctions & Layers clés
+## 📦 Structures & Variables clés
 
-### **Variables**
-- `ComboStepMap` : Map<Name, FComboStep>
-- `CurrentStepID` : Name (étape courante du combo)
-- `CanAttack` : booléen de contrôle
-- `Debug` : prints actifs sur chaque layer
+### **FComboStep**
+- `StepID` (Name) : identifiant du step combo
+- `NextStepID` (Array<Name>) : step(s) suivants possibles
+- `WeaponID` (Name) : correspondance DataTable armes (RowName)
+- `LevelMin` (int) : niveau minimum d’arme requis pour débloquer ce combo
+- `AnimMontage` (AnimMontage) : animation associée
+- `FX/SFX` (option) : FX à déclencher à ce step
+- *(option : InputType, DamageMultiplier, etc.)*
 
-### **Fonctions principales**
-- `InitComboTree()` : création de la Map à partir de la DataTable selon arme & niveau (appelée au BeginPlay).
-- `HandleAttack(InputType)` : pipeline central, traite chaque input et transition combo.
-- `PlayAttackMontage(StepID)` : joue l’animation de la step courante (utilise la fonction utilitaire GetOwningMesh).
-- `GetOwningMesh()` : accède à l’AnimInstance du mesh du personnage pour le montage.
-- `ResetCombo()` : retour à l’état initial (step = Start, etc.).
-
----
-
-## 🔁 Pipeline de fonctionnement (layers en place)
-
-1. **Initialisation**
-    - Au BeginPlay, `InitComboTree` lit la DataTable, filtre par arme/niveau, et construit la Map `ComboStepMap`.
-    - Le CurrentStepID est positionné sur “Start”.
-
-2. **Input**
-    - Les actions “LightAttack” / “HeavyAttack” appellent la fonction unique `HandleAttack` avec l’enum en paramètre.
-    - (Plus de custom events “Attack” en ForEach.)
-
-3. **Logique HandleAttack**
-    - Vérification du CanAttack.
-    - Recherche instantanée du step courant via la Map.
-    - Transition possible vers le NextStepID (selon input et NextSteps du FComboStep).
-    - Mise à jour de l’état, appel à `PlayAttackMontage` pour lancer l’anim.
-    - Si transition impossible : ResetCombo.
-
-4. **Animation**
-    - `PlayAttackMontage` récupère l’AnimMontage et la section depuis la struct, et joue le montage sur le mesh via AnimInstance.
-    - TODO : brancher l’ouverture de la fenêtre de combo et la gestion des inputs via notify d’animation.
-
-5. **Gestion du Reset**
-    - ResetCombo appelé en cas d’erreur/fin de chaîne ou après montage (via notify).
-    - TODO : affiner la gestion CanAttack & window.
----
-
-## ✅ État au 21/06/2025
-
-- Système de combo factorisé : TMap<Name, FComboStep> pour accès direct, scalable et lisible.
-- ComboStepMap remplie dynamiquement via DataTable_FCombo au BeginPlay, filtrée par arme et niveau.
-- Nouvelle gestion dynamique de la fenêtre de combo :  
-    - Utilisation du “Get Play Length” du montage pour définir la durée réelle de la combo window (plus de valeurs codées en dur dans la struct, sauf multiplicateur optionnel).
-    - À chaque attaque, timer ResetCombo cleané puis relancé pour empêcher les resets fantômes et garantir une fenêtre dynamique.
-    - Variable “IsInComboWindow” gérée dans le flow.
-- Gestion propre de l’input (Started/Completed), suppression effective du spam d’attaque, prise en compte du relâchement (anti-repeat).
-- Prêt pour extension vers le multi-armes (TODO/feuille de route à compléter).
-- Toutes les anciennes boucles/forEach et CustomEvents d’attaque sont obsolètes ou en phase de suppression finale.
-- Journalisation/débug à chaque layer validée.
+### **Variables principales**
+- **ComboStepMap** (TMap<Name, FComboStep>) : accès direct step par ID
+- **CurrentComboStepID** (Name) : step en cours
+- **CurrentComboWindow** (TimerHandle) : fenêtre de combo active
+- **bComboActive** (bool) : combo en cours
 
 ---
 
+## 🔁 Pipeline de fonctionnement
+
+### **1. Initialisation**
+- À la validation d’une arme dans le radial, le BP_ComboManager :
+    - Récupère WeaponID & Level de l’arme équipée
+    - Charge la DataTable combo correspondant au type d’arme
+    - Boucle sur la DT :
+        - Pour chaque step, si WeaponID et LevelMin sont valides, ajoute à ComboStepMap (clé = StepID)
+    - Reset les variables de progression (CurrentComboStepID, bComboActive…)
+
+### **2. Exécution du combo**
+- À chaque input d’attaque :
+    - Vérifie la validité du combo (fenêtre active, anti-repeat)
+    - Récupère le FComboStep via ComboStepMap[CurrentComboStepID]
+    - Joue l’animation (AnimMontage)
+    - Lance les FX/SFX associés (via struct ou DT)
+    - Ouvre la fenêtre combo (durée = Get Play Length de l’anim)
+    - À l’input suivant :
+        - Vérifie si StepID existe dans NextStepID[]
+        - Passe à l’étape suivante ou reset
+
+### **3. Progression/Déblocage**
+- Seuls les combos dont LevelMin <= niveau de l’arme sont actifs
+- Ajout d’un nouveau combo = ajout d’une ligne dans la DT correspondante
+
+### **4. Reset / anti-repeat**
+- Le système reset la progression si la fenêtre combo est dépassée
+- Bloque le spam input (anti-repeat sur Started/Completed)
 
 ---
 
-## 🚧 Layers en cours de debug
+## 🛠️ Bonnes pratiques & patterns utilisés
 
-- **Gestion du notify** (réouverture de CanAttack, validation de la transition sur input pendant la “combo window”, etc.).
-- **Gestion des erreurs StepID/NextStepID** (prints à chaque branche pour vérifier les flux).
-- **Suppression définitive de l’ancien Event Attack / ForEach** (nettoyage en cours).
-- **Sécurisation du pipeline pour l’extension future** (multi-armes, combos contextuels).
+- **Accès ultra-rapide via TMap** (vs DataTable lookup à chaque input)
+- **DataTables distinctes par type d’arme** (extensible, évolutif)
+- **Struct évolutive** : FComboStep peut être enrichie (input, FX, damage, etc.)
+- **Décorrélation totale des combos/armes : pipeline scalable multi-type**
+- **Modularité : ajout/suppression/modif de combo sans toucher au BP**
 
 ---
 
 ## 🗺️ TODO / Roadmap
 
-- [x] Gestion dynamique de la fenêtre combo par timer (lié à la durée réelle du montage d’attaque, scalable par struct).
-- [ ] Nettoyer totalement la logique d’input ancienne.
-- [ ] Ajouter l’option de multiplicateur de fenêtre combo par coup (facultatif, pour ajustement finesse).
-- [ ] Factoriser la logique pour autres personnages ou IA (et extension multi-armes, à trancher : dataTable unique ou multiple).
-- [ ] Prévoir le branchement UI/feedbacks FX/SFX.
-- [ ] (À venir) Ajout d’une gestion ultra-précise par notify pour l’ouverture/fermeture des fenêtres de combo (optionnel, polish).
-
+- [ ] Ajouter un fallback “combo parent” pour les niveaux sans combo spécifique
+- [ ] Factoriser l’ajout de FX/SFX/camera shake par step via DataTable
+- [ ] Gérer les conditions avancées (state machine, buff/debuff, contextuel…)
+- [ ] Ajout d’un système d’UI pour afficher la progression combo (debug/player)
+- [ ] Prévoir compatibilité futurs types d’input spéciaux (ex : sorts, projectiles)
 
 ---
 
-## 🕒 Historique journalier
+## 🕒 Historique
 
-- **20/06/2025** :  
-    - Début refactorisation complète du système combo (import, suppression progressive des ForEach).
-    - Création de ComboStepMap, HandleAttack, début PlayAttackMontage.
-    - Centralisation de la logique input.
-    - Début debug (prints sur chaque branch critique).
+- Création : 19/06/2025  
+- MAJ lourde : 24/06/2025 (support multi-armes data-driven, niveau, TMap, pipeline radial, fix anti-repeat, combos évolutifs)
+- Dernière mise à jour : [à compléter]
 
-- **21/06/2025** :  
-    - Finalisation de la migration DataTable → Map.
-    - Ajout fonction GetOwningMesh pour réutilisation propre dans le composant.
-    - Séparation stricte logique progression/exécution animation.
-    - Début intégration de la gestion via notify d’animation.
-    - Ajout du tag “DEBUG EN COURS” (logs/prints actifs).
-    - TODO/cleaning précisé dans la feuille de route.
+---
 
-- **21/06/2025** :
-    - Mise en place de la gestion dynamique de la fenêtre de combo par timer, synchronisée avec la durée réelle du montage via “Get Play Length”.
-    - Debug et validation du flux combo (anti-repeat, ResetCombo propre).
-    - Prêt pour tests multi-armes et extension struct.
-
+## **Fin du doc — relu et validé par [à compléter]**

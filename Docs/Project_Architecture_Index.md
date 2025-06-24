@@ -26,16 +26,18 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 |----------------------------|-----------------------------------------|----------------------|
 | UI / Interface             | UI_Architecture.md                      | 🕒 À faire / En cours|
 | Stat System                | Stats_Architecture.md                   | 🕒 À faire / En cours|
-| Combat System              | Combat_Architecture.md                  | 🕒 À faire / En cours|
+| Combat System              | Combat_Architecture.md                  | 🕒 À jour            |
 | Audio                      | Audio_Architecture.md                   | 🕒 À faire / En cours|
 | Save System                | SaveSystem_Architecture.md              | 🕒 À faire / En cours|
 | Inventory                  | Inventory_Architecture.md               | 🕒 À faire / En cours|
 | Quêtes                     | Quest_Architecture.md                   | 🕒 À faire / En cours|
 | Dialogue                   | Dialogue_Architecture.md                | 🕒 À faire / En cours|
 | Lore                       | Lore_Architecture.md                    | 🕒 À faire / En cours|
-| Radial Menu                | RadialMenu_Architecture.md              | 🕒 À faire / En cours|
+| Radial Menu                | RadialMenu_Architecture.md              | ✅ À jour            |
 | HUD Principal              | HUD_Architecture.md                     | 🕒 À faire / En cours|
-| Input & Controls           | Input_Architecture.md                   | 🕒 À faire / En cours|
+| Input & Controls           | Input_Architecture.md                   | ✅ À jour            |
+| Weapons System             | Weapons_System_Architecture.md           | ✅ À jour            |
+| Combo System               | Combo_System_Architecture.md             | ✅ À jour            |
 | ... (à compléter selon besoin) | ...                                 | ...                  |
 
 ---
@@ -52,7 +54,7 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 ## 🧭 Historique / changelog
 
 - **Création : 17/06/2025**
-- Dernière mise à jour : [21/06/2025]
+- Dernière mise à jour : 24/06/2025
 
 ---
 
@@ -60,8 +62,10 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 - 21/06/2025 : Migration Combo en Map, pipeline centralisé, debug en cours. Voir Combo System Architecture.
 - 21/06/2025 : Refactorisation majeure du système de combos (modularité, fenêtre dynamique, base multi-armes prête).  
 - Validation du menu radial dynamique (UI), lock-on stable.
+- 24/06/2025 : Ajout Weapons_System_Architecture.md, MAJ lourde Combo_System_Architecture.md, RadialMenu_Architecture.md, journal, validation pipeline data-driven armes/menu/combo.
 
 ---
+
 ## 📌 Note
 
 Ce fichier est la **porte d’entrée** de toute la documentation technique.  

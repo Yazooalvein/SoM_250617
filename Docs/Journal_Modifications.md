@@ -84,6 +84,55 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 **Avancement : Combo jouable, propre, et entièrement modulable.**
 
 ---
+### 24/06/2025 — [Ton nom]
+- **Refactor & finalisation du système d’armes data-driven :**
+    - Structuration complète de la DataTable DT_Weapons (FWeaponData), avec gestion du type, niveau, mesh, icon, socket, BPClass…
+    - Ajout de l’array dynamique DiscoveredWeapons (struct FDiscoveredWeapon), centralisation dans BP_Character.
+    - Ajout et mise à jour automatique des slots lors de la découverte/évolution d’une arme.
+    - Pipeline d’équipement/détachement 100% factorisé, spawn dynamique du BPClass, support offset/rotation à venir.
+    - Détachement propre de l’arme précédente.
+    - Validation de la synchro Weapons <-> Radial <-> ComboSystem.
+
+- **Menu Radial :**
+    - Génération des slots depuis DiscoveredWeapons/DT_Weapons (icônes, RowName, ordre dynamique).
+    - Passage à un système data-driven (arrays SlotIcons et SlotRowNames synchronisés à chaque ouverture).
+    - Gestion du curseur/highlight central via CurrentSelectedIndex (plus d’array tournant).
+    - Sélection de l’arme sur InputAction “Valider”, propagation du RowName au personnage.
+    - Compatibilité totale souris/gamepad/clavier via IMC.
+    - Ajout des feedbacks visuels sur slot sélectionné, surlignage dynamique.
+    - Refonte/MAJ doc RadialMenu_Architecture.md.
+
+- **Combo System :**
+    - Pipeline combo multi-armes/multi-niveaux opérationnel (DataTable combo par type).
+    - Initialisation du combo tree déplacée sur validation de l’arme (plus à chaque attaque).
+    - Map d’accès rapide (TMap) pour StepID/NextStepID, anti-repeat sécurisé.
+    - Déblocage dynamique des combos via LevelMin.
+    - Synchronisation WeaponID/Level avec le système d’armes (passage automatique lors de l’équipement).
+    - MAJ complète de Combo_System_Architecture.md.
+
+- **Bugs/Correctifs :**
+    - Correction de l’effacement d’array lors de la boucle d’initialisation des slots radial (usage Add au lieu de Set).
+    - Fix combo tree qui se réinitialisait à chaque input attaque (inversion du point d’appel).
+    - Correction du sens de certains meshes lors de l’attach (debug offsets/socket, TODO struct DT).
+    - Vérification de la robustesse UI/équipement sur permutations rapides.
+
+- **Documentation & Architecture :**
+    - Création du doc Weapons_System_Architecture.md (pipeline complet, bonnes pratiques, TODO, historique…).
+    - MAJ lourde RadialMenu_Architecture.md (nouvelle struct, arrays dynamiques, gestion input, sélection…).
+    - MAJ complète Combo_System_Architecture.md (workflow multi-armes, LevelMin, anti-repeat, synchro WeaponID…).
+    - Ajout du jalon dans Journal_Modifications_ARPG.md (présent).
+
+- **TODO / Jalons immédiats :**
+    - Ajouter le support offset/rotation par arme dans DT_Weapons et l’appliquer à l’attach.
+    - Préparer l’intégration d’un inventaire avancé (pickup, drop, remove…).
+    - Implémenter feedbacks VFX/SFX lors de l’équipement et du combo.
+    - Sauvegarder/restaurer l’état arme/équipement du joueur.
+    - Prévoir le verrouillage/cooldown des slots radial et le fallback “slot vide”.
+
+---
+
+
+---
 
 ### [À compléter à chaque évolution]
 
