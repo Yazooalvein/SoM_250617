@@ -130,7 +130,19 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
     - Prévoir le verrouillage/cooldown des slots radial et le fallback “slot vide”.
 
 ---
+### 🗓️ 26/06/2025 — Implémentation complète du système de dégâts
 
+- Ajout d’un système de gestion des dégâts 100 % Blueprint, basé sur une BoxCollision activée via Animation Notify.
+- Création de l’interface `BPI_TakeDamage` pour un appel standard et générique.
+- Implémentation dans `BP_EnemyBase` de la fonction `ReceiveDamage` :
+  - Réduction de la santé
+  - Appel du dispatcher `OnDeath`
+  - Destruction de l’acteur
+- Refactorisation des overlaps et suppression d’`ApplyDamage`.
+- Tests de validation, vérification que `OtherActor` ≠ `Owner`, et protection contre les doubles hits.
+- Documentation associée ajoutée : `Damage_System_Architecture.md`
+
+---
 
 ---
 

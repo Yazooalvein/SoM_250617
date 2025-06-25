@@ -44,6 +44,14 @@ Définir et centraliser toute la logique technique liée au système de combat�
 1. Input “attaque/defense” reçu via Enhanced Input
 2. Test de validité/action possible (canAttack, stamina, état du joueur…)
 3. Exécution de l’anim, détection hit/collision, application effet
+3.5 Application des dégâts par collision
+- Lors d’un montage d’attaque, une `BoxCollision` est activée temporairement sur l’arme via un Animation Notify.
+- Si un ennemi est touché pendant cette fenêtre active :
+  - L’arme appelle la fonction `ReceiveDamage` via l’interface `BPI_TakeDamage`
+  - L’ennemi applique les dégâts reçus et vérifie son seuil de mort (`CurrentHealth <= 0`)
+  - Si mort, déclenchement du dispatcher `OnDeath`, destruction de l’acteur.
+- Cette méthode permet une gestion modulaire et locale sans dépendre du système réseau ni du `ApplyDamage` d’Unreal Engine.
+
 4. Consommation stat, envoi des feedbacks UI, FX, etc.
 5. Gestion Lock-On dynamique, changement de cible, synchro caméra/indicateur
 
@@ -55,6 +63,7 @@ Définir et centraliser toute la logique technique liée au système de combat�
 - [ ] Adapter à la logique Enhanced Input/ABP du nouveau template
 - [ ] Refactor de la gestion des combos et de la synchro avec le Stat System
 - [ ] Préparer la base pour extension magie, armes multiples, effets spéciaux
+- [x] Intégration du système de dégâts par collision (interface + dispatcher `OnDeath`)
 
 ---
 

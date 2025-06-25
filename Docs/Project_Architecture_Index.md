@@ -38,6 +38,7 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 | Input & Controls           | Input_Architecture.md                   | ✅ À jour            |
 | Weapons System             | Weapons_System_Architecture.md           | ✅ À jour            |
 | Combo System               | Combo_System_Architecture.md             | ✅ À jour            |
+| Damage System              | Damage_System_Architecture.md            | ✅ À jour            |
 | ... (à compléter selon besoin) | ...                                 | ...                  |
 
 ---
@@ -63,6 +64,8 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 - 21/06/2025 : Refactorisation majeure du système de combos (modularité, fenêtre dynamique, base multi-armes prête).  
 - Validation du menu radial dynamique (UI), lock-on stable.
 - 24/06/2025 : Ajout Weapons_System_Architecture.md, MAJ lourde Combo_System_Architecture.md, RadialMenu_Architecture.md, journal, validation pipeline data-driven armes/menu/combo.
+- 26/06/2025 : Ajout de `Damage_System_Architecture.md` : architecture complète du système de dégâts par collision, interface et dispatcher de mort.
+
 
 ---
 
