@@ -39,6 +39,8 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 | Weapons System             | Weapons_System_Architecture.md           | ✅ À jour            |
 | Combo System               | Combo_System_Architecture.md             | ✅ À jour            |
 | Damage System              | Damage_System_Architecture.md            | ✅ À jour            |
+| IA (globale)               | AI_Architecture.md                     | ✅ À jour            |
+| IA Ennemis                 | Enemy_AI_Behavior.md                   | ✅ À jour            |
 | ... (à compléter selon besoin) | ...                                 | ...                  |
 
 ---
@@ -55,7 +57,7 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 ## 🧭 Historique / changelog
 
 - **Création : 17/06/2025**
-- Dernière mise à jour : 24/06/2025
+- Dernière mise à jour : 27/06/2025
 
 ---
 
@@ -65,7 +67,8 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 - Validation du menu radial dynamique (UI), lock-on stable.
 - 24/06/2025 : Ajout Weapons_System_Architecture.md, MAJ lourde Combo_System_Architecture.md, RadialMenu_Architecture.md, journal, validation pipeline data-driven armes/menu/combo.
 - 26/06/2025 : Ajout de `Damage_System_Architecture.md` : architecture complète du système de dégâts par collision, interface et dispatcher de mort.
-
+- 27/06/2025 : Ajout de `AI_Architecture.md` (structure générale IA du projet)  
+               et `Enemy_AI_Behavior.md` (logique de base IA ennemis : poursuite, aggro, retour).
 
 ---
 

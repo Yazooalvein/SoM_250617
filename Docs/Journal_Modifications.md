@@ -143,6 +143,20 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 - Documentation associée ajoutée : `Damage_System_Architecture.md`
 
 ---
+### 27/06/2025 — [Ton nom]
++ - **Ajout de la base du système IA ennemis :**
++     - Création de `BP_AIController_Enemy_Base` + `EvaluateAIBehavior`
++     - Détection via `PawnSensing`, ciblage dynamique `RegisterTarget`
++     - Variables : `CurrentTarget`, `bHasAggro`, `HomeLocation`, distances (aggro/attaque/perte)
++     - Timers : `LoseAggroDelay` avec delay de sécurité avant désengagement
++     - Logique de poursuite, retour à la position initiale, désengagement si hors portée ou cible invalide
++     - Ajout des fonctions `LoseAggro`, `StopMovement`, etc.
++
++ - **Documentation associée :**
++     - `AI_Architecture.md` (vue globale IA : ennemis, PNJ, objets interactifs)
++     - `Enemy_AI_Behavior.md` (IA ennemis : logique complète sans BT, navmesh, aggro, retour)
+
+---
 
 ---
 
