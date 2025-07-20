@@ -157,6 +157,19 @@ Assurer un **suivi précis et transparent** de toutes les évolutions majeures, 
 +     - `Enemy_AI_Behavior.md` (IA ennemis : logique complète sans BT, navmesh, aggro, retour)
 
 ---
+### 20/07/2025
+
+- Création de la documentation `Animation_WeaponIntegration.md` décrivant le système d'intégration dynamique des animations liées aux armes :
+  - Idle, Walk/Run et futurs états basés sur `WeaponType`
+  - Utilisation de `Blend Pose by Enum` dans l’AnimBP
+  - Référencement automatique via `DT_Weapons`
+
+- Ajouts associés :
+  - Nouvelle variable `WeaponType` dans l’AnimBP
+  - Mise à jour du BP_PlayerCharacter lors de l’équipement d’une arme
+  - Ajout de liens dans `Project_Architecture_Index.md` et `UI_Architecture.md`
+
+---
 
 ---
 

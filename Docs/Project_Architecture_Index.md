@@ -36,11 +36,12 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 | Radial Menu                | RadialMenu_Architecture.md              | ✅ À jour            |
 | HUD Principal              | HUD_Architecture.md                     | 🕒 À faire / En cours|
 | Input & Controls           | Input_Architecture.md                   | ✅ À jour            |
-| Weapons System             | Weapons_System_Architecture.md           | ✅ À jour            |
-| Combo System               | Combo_System_Architecture.md             | ✅ À jour            |
-| Damage System              | Damage_System_Architecture.md            | ✅ À jour            |
-| IA (globale)               | AI_Architecture.md                     | ✅ À jour            |
-| IA Ennemis                 | Enemy_AI_Behavior.md                   | ✅ À jour            |
+| Weapons System             | Weapons_System_Architecture.md          | ✅ À jour            |
+| Combo System               | Combo_System_Architecture.md            | ✅ À jour            |
+| Damage System              | Damage_System_Architecture.md           | ✅ À jour            |
+| IA (globale)               | AI_Architecture.md                      | ✅ À jour            |
+| IA Ennemis                 | Enemy_AI_Behavior.md                    | ✅ À jour            |
+| Animation Weapon           | Animation_WeaponIntegration.md          | ✅ À jour            |
 | ... (à compléter selon besoin) | ...                                 | ...                  |
 
 ---
@@ -69,6 +70,7 @@ Ce fichier sert de **table des matières centrale** pour la documentation techni
 - 26/06/2025 : Ajout de `Damage_System_Architecture.md` : architecture complète du système de dégâts par collision, interface et dispatcher de mort.
 - 27/06/2025 : Ajout de `AI_Architecture.md` (structure générale IA du projet)  
                et `Enemy_AI_Behavior.md` (logique de base IA ennemis : poursuite, aggro, retour).
+- 20/07/2025 : Ajout Animation_WeaponIntegration.md (groupe d'animation en fonction de l'arme équipé)
 
 ---
 
