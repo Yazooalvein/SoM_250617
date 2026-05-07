@@ -37,35 +37,33 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Revue technique complete, priorites identifiees
 
 ### 07/05/2026 -- Nico + Claude -- Jalon stable #2 -- Mort du joueur
+- BP_SoM_GameMode cree (remplace BP_PlatformingGameMode)
+- bIsDead, IsDead(), OnPlayerDeath dispatcher, AM_Death
+- ReceiveDamage : check bIsDead + pipeline mort complet
+- BP_EnemyBase : bind OnPlayerDeath -> LoseAggro
+- Architecture propre : un point de blocage + dispatcher
 
-#### BP_SoM_GameMode cree
-- Herite de GameModeBase, Default Pawn = BP_PlatformingCharacter
-- Remplace BP_PlatformingGameMode dans Project Settings
-- BeginPlay : bind OnPlayerDeath -> HandlePlayerDeath
-- HandlePlayerDeath : Delay 2s -> Open Level (current)
+### 07/05/2026 -- Nico + Claude -- Jalon stable #3 -- OnStatChanged
 
-#### Mort du joueur -- BP_PlatformingCharacter
-- Variable bIsDead (Bool, private, default false)
-- Fonction pure IsDead() exposee publiquement
-- Event Dispatcher OnPlayerDeath (sans parametres)
-- ReceiveDamage : check bIsDead en tete (return si true)
-- ReceiveDamage apres degats : Branch CurrentHealth <= 0
-  -> bIsDead = true, Disable Input, Play AM_Death, Delay 2s, Call OnPlayerDeath
-- AM_Death : AnimMontage cree depuis MM_Death_Back_01
+#### BP_AttributeSet_Base
+- Event Dispatcher OnStatChanged(StatName [Name], NewValue [Float])
+- SetStatValue : Call OnStatChanged apres le Switch, branché sur tous les SET
+- StatName et Value passes directement depuis les inputs de SetStatValue
+- Un seul node Call pour tous les cases du Switch
+- Dispatcher pret a etre utilise par UI, ennemis, boss, effets de seuil
 
-#### Desengagement ennemis a la mort du joueur
-- BP_EnemyBase > BeginPlay : bind OnPlayerDeath -> OnPlayerDied
-- OnPlayerDied : Get Controller -> Cast BP_AIController_Enemy_Base -> LoseAggro
-- LoseAggro reset le Blackboard (TargetActor = None, HasAggro = false) + stoppe le BT
-- RegisterTarget : check IsDead deja en place (ne cible pas un joueur mort)
-- Architecture : un seul point de blocage (ReceiveDamage) + dispatcher pour comportements
+#### Architecture Stat System -- etat final priorites hautes
+- SetStatValue = unique point de modification des stats
+- OnStatChanged = notification event-driven vers tous les abonnes
+- UI peut se binder pour remplacer le polling continu
+- Extensible pour ennemis/boss/compagnons sans modification du core
 
 #### Roadmap mise a jour
 - [x] Mort joueur : OnPlayerDeath + desengagement ennemis
-- [ ] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
+- [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
 - [ ] Unification des inputs dupliques
 - [ ] Iframes dash/roll
-- [ ] Migration UE5.7 + UnrealClaude (jalon dedie)
+- [ ] Migration UE5.7 + UnrealClaude (session dediee)
 - [ ] Setup ComfyUI pour generation textures/concepts
 
 ---
