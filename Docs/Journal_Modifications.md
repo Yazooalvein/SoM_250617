@@ -58,11 +58,25 @@ Suivi precis de toutes les evolutions majeures du projet.
 - UI peut se binder pour remplacer le polling continu
 - Extensible pour ennemis/boss/compagnons sans modification du core
 
+### 08/05/2026 -- Nico + Claude -- Jalon stable #4 -- Unification inputs
+
+#### Nettoyage vestiges template ThirdPerson
+- Supprime : BP_ThirdPersonGameMode + BP_ThirdPersonCharacter (vestiges template inutilises)
+- Supprime : Content/Input/Actions/ (doublons IA_Jump, IA_Look, IA_Move, IA_Dash, IA_MouseLook)
+- Supprime : IMC_MouseLook (lie uniquement aux vestiges supprimes)
+
+#### Architecture Input -- etat final
+- Source unique : Content/Input/InputActions/ (IA_Jump, IA_Look, IA_Move, IA_Dodge, IA_Sprint, IA_LockOn, IA_Attack_Light, IA_Attack_Heavy, IA_Block, IA_RadialMenu...)
+- IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
+- BP_PlatformingCharacter + BP_PlatformingPlayerController = seuls consommateurs des inputs
+
 #### Roadmap mise a jour
 - [x] Mort joueur : OnPlayerDeath + desengagement ennemis
 - [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
-- [ ] Unification des inputs dupliques
-- [ ] Iframes dash/roll
+- [x] Unification des inputs dupliques : source unique Content/Input/InputActions/
+- [ ] Iframes dash/roll (bIsInvincible dans ReceiveDamage)
+- [ ] OnStatChanged -> bindings UI event-driven
+- [ ] Hit Flash ennemis
 - [ ] Migration UE5.7 + UnrealClaude (session dediee)
 - [ ] Setup ComfyUI pour generation textures/concepts
 
@@ -77,4 +91,4 @@ Ce document doit etre mis a jour a chaque modification significative.
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 07/05/2026
+- Derniere mise a jour : 08/05/2026
