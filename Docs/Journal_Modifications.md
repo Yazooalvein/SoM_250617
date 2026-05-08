@@ -66,15 +66,33 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Supprime : IMC_MouseLook (lie uniquement aux vestiges supprimes)
 
 #### Architecture Input -- etat final
-- Source unique : Content/Input/InputActions/ (IA_Jump, IA_Look, IA_Move, IA_Dodge, IA_Sprint, IA_LockOn, IA_Attack_Light, IA_Attack_Heavy, IA_Block, IA_RadialMenu...)
+- Source unique : Content/Input/InputActions/
 - IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
 - BP_PlatformingCharacter + BP_PlatformingPlayerController = seuls consommateurs des inputs
+
+### 08/05/2026 -- Nico + Claude -- Jalon stable #5 -- Iframes dash/roll
+
+#### BP_PlatformingCharacter
+- Variable bIsInvincible (Boolean, default false) ajoutee
+- ReceiveDamage : Branch (bIsInvincible?) insere en premier check
+  - True : damage ignore, exec termine
+  - False : flow existant (IsDead? + soustraction HP + HitFlash + mort)
+- Dash : SET bIsInvincible = true apres SET IsDashing = true
+- Custom Event EndDash (AN_EndDash) : SET bIsInvincible = false apres SET IsDashing = false
+- Roll : SET bIsInvincible = true apres SET IsRolling = true
+- Custom Event EndRoll (AN_EndRoll) : SET bIsInvincible = false apres SET IsRolling = false
+
+#### Architecture Iframes -- etat final
+- Duree iframe = duree animatoin (AN_EndDash / AN_EndRoll comme points de sortie)
+- Un seul flag bIsInvincible partage Dash + Roll
+- Approche Dark Souls : c'est l'AnimNotify qui definit la fenetre d'invincibilite
+- Extensible : tout futur mouvement peut SET bIsInvincible sans toucher ReceiveDamage
 
 #### Roadmap mise a jour
 - [x] Mort joueur : OnPlayerDeath + desengagement ennemis
 - [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
-- [x] Unification des inputs dupliques : source unique Content/Input/InputActions/
-- [ ] Iframes dash/roll (bIsInvincible dans ReceiveDamage)
+- [x] Unification des inputs dupliques
+- [x] Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
 - [ ] OnStatChanged -> bindings UI event-driven
 - [ ] Hit Flash ennemis
 - [ ] Migration UE5.7 + UnrealClaude (session dediee)
