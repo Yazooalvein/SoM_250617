@@ -65,11 +65,26 @@ Event ReceiveDamage
 - Si mort : dispatcher OnDeath → LoseAggro + destruction acteur
 - Methode modulaire, sans ApplyDamage natif UE
 
+### Hit Flash ennemis (Jalon #7 — partiel)
+
+- M_Mannequin : HitFlashAmount (Scalar Parameter) ajoute sur Emissive via Add
+- BP_EnemyBase ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 → Delay 0.12 → 0.0
+- ⚠️ Non fonctionnel actuellement : ennemi utilise MI_Quinn (Material Instance), necessite Dynamic Material Instance
+- A finaliser quand le vrai enemy mesh sera en place avec M_Enemy_Base dedie
+- Pattern a suivre : BeginPlay → Create DMI slot 0 + slot 1 → SET DMI refs → ReceiveDamage → Set Scalar sur chaque DMI
+
+### Fix critique GameMode (Jalon #7 — 10/05/2026)
+
+- **Symptome** : Lock-On et Menu Radial ne repondaient plus
+- **Cause** : BP_SoM_GameMode n'avait pas BP_PlatformingPlayerController assigne comme Player Controller Class
+- **Fix** : BP_SoM_GameMode → Player Controller Class = BP_PlatformingPlayerController
+- **Prevention** : toujours verifier Player Controller Class dans le GameMode apres creation/remplacement
+
 ---
 
 ## 🔁 Pipeline de fonctionnement
 
-1. Input "attaque/defense" recu via Enhanced Input
+1. Input "attaque/defense" recu via Enhanced Input (IMC_Prototype dans BP_PlatformingPlayerController)
 2. Test validite/action possible (canAttack, stamina, etat joueur)
 3. Execution de l'anim, detection hit/collision, application effet
 4. Application degats via BPI_TakeDamage → ReceiveDamage → SetStatValue("HealthCurrent")
@@ -85,10 +100,18 @@ Event ReceiveDamage
 - [x] HitFlash joueur (M_Hero HitFlashAmount, flash 0.12s)
 - [x] Iframes dash/roll (bIsInvincible, pilote par AnimNotify) — 08/05/2026
 - [x] ReceiveDamage → SetStatValue pour notifier le HUD — 10/05/2026
-- [ ] Hit Flash ennemis
+- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base + DMI)
 - [ ] Recuperer composants Combat/LockOn du precedent projet
 - [ ] Refactor gestion combos et synchro Stat System
 - [ ] Preparer base pour magie, armes multiples, effets speciaux
+
+---
+
+## 💡 Bonnes pratiques
+
+- Toujours verifier Player Controller Class dans BP_SoM_GameMode apres toute refonte
+- Hit Flash sur ennemi : utiliser Dynamic Material Instance cree au BeginPlay, pas Set Scalar on Materials
+- M_Enemy_Base a creer avec HitFlashAmount integre des le depart pour les vrais ennemis
 
 ---
 
