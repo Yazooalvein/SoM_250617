@@ -47,7 +47,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 #### BP_AttributeSet_Base
 - Event Dispatcher OnStatChanged(StatName [Name], NewValue [Float])
-- SetStatValue : Call OnStatChanged apres le Switch, branché sur tous les SET
+- SetStatValue : Call OnStatChanged apres le Switch, branche sur tous les SET
 - StatName et Value passes directement depuis les inputs de SetStatValue
 - Un seul node Call pour tous les cases du Switch
 - Dispatcher pret a etre utilise par UI, ennemis, boss, effets de seuil
@@ -83,18 +83,48 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Custom Event EndRoll (AN_EndRoll) : SET bIsInvincible = false apres SET IsRolling = false
 
 #### Architecture Iframes -- etat final
-- Duree iframe = duree animatoin (AN_EndDash / AN_EndRoll comme points de sortie)
+- Duree iframe = duree animation (AN_EndDash / AN_EndRoll comme points de sortie)
 - Un seul flag bIsInvincible partage Dash + Roll
 - Approche Dark Souls : c'est l'AnimNotify qui definit la fenetre d'invincibilite
 - Extensible : tout futur mouvement peut SET bIsInvincible sans toucher ReceiveDamage
+
+### 10/05/2026 -- Nico + Claude -- Jalon stable #6 -- OnStatChanged bindings UI event-driven
+
+#### BP_AttributeSet_Base
+- SetStatValue : ajout cases HealthCurrent, StaminaCurrent, ManaCurrent dans Switch on Name
+- Nommage unifie sans espaces : HealthCurrent, StaminaCurrent, ManaCurrent, HealthMax etc.
+- ConsumeStamina : SET direct remplace par SetStatValue("StaminaCurrent")
+- HandleStaminaRegen : SET direct remplace par SetStatValue("StaminaCurrent")
+- ReceiveDamage : SET direct remplace par SetStatValue("HealthCurrent")
+- InitAttributesFromDatatable : SET directs Current remplaces par SetStatValue apres Completed
+
+#### UI_HUD_Main
+- 3 variables ajoutees : HealthPercent, StaminaPercent, ManaPercent (Float, default 1.0)
+- Get_HealthBar_Percent / Get_StaminaBar_Percent / Get_ManaBar_Percent : simplifiees, retournent la variable locale
+- Event Construct : Bind HUD_OnStatChanged sur AttributeSetRef.OnStatChanged
+- HUD_OnStatChanged : Switch on Name -> division Current/Max -> SET *Percent correspondant
+- InitHUD : fonction d'init appelee depuis Add_Main_HUD apres Add to Viewport
+- Add_Main_HUD (BP_PlatformingCharacter) : appel InitHUD apres creation widget
+
+#### Architecture UI -- etat final
+- Zero polling : les barres ne lisent plus les stats chaque frame
+- Push pur : OnStatChanged notifie le HUD uniquement quand une stat change
+- SetStatValue = unique point de modification, garantit la notification
+- Extensible : tout nouvel abonne (minimap, boss bar) se bind sur OnStatChanged sans toucher le core
+
+#### Note architecture -- Sauvegarde future
+- Les valeurs Current ne sont pas dans la Datatable (valeurs de reference statiques)
+- Pour save/load (reprise boss, checkpoint) : prevoir un SaveGame Object dedie
+- Au load : reinjecter les Current via SetStatValue pour notifier tous les abonnes
 
 #### Roadmap mise a jour
 - [x] Mort joueur : OnPlayerDeath + desengagement ennemis
 - [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
 - [x] Unification des inputs dupliques
 - [x] Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
-- [ ] OnStatChanged -> bindings UI event-driven
+- [x] OnStatChanged -> bindings UI event-driven (zero polling)
 - [ ] Hit Flash ennemis
+- [ ] Systeme de sauvegarde SaveGame (session dediee)
 - [ ] Migration UE5.7 + UnrealClaude (session dediee)
 - [ ] Setup ComfyUI pour generation textures/concepts
 
@@ -109,4 +139,4 @@ Ce document doit etre mis a jour a chaque modification significative.
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 08/05/2026
+- Derniere mise a jour : 10/05/2026
