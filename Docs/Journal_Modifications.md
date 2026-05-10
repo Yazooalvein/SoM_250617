@@ -117,13 +117,30 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Pour save/load (reprise boss, checkpoint) : prevoir un SaveGame Object dedie
 - Au load : reinjecter les Current via SetStatValue pour notifier tous les abonnes
 
+### 10/05/2026 -- Nico + Claude -- Jalon #7 -- Hit Flash ennemi (partiel) + fix GameMode
+
+#### M_Mannequin
+- HitFlashAmount (Scalar Parameter, default 0.0) ajoute via MCP Python
+- Branche sur Emissive Color via Add (combine avec Emissive existant Logo/EmissivePower)
+- Note : matériau temporaire (mannequin Quinn), a refaire sur le vrai enemy mesh
+
+#### BP_EnemyBase
+- ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 -> Delay 0.12 -> 0.0
+- Note : non fonctionnel sur MI_Quinn (Material Instance) -- necessite DMI au BeginPlay
+- A finaliser quand le vrai enemy mesh/materiau sera en place
+
+#### Fix critique -- BP_SoM_GameMode
+- Player Controller Class n'etait pas assigne a BP_PlatformingPlayerController
+- Lock-On et Menu Radial ne repondaient plus suite au nettoyage jalon #4
+- Corrige : BP_SoM_GameMode -> Player Controller Class = BP_PlatformingPlayerController
+
 #### Roadmap mise a jour
 - [x] Mort joueur : OnPlayerDeath + desengagement ennemis
 - [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
 - [x] Unification des inputs dupliques
 - [x] Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
 - [x] OnStatChanged -> bindings UI event-driven (zero polling)
-- [ ] Hit Flash ennemis
+- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base)
 - [ ] Systeme de sauvegarde SaveGame (session dediee)
 - [ ] Migration UE5.7 + UnrealClaude (session dediee)
 - [ ] Setup ComfyUI pour generation textures/concepts
