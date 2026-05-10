@@ -1,10 +1,10 @@
-# Architecture Technique — Système d’Entrée & Contrôles
+# Architecture Technique — Système d'Entrée & Contrôles
 
 ---
 
 ## 📌 Objectif du module
 
-Centraliser la gestion des entrées :  
+Centraliser la gestion des entrées :
 - Enhanced Input (clavier, souris, pad, mobile/touch si besoin)
 - Mapping contextuel (jeu, UI, menu radial…)
 - Règles de priorisation, exécution en pause, gestion dynamique des contextes
@@ -13,34 +13,47 @@ Centraliser la gestion des entrées :
 
 ## 🧩 Composants principaux
 
-- InputMappingContext(s) (IMC_Gameplay, IMC_UI, IMC_RadialMenu, etc.)
-- InputActions (Move, Jump, Attack, Dodge, RadialMenu, Debug, etc.)
-- BP_PlayerController (initialisation mapping, switch context)
-- Widgets ou UI qui nécessitent des actions spécifiques (menu radial, debug, etc.)
+- **InputMappingContexts actifs** : IMC_Default, IMC_Platforming, IMC_Prototype
+- **InputActions** : source unique dans `Content/Input/InputActions/`
+- **BP_PlatformingCharacter** (consommateur principal des inputs)
+- **BP_PlatformingPlayerController** (consommateur secondaire)
 
 ---
 
-## 📦 Variables, Fonctions & Structures clés
+## 📦 Source unique des InputActions
 
-> **Basé sur l’itération précédente du projet (ancienne doc Input/Controls Architecture).  
-> On récupère la logique de mapping, les conventions de nommage, et la gestion des contextes.**
+Toutes les IA sont dans `Content/Input/InputActions/` :
+
+| InputAction | Usage |
+|---|---|
+| IA_Move | Déplacement |
+| IA_Look | Caméra (souris + gamepad) |
+| IA_Jump | Saut |
+| IA_Dodge | Dash / Roll |
+| IA_Sprint | Sprint |
+| IA_LockOn | Verrouillage cible |
+| IA_Attack_Light | Attaque légère |
+| IA_Attack_Heavy | Attaque lourde |
+| IA_Block | Parade |
+| IA_RadialMenu | Menu radial armes |
 
 ---
 
 ## 🔁 Pipeline de fonctionnement
 
-1. Initialisation du mapping d’entrée au BeginPlay (PlayerController)
-2. Attribution dynamique des contextes selon l’état du jeu (gameplay, UI, radial, etc.)
-3. Définition des actions de base et contextuelles
-4. Gestion de la priorité, des exécutions “en pause”, et des retours de focus (Game Only / Game and UI)
+1. Initialisation du mapping Enhanced Input au BeginPlay (PlayerController)
+2. Attribution dynamique des contextes selon l'état du jeu
+3. BP_PlatformingCharacter et BP_PlatformingPlayerController consomment les IA
+4. Priorité/contextes gérés par les IMC actifs
 
 ---
 
 ## 🗺️ Roadmap locale
 
-- [ ] Adapter la logique Enhanced Input à la structure du nouveau template
-- [ ] Uniformiser les conventions de nommage/actions dans tout le projet
-- [ ] Préparer la compatibilité future avec le mobile ou d’autres devices si besoin
+- [x] Unification des inputs : suppression vestiges template ThirdPerson (10/05/2026)
+- [x] Source unique : Content/Input/InputActions/
+- [x] Suppression BP_ThirdPersonCharacter, BP_ThirdPersonGameMode, IMC_MouseLook
+- [ ] Préparer la compatibilité future mobile/autres devices si besoin
 
 ---
 
@@ -56,6 +69,6 @@ Centraliser la gestion des entrées :
 ## 🕒 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : [JJ/MM/AAAA]
+- Dernière mise à jour : 10/05/2026
 
 ---
