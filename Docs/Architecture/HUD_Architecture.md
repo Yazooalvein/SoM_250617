@@ -4,78 +4,88 @@
 
 ## 📌 Objectif du module
 
-Définir la structure et les règles du HUD principal en jeu :
+Définir la structure et les règles du HUD principal en jeu :
 - Jauges principales (vie, stamina, mana)
-- XP, consommables rapides, affichage de l’arme/sort actif, portrait joueur
-- Pipeline de binding synchrone avec le Stat System
+- XP, consommables rapides, affichage de l'arme/sort actif
+- Pipeline event-driven via OnStatChanged (zero polling)
 
 ---
 
 ## 🧩 Composants principaux
 
 - **UI_HUD_Main** (widget Blueprint central)
-- **BP_PlayerController** (instancie et ajoute le widget au viewport au BeginPlay, transmet la ref AttributeSetRef via “Expose on Spawn”)
-- **BP_AttributeSet_Base** (centralise les valeurs des stats, bindées dynamiquement sur le HUD)
-- **DataTable_StatList** (table source des valeurs de stats à l’initialisation)
-- Autres widgets contextuels/secondaires si besoin (buff, message, etc.)
+- **BP_PlatformingCharacter** (cree le widget, passe AttributeSetRef, appelle InitHUD)
+- **BP_AttributeSet_Base** (dispatche OnStatChanged a chaque changement de stat)
+- **DataTable_StatList** (table source des valeurs de stats a l'initialisation)
 
 ---
 
 ## 📦 Variables, Fonctions & Bindings clés
 
-### **Variable centrale :**
+### Variable centrale
 - **AttributeSetRef** (type : BP_AttributeSet_Base, Expose on Spawn)
 
-### **Fonctions de binding (exemples) :**
-- **Get_HealthBar_Percent**
-- **Get_StaminaBar_Percent**
-- **Get_ManaBar_Percent**
-    - Pipeline :  
-        - Vérifie `IsValid(AttributeSetRef)`
-        - Si Max > 0, retourne Current / Max
-        - Sinon retourne 0
+### Variables locales (Float, default 1.0)
+- **HealthPercent** — pourcentage vie courante
+- **StaminaPercent** — pourcentage stamina courante
+- **ManaPercent** — pourcentage mana courante
 
-### **Autres variables possibles :**
-- XP, NextLevelXP, WeaponSlot, QuickItem, etc.
+### Fonctions de binding (pure, retournent la variable locale)
+- **Get_HealthBar_Percent** → return HealthPercent
+- **Get_StaminaBar_Percent** → return StaminaPercent
+- **Get_ManaBar_Percent** → return ManaPercent
+
+### Event Construct
+- Bind HUD_OnStatChanged sur AttributeSetRef.OnStatChanged
+- (Le Bind suffit : InitHUD initialise les valeurs, pas besoin d'init dans Event Construct)
+
+### Custom Event HUD_OnStatChanged (StatName [Name], NewValue [Float])
+- Switch on Name (StatName) :
+    - "HealthCurrent"  → SET HealthPercent  = NewValue / AttributeSetRef.HealthMax
+    - "StaminaCurrent" → SET StaminaPercent = NewValue / AttributeSetRef.StaminaMax
+    - "ManaCurrent"    → SET ManaPercent    = NewValue / AttributeSetRef.ManaMax
+
+### Fonction InitHUD
+- Appelee depuis BP_PlatformingCharacter apres Add to Viewport
+- SET HealthPercent  = AttributeSetRef.HealthCurrent  / AttributeSetRef.HealthMax
+- SET StaminaPercent = AttributeSetRef.StaminaCurrent / AttributeSetRef.StaminaMax
+- SET ManaPercent    = AttributeSetRef.ManaCurrent    / AttributeSetRef.ManaMax
 
 ---
 
-## 🔁 Pipeline d’intégration & affichage
+## 🔁 Pipeline d'intégration & affichage
 
-1. **Au BeginPlay** (BP_PlayerController ou PlayerCharacter) :
-    - Instancie `BP_AttributeSet_Base`
-    - Initialise les valeurs via la DataTable
-    - Crée le widget `UI_HUD_Main` avec la ref AttributeSetRef en “Expose on Spawn”
-    - Ajoute le widget au viewport
+1. **Au BeginPlay** (BP_PlatformingCharacter) :
+    - InitAttributesFromDatatable → stats initialisees via SetStatValue
+    - Add_Main_HUD : Create Widget (AttributeSetRef en Expose on Spawn) → Add to Viewport → InitHUD
 
-2. **Dans le widget** :
-    - Les jauges (Health, Stamina, Mana) sont bindées en direct sur AttributeSetRef
-    - Tous les bindings UI vérifient la validité de la référence (IsValid)
-    - Aucun accès direct au PlayerCharacter
+2. **Dans le widget (Event Construct)** :
+    - Bind HUD_OnStatChanged sur AttributeSetRef.OnStatChanged
+    - Les Progress Bars lisent les variables locales *Percent (pas de polling)
 
-3. **Mise à jour** :
-    - Toute modif (dégâts, soin, consommation, régénération…) se reflète instantanément dans le HUD
-    - Debug possible via macro DebugPrintVar
-    - L’AttributeSet doit être instancié et initialisé (valeurs Max/Current prêtes) **avant** la création du HUD pour garantir l’exactitude des valeurs affichées.
-    - Tout ajout de jauge/action (stamina jump, stamina dash…) implique un nouveau binding UI, toujours sur la référence AttributeSetRef.
+3. **Mise a jour en jeu** :
+    - Toute modification de stat passe par SetStatValue → OnStatChanged fire → HUD_OnStatChanged → SET *Percent → Progress Bar mise a jour automatiquement
+    - Zero acces direct a AttributeSetRef apres l'init
 
 ---
 
 ## 💡 Bonnes pratiques
 
-- Passer systématiquement la référence `AttributeSetRef` à la création du widget (Expose on Spawn)
-- Les bindings sont toujours “fail safe” : `IsValid` + division par Max > 0
-- Aucune variable stat n’est stockée côté widget, uniquement la ref à l’AttributeSet
-- L’ajout d’une nouvelle stat nécessite juste un binding UI supplémentaire, sans modif du pipeline
-- Commente chaque fonction de binding pour lisibilité
+- Passer AttributeSetRef a la creation du widget (Expose on Spawn)
+- InitHUD appelee APRES Add to Viewport pour garantir la validite de AttributeSetRef
+- Les Progress Bars ne lisent que les variables locales *Percent, jamais AttributeSetRef directement
+- Toute nouvelle jauge : ajouter une variable *Percent + un case dans HUD_OnStatChanged + init dans InitHUD
+- Zero polling : jamais de lecture directe dans Get_*Bar_Percent
 
 ---
 
 ## 🗺️ Roadmap locale
 
-- [x] Reprise du widget HUD de l’ancien projet
-- [x] Adaptation du binding sur le nouveau système AttributeSetRef
-- [ ] Ajout/extension des jauges ou éléments contextuels (buffs, consommables…)
+- [x] Widget HUD avec jauges Health/Stamina/Mana
+- [x] AttributeSetRef passe en Expose on Spawn
+- [x] Migration polling → event-driven via OnStatChanged (10/05/2026)
+- [x] InitHUD pour initialisation correcte au lancement
+- [ ] Ajout jauges XP, consommables, buffs
 - [ ] Extension UI debug en overlay si besoin
 
 ---
@@ -92,6 +102,6 @@ Définir la structure et les règles du HUD principal en jeu :
 ## 🕒 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : 18/06/2025
+- Dernière mise à jour : 10/05/2026
 
 ---
