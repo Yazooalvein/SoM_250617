@@ -6,21 +6,21 @@
 
 Centraliser toute la logique liée à la gestion des statistiques du jeu :
 - Santé, mana, stamina, XP, progression, etc.
-- Initialisation, modification, synchronisation avec l’UI et le gameplay
-- Pipeline extensible et “future proof” (GAS-friendly mais full BP)
+- Initialisation, modification, synchronisation avec l'UI et le gameplay
+- Pipeline extensible et "future proof" (GAS-friendly mais full BP)
 
 ---
 
 ## 🧩 Composants principaux
 
-- **BP_AttributeSet_Base** (Blueprint d’Object, dossier `/Content/Systems/Stats/`)
+- **BP_AttributeSet_Base** (Blueprint d'Object, dossier `/Content/Systems/Stats/`)
 - **Datatable_StatList** (DataTable avec struct `StatStruct`)
 - **Enums** :
     - `EElementType` : None, Athanor, Dryade, Gnome, Lumina, Luna, Ombre, Ondine, Sylphide
     - `EStatType` : Principal, Elem, Second, Progression, Temp
-- **BP_PlayerCharacter** (possède une variable `AttributeSetRef`)
-- **EventDispatchers** (prévu pour notification UI, debug, etc.)
-- **Widgets liés** (HUD, debug...)
+- **BP_PlatformingCharacter** (possède une variable `AttributeSetRef`)
+- **OnStatChanged** (Event Dispatcher, notifie tous les abonnés)
+- **Widgets liés** (UI_HUD_Main)
 
 ---
 
@@ -28,82 +28,94 @@ Centraliser toute la logique liée à la gestion des statistiques du jeu :
 
 ### Struct `StatStruct` (DataTable)
 | Champ         | Type            | Description                        |
-|---------------|-----------------|------------------------------------|
-| StatID        | Name            | Identifiant unique                 |
-| DisplayName   | Text            | Nom affiché en UI/localisation     |
-| Description   | Text            | Description détaillée              |
-| Type          | EStatType       | Principal, Elem, etc.              |
-| Element       | EElementType    | None, Athanor, etc.                |
-| BaseValue     | Float           | Valeur de base                     |
-| MinValue      | Float           | Borne min                          |
-| MaxValue      | Float           | Borne max                          |
-| IsModifiable  | Bool            | Peut être modifiée en jeu ?        |
-| Icone         | Texture2D       | Icône UI                           |
-| GameplayTag   | GameplayTag     | Pour extension GAS/filtres         |
+|---------------|-----------------|-------------------------------------|
+| StatID        | Name            | Identifiant unique                  |
+| DisplayName   | Text            | Nom affiché en UI/localisation      |
+| Description   | Text            | Description détaillée               |
+| Type          | EStatType       | Principal, Elem, etc.               |
+| Element       | EElementType    | None, Athanor, etc.                 |
+| BaseValue     | Float           | Valeur de base                      |
+| MinValue      | Float           | Borne min                           |
+| MaxValue      | Float           | Borne max                           |
+| IsModifiable  | Bool            | Peut être modifiée en jeu ?         |
+| Icone         | Texture2D       | Icône UI                            |
+| GameplayTag   | GameplayTag     | Pour extension GAS/filtres          |
 
-### Variables BP_AttributeSet_Base (exemples actuels)
+### Convention de nommage des stats (sans espace, CamelCase)
 
-- **Santé** :
-    - HealthMax (Float)
-    - HealthCurrent (Float)
-- **Stamina** :
-    - StaminaMax (Float)
-    - StaminaCurrent (Float)
-    - StaminaRegenRate (Float)
-    - StaminaRegenDelay (Float)
-    - StaminaRegenInterval (Float)
-    - StaminaCostJump (Float)
-    - StaminaCostDash (Float)
-    - bIsStaminaRegenerating (Bool)
-- **Mana** :
-    - ManaMax (Float)
-    - ManaCurrent (Float)
-- **Élémentaire / Progression** :
-    - AffinityAthanor (Float)
-    - ResistanceOmbre (Float)
-    - WeaponLevel (Float)
-- (Ajouter toutes les stats présentes dans la DataTable !)
+| Nom dans Switch | Variable BP |
+|---|---|
+| HealthCurrent | HealthCurrent |
+| HealthMax | HealthMax |
+| StaminaCurrent | StaminaCurrent |
+| StaminaMax | StaminaMax |
+| ManaCurrent | ManaCurrent |
+| ManaMax | ManaMax |
+| StaminaCostJump | StaminaCostJump |
+| StaminaCostDash | StaminaCostDash |
+| StaminaRegenRate | StaminaRegenRate |
+| StaminaRegenDelay | StaminaRegenDelay |
+| StaminaRegenInterval | StaminaRegenInterval |
+
+> ⚠️ Les noms doivent être identiques entre le Switch de SetStatValue, les appels depuis le gameplay, et le Switch du HUD. Aucun espace.
 
 ### Fonctions/Macros principales
 
-- **SetStatValue** (StatName [Name], Value [Float])  
-    - Switch sur StatName, set la variable correspondante
-- **ApplyStatChange** (optionnel, wrapper pour modif/delta)
-- **ConsumeStamina** (logique consommation stamina)
-- **StartStaminaRegen / HandleStaminaRegen** (gestion timer, clamp, reset flag)
+- **SetStatValue** (StatName [Name], Value [Float])
+    - Switch sur StatName → SET la variable correspondante → Call OnStatChanged(StatName, NewValue)
+    - **Point d'entrée unique pour toute modification de stat**
+- **ConsumeStamina** (Amount [Float])
+    - Clamp(StaminaCurrent - Amount, 0, StaminaMax) → SetStatValue("StaminaCurrent")
+    - Puis Clear Timer + SET bIsStaminaRegenerating = false + Set Timer StartStaminaRegen
+- **StartStaminaRegen / HandleStaminaRegen**
+    - HandleStaminaRegen : SetStatValue("StaminaCurrent", Clamp(Current + Rate * Interval, 0, Max))
+- **OnStatChanged** (Event Dispatcher)
+    - Paramètres : StatName [Name], NewValue [Float]
+    - Appelé automatiquement par SetStatValue apres chaque modification
 - **DebugPrintVar** (macro : VarName, VarValue, Prefix, IsCritical)
-- Toute initialisation doit assigner la valeur “Current” à la valeur “Max” correspondante (pour Health, Stamina, Mana…) après le loop DataTable.
 
 ---
 
 ## 🔁 Pipeline de fonctionnement
 
 1. **Initialisation au lancement** :
-    - PlayerCharacter instancie BP_AttributeSet_Base (Construct Object from Class)
-    - Loop sur la DataTable pour chaque StatID → SetStatValue(StatID, BaseValue)
-    - Stocke la référence dans `AttributeSetRef`
+    - BP_PlatformingCharacter instancie BP_AttributeSet_Base (Construct Object from Class)
+    - Loop sur la DataTable → SetStatValue(StatID, BaseValue) pour chaque Max
+    - Apres Completed : SetStatValue("HealthCurrent", HealthMax) + Stamina + Mana
+    - Stocke la reference dans `AttributeSetRef`
+    - Cree UI_HUD_Main avec AttributeSetRef en Expose on Spawn → Add to Viewport → InitHUD
+
 2. **Modification de stat** :
-    - Toute modif passe par SetStatValue ou ApplyStatChange
-    - Ajout (optionnel) d’Event Dispatcher pour notifier la UI ou autres systèmes
-3. **Liaison avec l’UI/HUD** :
-    - Sur création du widget HUD, passer `AttributeSetRef` en “Expose on Spawn”
-    - Les bindings UI accèdent dynamiquement aux valeurs (Get_HealthBar_Percent, etc.)
-    - Les fonctions de binding vérifient la validité (`IsValid`), divisent par Max (check > 0), sinon retournent 0
+    - Toute modif passe obligatoirement par SetStatValue
+    - SetStatValue SET la variable ET appelle OnStatChanged
+    - Exemples : ReceiveDamage → SetStatValue("HealthCurrent"), ConsumeStamina → SetStatValue("StaminaCurrent")
+
+3. **Notification des abonnes** :
+    - OnStatChanged est un Event Dispatcher bindable par n'importe quel systeme
+    - UI_HUD_Main se bind dans son Event Construct
+    - Extensible : ennemis, boss, effets de seuil peuvent aussi se binder
+
+4. **Sauvegarde (futur)** :
+    - Les valeurs Current ne sont pas dans la DataTable (valeurs de reference statiques)
+    - Prevoir un SaveGame Object dedie pour snapshot/restore des Current via SetStatValue
 
 ---
 
 ## 🗺️ Roadmap locale
 
-- [x] Création du BP_AttributeSet_Base (structure variables + fonctions principales)
+- [x] Creation du BP_AttributeSet_Base (structure variables + fonctions principales)
 - [x] Import de la DataTable avec struct et enums
-- [x] Pipeline d’initialisation/consommation/regen stamina fonctionnel
-- [x] Macro DebugPrintVar utilisée partout
-- [ ] Ajouter EventDispatcher “OnStatChanged” pour automatiser la notif UI (optionnel/à venir)
-- [ ] Préparer duplicata/extension pour ennemis/boss/compagnons si besoin
+- [x] Pipeline d'initialisation/consommation/regen stamina fonctionnel
+- [x] Macro DebugPrintVar utilisee partout
+- [x] OnStatChanged Event Dispatcher operationnel (10/05/2026)
+- [x] SetStatValue = unique point de modification, toutes les fonctions migreees
+- [x] Convention nommage unifiee sans espace
+- [ ] Systeme SaveGame pour sauvegarde/restauration des Current
+- [ ] Dupliquer/etendre pour ennemis/boss/compagnons si besoin
 
 ---
 
-## 🔗 Liens & docs associées
+## 🔗 Liens & docs associees
 
 - [Journal_Modifications.md]
 - [Project_Architecture_Index.md]
@@ -115,18 +127,18 @@ Centraliser toute la logique liée à la gestion des statistiques du jeu :
 
 ## 💡 Bonnes pratiques
 
-- Ajouter toute nouvelle stat dans la DataTable **et** dans le BP + Switch
-- Grouper et nommer toutes les variables par type/stat (ex : HealthMax, HealthCurrent)
+- Toute nouvelle stat : ajouter dans la DataTable ET dans le BP + Switch de SetStatValue
+- Nommage sans espace, CamelCase, identique partout
+- SetStatValue = seul point d'entree, jamais de SET direct sur les variables
+- DataTable = source unique de verite pour les valeurs Max/Reference
+- Les valeurs Current s'initialisent = Max apres la boucle DataTable
 - Documenter chaque variable et fonction (tooltip)
-- Isoler la logique métier dans le BP, l’UI ne fait que lire/afficher
-- Centraliser le debug, utiliser la macro
-- DataTable = source unique de vérité
 
 ---
 
 ## 🕒 Historique
 
 - Création : 17/06/2025
-- Dernière mise à jour : 19/06/2025
+- Dernière mise à jour : 10/05/2026
 
 ---
