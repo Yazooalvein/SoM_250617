@@ -31,4 +31,164 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ---
 
-*Ce fichier est mis a jour par l'agent UnrealClaude. Ne pas modifier manuellement.*
+### 11/05/2026 -- AUDIT COMPLET DU PROJET (agent Claude Code)
+
+**Action** : Audit filesystem complet du projet SoM_250617 apres migration UE5.7 / jalon #8.
+Analyse de la structure des assets, configs, plugins et conventions.
+Aucune modification Blueprint effectuee -- audit lecture seule.
+
+---
+
+## RAPPORT D'AUDIT -- 11/05/2026
+
+### CRITIQUES (a traiter en priorite)
+
+#### [C1] Plugin GenerativeAISupport -- dossier fantome + config residuelle
+- **Symptome** : `Plugins/GenerativeAISupport/` existe mais est VIDE (plugin supprime au jalon #8 mais dossier non nettoye)
+- **Config residuelle** : `Config/DefaultGame.ini` contient encore :
+  ```
+  [/Script/GenerativeAISupportEditor.GenerativeAISupportSettings]
+  bAutoStartSocketServer=True
+  ```
+- **Risque** : UE5 genere des warnings au startup car il cherche le module `GenerativeAISupportEditor` qui n'existe plus. Potentiel crash ou comportement imprévisible du socket server.
+- **Fix** : Supprimer `Plugins/GenerativeAISupport/` + nettoyer ces 2 lignes dans `DefaultGame.ini`
+
+#### [C2] UnrealClaude non declare dans .uproject
+- **Symptome** : `Plugins/UnrealClaude/` present et compile (v1.4.5), mais le fichier `SoM_250617.uproject` ne le declare pas dans sa liste Plugins
+- **Risque** : UE detecte les plugins locaux automatiquement, donc ca fonctionne en pratique. Mais si quelqu'un clone le repo et ouvre le projet, le plugin pourrait ne pas etre active selon la version d'UE. Aussi : le plugin n'apparait pas dans les settings Plugins de l'editeur comme "enabled".
+- **Fix** : Ajouter dans `SoM_250617.uproject` : `{"Name": "UnrealClaude", "Enabled": true}`
+
+#### [C3] Vestiges ThirdPerson toujours presents malgre jalon #4
+- **Blueprints** :
+  - `Content/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.uasset` -- vestige
+  - `Content/ThirdPerson/Blueprints/BP_ThirdPersonGameMode.uasset` -- vestige
+- **Maps** :
+  - `Content/ThirdPerson/Lvl_ThirdPerson.umap` -- doublon de `Content/Maps/Lvl_ThirdPerson.umap`
+- **Materials** :
+  - `Content/ThirdPerson/MI_ThirdPersonColWay.uasset` -- vestige
+  - `Content/Maps/MI_ThirdPersonColWay.uasset` -- doublon de ce meme materiau
+- **Risque** : Ces assets ne sont pas references dans le GameMode actif, mais ils pollutent le projet et peuvent etre accidentellement references. Le jalon #4 a supprime les doublons d'InputActions mais n'a pas nettoye le dossier ThirdPerson/.
+- **Fix** : Verifier les references (asset_referencers dans UE), puis supprimer si non references.
+
+#### [C4] BP_PlatformingGameMode -- vestige ou utilise ?
+- `Content/Characters/Players/Blueprint/BP_PlatformingGameMode.uasset` existe encore
+- Le GameMode actif est `BP_SoM_GameMode` (declare dans DefaultEngine.ini)
+- **Risque** : Si BP_PlatformingCharacter ou une map reference encore ce vieux GameMode, les sessions de jeu pourraient demarrer avec le mauvais GameMode (sans BP_PlatformingPlayerController assigned), cassant Lock-On et Radial Menu.
+- **Fix** : Verifier via asset_referencers, supprimer si non reference.
+
+---
+
+### IMPORTANTS (a planifier)
+
+#### [I1] Doublons d'animations -- confusion de source
+Les montages suivants existent en DOUBLE :
+- `Content/Characters/Players/Animations/AM_Heavy_Sword_1.uasset`
+  ET `Content/Weapons/Animation/AM_Heavy_Sword_1.uasset`
+- `Content/Characters/Players/Animations/AM_Light_Sword_1.uasset`
+  ET `Content/Weapons/Animation/AM_Light_Sword_1.uasset`
+- `Content/Characters/Players/Animations/AM_Light_Sword_2.uasset`
+  ET `Content/Weapons/Animation/AM_Light_Sword_2.uasset`
+- **Risque** : Si les deux sont references par des Blueprints differents, une modif sur l'un ne se repercutera pas sur l'autre. Source de bugs silencieux sur les combos.
+- **Fix** : Determiner la source canonique (Weapons/Animation/ logiquement), verifier les references, rediriger et supprimer les doublons.
+
+#### [I2] Doublons IMC -- structure incohérente
+- `Content/Input/IMC_Default.uasset` (dans Input/ directement)
+- `Content/Input/InputMappings/IMC_Default.uasset` (dans sous-dossier)
+- `Content/Input/IMC_Platforming.uasset` (dans Input/ directement -- pas dans InputMappings/)
+- `Content/Input/InputMappings/IMC_Prototype.uasset` (dans sous-dossier -- pas dans Input/)
+- **Etat attendu** (CLAUDE.md) : source unique Content/Input/InputActions/, IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
+- **Probleme** : IMC_Default existe en 2 exemplaires ; IMC_Platforming et IMC_Prototype sont dans des endroits differents.
+- **Fix** : Consolider tous les IMC dans Content/Input/InputMappings/, verifier lequel des 2 IMC_Default est le bon, supprimer les doublons.
+
+#### [I3] ProjectName toujours "Third Person BP Game Template"
+- `Config/DefaultGame.ini` : `ProjectName=Third Person BP Game Template`
+- **Risque** : Faible (cosmétique), mais peut preter a confusion dans les rapports d'erreur UE et le packaging.
+- **Fix** : Changer en `ProjectName=Shadow of Mana`
+
+#### [I4] Structure dossier Enemies incohérente
+Assets mixes entre `Content/Characters/Enemies/` et `Content/Characters/Enemies/Blueprints/` :
+- **Directement dans Enemies/** : `BP_Enemy_Sword01`, `BP_EnemyWeapon_Sword`, `BP_test_IA`, `SKM_EnemySword_01`, `SKM_EnemySword_01_Skeleton`, `AM_Enemy_Light_Sword_1`
+- **Dans Enemies/Blueprints/** : `BP_EnemyBase`, `BP_Enemy_Knight`, `BP_enemyTest`, `BT_Enemy`, `BB_enemy`
+- **Convention attendue** (CLAUDE.md) : `BP_EnemyBase` -> `BP_AIController_Enemy_Base`
+- **Fix** : Deplacer les BPs de test et assets Enemies dans Blueprints/, nettoyer
+
+#### [I5] Input Actions de debug non nettoyees
+Les IA suivantes sont clairement des actions de debug/test qui polluent Content/Input/InputActions/ :
+- `IA_inflictdamage` -- debug damage
+- `IA_KillDummyNow` -- debug kill
+- `IA_Test_AttachWaepon` -- **FAUTE DE FRAPPE** (Waepon au lieu de Weapon) + test
+- `IA_TestFloat` -- test
+- `IA_UI_TestFloat` -- test
+- **Risque** : Ces IA peuvent etre accidentellement bindees. La faute de frappe sur IA_Test_AttachWaepon peut empecher de la retrouver en cherchant "Weapon".
+- **Fix** : Verifier si encore bindees dans des IMC ou Blueprints, supprimer si non utilisees.
+
+---
+
+### MINEURS / A SURVEILLER
+
+#### [M1] Deux Animation Blueprints pour le personnage joueur
+- `Content/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.uasset`
+- `Content/Characters/Players/Animations/ABP_Manny_Platforming.uasset`
+- A verifier : lequel est assigne au Skeletal Mesh de BP_PlatformingCharacter ?
+- L'autre est-il un vestige ou en cours de dev ?
+
+#### [M2] Animations pistol/rifle du template -- poids mort
+- `Content/Characters/Mannequins/Anims/Pistol/` et `Anims/Rifle/` contiennent ~30 animations
+- Ces animations (MM_Pistol_*, MM_Rifle_*) ne sont pas pertinentes pour un ARPG melee/magic
+- Poids dans le projet mais pas de risque fonctionnel
+- A deplacer dans Dev/SandBox ou supprimer lors d'une session de nettoyage
+
+#### [M3] Input Touch -- pertinence a verifier
+- `Content/Input/Touch/` : UI_Thumbstick, UI_TouchSimple, BPI_TouchInterface
+- `Content/Input/BPI_TouchInterface_Platforming.uasset`, `UI_TouchInterface_Platforming.uasset`
+- Pas pertinent pour un ARPG PC/console. Vestige du template ?
+
+#### [M4] IA_UI_RadialMenu_Rotate -- possible doublon
+- `IA_RadialMenu.uasset` ET `IA_UI_RadialMenu_Rotate.uasset` coexistent
+- A verifier si les deux sont utilises ou si l'un est un vestige
+
+#### [M5] 3 maps actives -- clarifier le scope
+- `Content/Maps/Lvl_Platforming.umap` -- map principale (?)
+- `Content/Maps/NewMap.umap` -- map par defaut dans DefaultEngine.ini
+- `Content/Maps/Lvl_ThirdPerson.umap` -- vestige ThirdPerson ?
+- La map de dev actif devrait etre clairement identifiee. NewMap est un nom generique a renommer.
+
+---
+
+### POSITIF -- Ce qui est bien en place
+
+- Architecture stat (SetStatValue + OnStatChanged) : correctement implementee selon CLAUDE.md
+- GameMode et DefaultMap correctement configures dans DefaultEngine.ini
+- Source unique InputActions/ : en place (a consolider, voir I2)
+- UI event-driven (zero polling) : architecture documentee et en place (jalon #6)
+- iframes dash/roll (bIsInvincible) : en place (jalon #5)
+- Docs/Architecture/ : bien fourni (14 fichiers d'archi documentes)
+- UnrealClaude v1.4.5 : compile et operationnel
+- Systeme armes data-driven (DT_Weapons) : en place
+
+---
+
+### PLAN D'ACTION SUGGERE
+
+**Priorite 1 (a faire des la prochaine session)**
+1. [C1] Supprimer `Plugins/GenerativeAISupport/` (dossier vide) + nettoyer `DefaultGame.ini`
+2. [C2] Ajouter UnrealClaude dans `SoM_250617.uproject`
+3. [I3] Renommer ProjectName en "Shadow of Mana" dans `DefaultGame.ini`
+
+**Priorite 2 (session nettoyage)**
+4. [C3] Verifier et supprimer vestiges ThirdPerson (Blueprints, maps, materials)
+5. [C4] Verifier et supprimer BP_PlatformingGameMode si non reference
+6. [I1] Consolider les animations en double
+7. [I2] Consolider les IMC dans un seul dossier
+8. [I4] Reorganiser la structure dossier Enemies
+9. [I5] Nettoyer les IA de debug
+
+**Priorite 3 (quand besoin)**
+10. [M1] Clarifier quel ABP est actif
+11. [M5] Renommer NewMap + clarifier la map de dev
+
+---
+
+*Audit effectue par l'agent Claude Code (claude-sonnet-4-6) -- lecture seule, aucune modification Blueprint.*
+*Le rapport est base sur l'analyse du filesystem et des fichiers de config (les .uasset sont binaires).*
+*Pour un audit interne des graphs Blueprint, utiliser les outils MCP blueprint_query dans le panel UnrealClaude.*
