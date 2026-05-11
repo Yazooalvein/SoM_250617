@@ -157,15 +157,41 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Plus de dependance Python / fastmcp / socket port 9877
 - GitHub MCP : inchange (node.exe --use-system-ca, token Classic scope repo)
 
+### 11/05/2026 -- Nico + Agent UE -- Jalon #9 -- Audit complet + nettoyage Priorite 1 et 2
+
+#### Audit complet du projet (agent UnrealClaude -- lecture seule)
+- Analyse filesystem, configs, plugins, structure assets
+- 4 critiques, 5 importants, 5 mineurs identifies
+- Rapport complet dans Docs/Session_UnrealClaude.md
+
+#### Fixes Priorite 1 (Claude.ai via GitHub MCP -- fichiers texte)
+- Config/DefaultGame.ini : suppression section GenerativeAISupportSettings (C1)
+- Config/DefaultGame.ini : ProjectName = Shadow of Mana (I3)
+- SoM_250617.uproject : declaration officielle UnrealClaude (C2)
+
+#### Nettoyage Priorite 2 (agent UE -- filesystem, references verifiees)
+- Supprime : Content/ThirdPerson/ entier (BP_ThirdPersonCharacter, BP_ThirdPersonGameMode, Lvl_ThirdPerson, MI_ThirdPersonColWay) -- 0 reference externe (C3)
+- Supprime : IA_TestFloat, IA_Test_AttachWaepon, IA_UI_TestFloat -- 0 reference externe (I5)
+
+#### Actions restantes requises dans l'editeur UE (ne pas faire depuis filesystem)
+- [C4] URGENT : Lvl_Platforming -> World Settings -> GameMode Override = BP_SoM_GameMode
+  Actuellement pointe sur BP_PlatformingGameMode -> Lock-On + Radial Menu casseraient au launch
+  Apres fix : supprimer BP_PlatformingGameMode via Content Browser
+- [I1] BP_PlatformingCharacter : rediriger AM_Heavy/Light_Sword_* vers Weapons/Animation/
+  Les deux sets sont actifs (Players/Animations/ et Weapons/Animation/) -- risque de divergence silencieuse
+- [I2] Verifier IMC_Default et IMC_Platforming dans Enhanced Input UI (potentiellement orphelins)
+- [I4] Content Browser : deplacer BP_Enemy_Sword01, BP_EnemyWeapon_Sword, BP_test_IA vers Enemies/Blueprints/
+
 #### Roadmap mise a jour
 - [x] Migration UE5.7 + UnrealClaude
-- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base + DMI)
-- [ ] Systeme de sauvegarde SaveGame (session dediee)
-- [ ] Setup ComfyUI pour generation textures/concepts
-
----
-
-### [A completer apres chaque evolution]
+- [x] Audit complet + nettoyage Priorite 1 et 2
+- [ ] Fix C4 : Lvl_Platforming GameMode Override (URGENT -- prochaine session editeur)
+- [ ] Fix I1 : Consolidation animations en double (session editeur)
+- [ ] Fix I2 : Verification et consolidation IMC (session editeur)
+- [ ] Fix I4 : Reorganisation dossier Enemies (session editeur)
+- [ ] Hit Flash ennemis (vrai enemy mesh + M_Enemy_Base + DMI)
+- [ ] Systeme de sauvegarde SaveGame
+- [ ] Setup ComfyUI generation textures/concepts (RTX 3080Ti)
 
 ---
 
