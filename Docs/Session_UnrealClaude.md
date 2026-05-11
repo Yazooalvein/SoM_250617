@@ -24,6 +24,136 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 11/05/2026 -- SESSION POC MAGIE J-10 / J-11 (agent Claude Code)
+
+**Contexte** : Demarrage du POC Magie. Architecture reference : Docs/Architecture/Magic_System.md.
+Agent operationnel : Claude Code (pas UnrealClaude plugin -- outils MCP UE non disponibles dans cette session).
+Actions effectuees : creation dossier filesystem + plan d'implementation complet pour execution dans l'editeur.
+
+---
+
+#### [J-10] Preparation dossier Content/Systems/Magic/
+
+**Action** : Creation du dossier `Content/Systems/Magic/` (filesystem).
+**Pourquoi** : UE5 detecte automatiquement les nouveaux dossiers dans Content/ -- il apparaitra dans le Content Browser au prochain refresh ou ouverture editeur.
+**Points d'attention** : Le dossier est vide. Tous les assets (BP_MagicComponent, FSoM_SpellData, DT_Spells, enums) doivent etre crees depuis l'editeur UE. Le format .uasset est binaire -- impossible de les creer depuis le filesystem.
+
+---
+
+#### [J-10] Plan d'implementation BP_MagicComponent -- A EXECUTER DANS L'EDITEUR
+
+**Ce qui doit etre fait dans UE5 :**
+
+**Etape 1 -- Creer les Enums (prerequis pour FSoM_SpellData)**
+Dans Content/Systems/Magic/, faire clic droit -> Blueprints -> Enumeration :
+- `E_SpellCategory` : valeurs = Attaque, Buff, Debuff, Soin, Ultime
+- `E_SpellTarget` : valeurs = Enemy, Self, Area
+
+**Etape 2 -- Creer la Struct FSoM_SpellData (prerequis pour DT_Spells)**
+Dans Content/Systems/Magic/, faire clic droit -> Blueprints -> Structure, nommer `FSoM_SpellData` :
+- SpellID : Name
+- SpellName : Text
+- Deity : Name
+- Category : E_SpellCategory (enum)
+- ManaCost : Float
+- CastTime : Float (default 0.0)
+- Cooldown : Float
+- TargetType : E_SpellTarget (enum)
+- EffectValue : Float
+- Duration : Float
+
+**Etape 3 -- Creer BP_MagicComponent**
+Dans Content/Systems/Magic/, clic droit -> Blueprint Class -> parent = ActorComponent.
+Nommer : `BP_MagicComponent`
+
+Variables a ajouter :
+| Nom | Type | Default | Details |
+|-----|------|---------|---------|
+| UnlockedSpells | Map<Name, Array<Name>> | vide | DeityName -> [SpellIDs] |
+| QuickslotSlots | Array<Name> (size 4) | ["","","",""] | 4 emplacements quickslot |
+| SpellCooldowns | Map<Name, Float> | vide | SpellID -> temps restant |
+| bIsCasting | Boolean | false | sort en cours de cast |
+
+Dispatcher a creer :
+- `OnSpellCast` avec parametre : SpellID (Name)
+
+Fonctions a creer :
+1. **CanCast(SpellID : Name) -> Boolean** (Pure)
+   - Get Owner -> Cast to BP_PlatformingCharacter -> GetComponentByClass(BP_AttributeSet_Base) -> Get ManaCurrent
+   - Get SpellCooldowns -> Find(SpellID) -> cooldown == 0.0 (ou absent)
+   - Return : ManaCurrent >= ManaCost ET cooldown <= 0 ET bIsCasting == false
+   - Pour le ManaCost : faire un GetSpellData helper (DT lookup) ou hardcoder temporairement pour le POC
+
+2. **ConsumeMana(Amount : Float)**
+   - Get Owner -> Cast to BP_PlatformingCharacter -> GetComponentByClass(BP_AttributeSet_Base)
+   - AttributeSet -> GetStatValue("ManaCurrent") -> soustraction -> SetStatValue("ManaCurrent", result)
+   - Convention : passer par SetStatValue OBLIGATOIRE (jamais SET direct sur la variable)
+
+3. **UnlockDeity(DeityName : Name)**
+   - Add ou Find+Modify dans UnlockedSpells : DeityName -> ajouter les SpellIDs de cette deite
+   - Pour Lumina : ajouter [Lumina_Heal, Lumina_Attack, Lumina_Buff, Lumina_Debuff]
+
+4. **IsSpellUnlocked(SpellID : Name) -> Boolean** (Pure)
+   - Iterate sur toutes les valeurs de UnlockedSpells
+   - Chercher si SpellID est present dans l'un des arrays
+   - Return true si trouve
+
+**Etape 4 -- Ajouter BP_MagicComponent sur BP_PlatformingCharacter**
+Ouvrir BP_PlatformingCharacter -> Components -> Add Component -> BP_MagicComponent
+Nommer le component "MagicComponent" (comme AttributeSetRef pour l'AttributeSet)
+Sauvegarder BP_PlatformingCharacter.
+
+---
+
+#### [J-11] Plan d'implementation DT_Spells -- A EXECUTER DANS L'EDITEUR
+
+**Etape 5 -- Creer DT_Spells**
+Dans Content/Systems/Magic/, clic droit -> Miscellaneous -> Data Table.
+Choisir row struct : FSoM_SpellData.
+Nommer : `DT_Spells`
+
+Ajouter 4 lignes (Row Name = SpellID) :
+
+| Row Name | SpellName | Deity | Category | ManaCost | CastTime | Cooldown | TargetType | EffectValue | Duration |
+|----------|-----------|-------|----------|----------|----------|----------|------------|-------------|----------|
+| Lumina_Heal | "Lumiere de Soin" | Lumina | Soin | 15.0 | 0.0 | 3.0 | Self | 30.0 | 0.0 |
+| Lumina_Attack | "Trait de Lumiere" | Lumina | Attaque | 20.0 | 1.2 | 5.0 | Enemy | 40.0 | 0.0 |
+| Lumina_Buff | "Benediction" | Lumina | Buff | 10.0 | 0.0 | 8.0 | Self | 0.0 | 10.0 |
+| Lumina_Debuff | "Marque de Lumiere" | Lumina | Debuff | 15.0 | 0.8 | 6.0 | Enemy | 0.0 | 6.0 |
+
+Notes sur les valeurs :
+- Cooldown Lumina_Heal = 3.0 (soin instantane mais pas spammable -- a ajuster lors du POC gameplay)
+- EffectValue = 0.0 pour Buff et Debuff (la valeur d'effet sera definie dans BP_Spell_Buff/Debuff)
+- SpellName en Text (localisable), Deity en Name (correspondra aux keys de UnlockedSpells)
+
+---
+
+#### [J-10/J-11] BILAN SESSION -- 11/05/2026
+
+**Cree (filesystem) :**
+- `Content/Systems/Magic/` dossier ✅
+
+**A creer dans l'editeur UE5 (dans l'ordre) :**
+1. `E_SpellCategory` (Enumeration) dans Content/Systems/Magic/
+2. `E_SpellTarget` (Enumeration) dans Content/Systems/Magic/
+3. `FSoM_SpellData` (Structure) dans Content/Systems/Magic/
+4. `BP_MagicComponent` (ActorComponent Blueprint) dans Content/Systems/Magic/
+5. Ajout BP_MagicComponent sur BP_PlatformingCharacter (composant "MagicComponent")
+6. `DT_Spells` (Data Table, row struct = FSoM_SpellData) dans Content/Systems/Magic/ -- 4 lignes Lumina
+
+**Points d'attention critiques :**
+- ConsumeMana DOIT passer par SetStatValue (convention centrale du projet -- jamais SET direct)
+- SpellCooldowns doit etre decrement chaque tick si valeur > 0 (ajouter logic dans Tick ou via Timer)
+- QuickslotSlots : initialiser avec 4 elements Name vides ("") au BeginPlay pour eviter les out-of-bounds
+- UnlockDeity pour Lumina doit etre appelee au debut du jeu (dans GameMode ou au BeginPlay de BP_PlatformingCharacter)
+
+**Dependances avec les jalons suivants (J-12 a J-14) :**
+- J-12 : BP_SpellBase + enfants BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff
+- J-13 : UI_RadialMagic (2 niveaux, slow-mo 0.15x) + UI_QuickslotBar
+- J-14 : Integration complete (CastSpell orchestre DT lookup + BP_SpellBase spawn + OnSpellCast)
+
+---
+
 ### 11/05/2026 -- SESSION NETTOYAGE PRIORITE 2 (agent Claude Code)
 
 **Action** : Verification des references et suppression des vestiges identifies lors de l'audit.
