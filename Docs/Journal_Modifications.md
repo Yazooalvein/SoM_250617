@@ -173,19 +173,18 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Supprime : Content/ThirdPerson/ entier (BP_ThirdPersonCharacter, BP_ThirdPersonGameMode, Lvl_ThirdPerson, MI_ThirdPersonColWay) -- 0 reference externe (C3)
 - Supprime : IA_TestFloat, IA_Test_AttachWaepon, IA_UI_TestFloat -- 0 reference externe (I5)
 
-#### Actions restantes requises dans l'editeur UE (ne pas faire depuis filesystem)
-- [C4] URGENT : Lvl_Platforming -> World Settings -> GameMode Override = BP_SoM_GameMode
-  Actuellement pointe sur BP_PlatformingGameMode -> Lock-On + Radial Menu casseraient au launch
-  Apres fix : supprimer BP_PlatformingGameMode via Content Browser
-- [I1] BP_PlatformingCharacter : rediriger AM_Heavy/Light_Sword_* vers Weapons/Animation/
-  Les deux sets sont actifs (Players/Animations/ et Weapons/Animation/) -- risque de divergence silencieuse
-- [I2] Verifier IMC_Default et IMC_Platforming dans Enhanced Input UI (potentiellement orphelins)
-- [I4] Content Browser : deplacer BP_Enemy_Sword01, BP_EnemyWeapon_Sword, BP_test_IA vers Enemies/Blueprints/
+### 11/05/2026 -- Nico -- Fix C4 : Lvl_Platforming GameMode Override
+
+#### Lvl_Platforming
+- World Settings -> GameMode Override : BP_PlatformingGameMode -> BP_SoM_GameMode
+- Risque elimine : Lock-On et Radial Menu sont desormais garantis sur cette map
+- BP_PlatformingGameMode peut etre supprime lors de la prochaine session de nettoyage
 
 #### Roadmap mise a jour
 - [x] Migration UE5.7 + UnrealClaude
 - [x] Audit complet + nettoyage Priorite 1 et 2
-- [ ] Fix C4 : Lvl_Platforming GameMode Override (URGENT -- prochaine session editeur)
+- [x] Fix C4 : Lvl_Platforming GameMode Override corrige
+- [ ] Nettoyage final editeur : supprimer BP_PlatformingGameMode (Content Browser)
 - [ ] Fix I1 : Consolidation animations en double (session editeur)
 - [ ] Fix I2 : Verification et consolidation IMC (session editeur)
 - [ ] Fix I4 : Reorganisation dossier Enemies (session editeur)
