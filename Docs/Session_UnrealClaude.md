@@ -24,6 +24,122 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 11/05/2026 -- SESSION NETTOYAGE PRIORITE 2 (agent Claude Code)
+
+**Action** : Verification des references et suppression des vestiges identifies lors de l'audit.
+Methodologie : recherche binaire (Latin1/CP1252) dans tous les .uasset/.umap du projet, plus Config/.ini et .uproject.
+
+---
+
+#### [C3] ThirdPerson vestiges -- verification references
+
+**Verification effectuee** :
+- `BP_ThirdPersonCharacter.uasset` : 0 reference externe → SUPPRIME
+- `BP_ThirdPersonGameMode.uasset` : 0 reference externe → SUPPRIME
+- `ThirdPerson/Lvl_ThirdPerson.umap` : 0 reference externe (doublon de Maps/Lvl_ThirdPerson) → SUPPRIME
+- `ThirdPerson/MI_ThirdPersonColWay.uasset` : 0 reference dans Lvl_Platforming (c'est la copie Maps/ qui est referencee) → SUPPRIME
+- Dossier `Content/ThirdPerson/` : vide apres suppression → SUPPRIME
+
+**Non supprime -- reference active** :
+- `Maps/MI_ThirdPersonColWay.uasset` : reference par `Lvl_Platforming.umap` → CONSERVER
+- `Maps/Lvl_ThirdPerson.umap` : map avec ExternalActors (`__ExternalActors__/Maps/Lvl_ThirdPerson/`), statut vestige a confirmer → A INVESTIGUER EN EDITEUR
+
+**Pourquoi** : Nettoyage du dossier ThirdPerson/ residuel du template (jalon #4 n'avait supprime que les BPs dans Players/Blueprint, pas ceux dans ThirdPerson/).
+**Points d'attention** : MI_ThirdPersonColWay (Maps/) reste reference dans Lvl_Platforming -- verifier si c'est intentionnel ou vestige du template (coloring waypoint?).
+
+---
+
+#### [C4] BP_PlatformingGameMode -- verification references
+
+**Verification effectuee** :
+- `Lvl_Platforming.umap` contient une reference a `BP_PlatformingGameMode` (World Settings override de GameMode)
+- `Lvl_Platforming.umap` NE reference PAS `BP_SoM_GameMode` → la map utilise ENCORE l'ancien GameMode !
+- `DefaultEngine.ini` : GlobalDefaultGameMode = BP_SoM_GameMode (correct)
+
+**Decision** : NE PAS SUPPRIMER -- la suppression corromprait Lvl_Platforming.umap.
+**Fix requis (editeur)** : Ouvrir Lvl_Platforming -> World Settings -> GameMode Override -> vider ou pointer vers BP_SoM_GameMode -> SAVE. Ensuite BP_PlatformingGameMode peut etre supprime proprement via l'editeur.
+**Risque actif** : Si Nico ouvre Lvl_Platforming pour tester, les sessions demarrent avec BP_PlatformingGameMode sans BP_PlatformingPlayerController assign correctement.
+
+---
+
+#### [I1] Animations en double -- verification references
+
+**Verification effectuee** :
+- `Content/Characters/Players/Animations/AM_Heavy/Light_Sword_*` : reference par `BP_PlatformingCharacter.uasset`
+- `Content/Weapons/Animation/AM_Heavy/Light_Sword_*` : reference par `Systems/Combo/DT_Combo_Sword.uasset`, `DT_Combo_2HSword.uasset`, `Datatable_FCombo.uasset`
+
+**Situation** : Les DEUX sets sont actifs et references par des systemes differents.
+- BP_PlatformingCharacter utilise Players/Animations/ (versions locales au personnage)
+- Les DataTables combo utilisent Weapons/Animation/ (source canonique logique)
+
+**Decision** : AUCUNE SUPPRESSION possible sans editeur. Consolidation requise :
+1. Dans l'editeur, ouvrir BP_PlatformingCharacter
+2. Rediriger les references AM_ vers Weapons/Animation/
+3. Sauvegarder et supprimer les copies Players/Animations/ via l'editeur (avec redirecteurs)
+
+---
+
+#### [I2] IMC -- verification references
+
+**Verification effectuee** :
+- `IMC_Default` (Input/ et InputMappings/) : 0 reference dans les binaires .uasset/.umap
+- `IMC_Platforming` (Input/) : 0 reference dans les binaires .uasset/.umap
+- `IMC_Prototype` (InputMappings/) : reference par `BP_PlatformingCharacter.uasset` ET `BP_PlatformingPlayerController.uasset`
+- Config/ : aucune reference IMC dans les .ini
+
+**Situation** : Seul IMC_Prototype est charge par des Blueprints. IMC_Default et IMC_Platforming semblent orphelins dans les assets binaires.
+**Decision** : Investigation requise dans l'editeur (Enhanced Input UI, variable defaults) avant toute suppression.
+**Points d'attention** : Si IMC_Default et IMC_Platforming sont vraiment inutilises, cela expliquerait pourquoi certaines actions mappees ne fonctionnent que via IMC_Prototype.
+
+---
+
+#### [I5] Input Actions debug -- verification references
+
+**Verification effectuee** :
+- `IA_inflictdamage` : reference par `IMC_Prototype.uasset` ET `BP_PlatformingPlayerController.uasset` → CONSERVER
+- `IA_KillDummyNow` : reference par `IMC_Prototype.uasset` → CONSERVER
+- `IA_TestFloat` : 0 reference externe → SUPPRIME
+- `IA_Test_AttachWaepon` : 0 reference externe (la ref dans IA_UI_TestFloat etait fausse) → SUPPRIME
+- `IA_UI_TestFloat` : 0 reference externe reelle → SUPPRIME
+
+**Pourquoi** : Ces 3 IA n'ont aucun binding actif et polluent le projet. IA_inflictdamage et IA_KillDummyNow sont bindes dans IMC_Prototype (features de debug volontairement conservees).
+
+---
+
+#### [I4] Reorganisation dossier Enemies
+
+**Decision** : NE PAS FAIRE depuis le filesystem -- deplacement de .uasset briserait les references entre blueprints.
+**Fix requis (editeur)** : Dans l'editeur UE5, utiliser le navigateur de contenu pour deplacer les assets (UE cree des redirecteurs automatiquement).
+Assets a deplacer vers `Enemies/Blueprints/` : `BP_Enemy_Sword01`, `BP_EnemyWeapon_Sword`, `BP_test_IA`
+
+---
+
+#### BILAN FINAL SESSION -- 11/05/2026
+
+**Suppressions effectuees (filesystem direct -- 0 reference active confirmee) :**
+- [C3] `Content/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.uasset` ✅
+- [C3] `Content/ThirdPerson/Blueprints/BP_ThirdPersonGameMode.uasset` ✅
+- [C3] `Content/ThirdPerson/Lvl_ThirdPerson.umap` ✅
+- [C3] `Content/ThirdPerson/MI_ThirdPersonColWay.uasset` ✅
+- [C3] Dossier `Content/ThirdPerson/` (vide) ✅
+- [I5] `Content/Input/InputActions/IA_TestFloat.uasset` ✅
+- [I5] `Content/Input/InputActions/IA_Test_AttachWaepon.uasset` ✅
+- [I5] `Content/Input/InputActions/IA_UI_TestFloat.uasset` ✅
+
+**InputActions restantes (16) -- toutes valides :**
+IA_Attack_Heavy, IA_Attack_Light, IA_Block, IA_DebugToggleUI, IA_Dodge,
+IA_inflictdamage (debug actif), IA_Jump, IA_KillDummyNow (debug actif),
+IA_LockOn, IA_Look, IA_Move, IA_RadialMenu, IA_Sprint, IA_SwitchTarget,
+IA_UI_RadialMenu_Rotate, IA_validate_radial_selection
+
+**Actions requises en editeur (ne pas faire depuis filesystem) :**
+1. [C4] Lvl_Platforming -> World Settings -> GameMode Override = BP_SoM_GameMode (actuellement pointe encore sur BP_PlatformingGameMode). Apres fix, supprimer BP_PlatformingGameMode via le navigateur de contenu.
+2. [I1] BP_PlatformingCharacter : rediriger les references AM_Heavy/Light_Sword_* vers Weapons/Animation/ au lieu de Players/Animations/. Supprimer ensuite les copies Players/Animations/AM_*.
+3. [I2] Verifier dans l'editeur si IMC_Default et IMC_Platforming sont actifs (aucune reference trouvee dans les binaires). Si orphelins, supprimer via le navigateur de contenu.
+4. [I4] Navigateur de contenu : deplacer BP_Enemy_Sword01, BP_EnemyWeapon_Sword, BP_test_IA vers Enemies/Blueprints/ (UE gere les redirecteurs automatiquement).
+
+---
+
 ### 11/05/2026 -- Mise en place du fichier
 - Creation du fichier Session_UnrealClaude.md
 - Workflow dual-agent mis en place (voir CLAUDE.md section "Workflow dual-agent")
