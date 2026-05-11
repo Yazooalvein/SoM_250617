@@ -122,7 +122,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 #### M_Mannequin
 - HitFlashAmount (Scalar Parameter, default 0.0) ajoute via MCP Python
 - Branche sur Emissive Color via Add (combine avec Emissive existant Logo/EmissivePower)
-- Note : matériau temporaire (mannequin Quinn), a refaire sur le vrai enemy mesh
+- Note : materiau temporaire (mannequin Quinn), a refaire sur le vrai enemy mesh
 
 #### BP_EnemyBase
 - ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 -> Delay 0.12 -> 0.0
@@ -134,15 +134,33 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Lock-On et Menu Radial ne repondaient plus suite au nettoyage jalon #4
 - Corrige : BP_SoM_GameMode -> Player Controller Class = BP_PlatformingPlayerController
 
+### 11/05/2026 -- Nico + Claude -- Jalon stable #8 -- Migration UE5.7 + UnrealClaude
+
+#### Migration moteur
+- Projet migre de UE5.6 vers UE5.7.4-51494982
+- UnrealGenAISupport (ancien plugin MCP Python/unreal-handshake) supprime
+- Migration effectuee via ouverture directe dans UE5.7 (Convert in-place)
+
+#### UnrealClaude v1.4.5
+- Repo clone : https://github.com/Natfii/UnrealClaude (avec --recurse-submodules)
+- Compilation : RunUAT.bat BuildPlugin -MaxParallelActions=2 (limite RAM) -- succes en 67s
+- Installation : Plugins/UnrealClaude/ dans le projet
+- MCP bridge : npm install dans Resources/mcp-bridge (151 packages)
+- Validation : curl http://localhost:3000/mcp/status -> 28 outils operationnels
+- Panel Tools -> Claude Assistant operationnel dans l'editeur UE5.7
+- Authentification : claude auth login (compte Pro, pas d'API key separee)
+
+#### Setup technique nouveau -- etat final
+- Claude Code CLI v2.1.138 installe globalement (npm install -g @anthropic-ai/claude-code)
+- UnrealClaude : MCP bridge Node.js port 3000 (auto-start au lancement editeur)
+- 28 outils MCP : Blueprint, AnimBlueprint, Enhanced Input, Material, Actor, Level, Asset...
+- Plus de dependance Python / fastmcp / socket port 9877
+- GitHub MCP : inchange (node.exe --use-system-ca, token Classic scope repo)
+
 #### Roadmap mise a jour
-- [x] Mort joueur : OnPlayerDeath + desengagement ennemis
-- [x] OnStatChanged Event Dispatcher dans BP_AttributeSet_Base
-- [x] Unification des inputs dupliques
-- [x] Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
-- [x] OnStatChanged -> bindings UI event-driven (zero polling)
-- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base)
+- [x] Migration UE5.7 + UnrealClaude
+- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base + DMI)
 - [ ] Systeme de sauvegarde SaveGame (session dediee)
-- [ ] Migration UE5.7 + UnrealClaude (session dediee)
 - [ ] Setup ComfyUI pour generation textures/concepts
 
 ---
@@ -156,4 +174,4 @@ Ce document doit etre mis a jour a chaque modification significative.
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 10/05/2026
+- Derniere mise a jour : 11/05/2026
