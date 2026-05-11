@@ -10,35 +10,27 @@ Ce fichier est lu par Claude au debut de chaque session pour retrouver le contex
 - **Genre** : ARPG Blueprint Only, inspire Secret of Mana + Dark Souls
 - **Developpeur** : Nico (GitHub : Yazooalvein)
 - **Repo** : https://github.com/Yazooalvein/SoM_250617
-- **Moteur** : Unreal Engine 5.6 (migration UE5.7 + UnrealClaude prevue -- session dediee)
+- **Moteur** : Unreal Engine 5.7.4
 
 ---
 
 ## Setup technique actuel Claude <> Projet
 
-- **Claude Desktop** + plugin **UnrealGenAISupport** (MCP `unreal-handshake`)
-  - Python 3.14 officiel (C:/Users/nmarc/AppData/Local/Programs/Python/Python314/)
-  - fastmcp v0.9 (downgrade necessaire)
-  - Socket server port 9877, auto-start active dans Project Settings
+- **UnrealClaude v1.4.5** (plugin dans Plugins/UnrealClaude/)
+  - Claude Code CLI v2.1.138 (`npm install -g @anthropic-ai/claude-code`)
+  - Authentification via `claude auth login` (compte Anthropic Pro -- pas d'API key separee)
+  - MCP bridge Node.js port 3000 (auto-start au lancement editeur)
+  - 28 outils MCP natifs : Blueprint, AnimBlueprint, Enhanced Input, Material, Actor, Level, Asset...
+  - Panel : Tools -> Claude Assistant dans l'editeur UE5.7
 - **GitHub MCP** : node.exe --use-system-ca + NODE_TLS_REJECT_UNAUTHORIZED=0
   - Token Classic scope `repo` complet
 - **Claude** : plan Pro, memoire activee
 
-### Migration prevue (prochaine session)
-- **Cible moteur** : UE 5.7
-- **Nouveau plugin** : UnrealClaude (https://github.com/Natfii/UnrealClaude)
-  - Utilise Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
-  - Authentification via `claude auth login` (compte Anthropic Pro -- pas d'API key separee)
-  - 20+ outils MCP natifs dont Blueprint editing direct
-  - Necessite compilation depuis sources (pas de binaires precompiles)
-  - MCP bridge Node.js sur port 3000
-- **Plan migration** :
-  1. Backup + migration projet UE 5.6 -> UE 5.7
-  2. Compiler UnrealClaude pour UE 5.7 Win64
-  3. Installer plugin dans Plugins/ du projet
-  4. `npm install` dans Resources/mcp-bridge
-  5. Valider connexion via `curl http://localhost:3000/mcp/status`
-  6. Tester Blueprint editing direct
+### Notes installation (pour reference)
+- Compilation depuis sources obligatoire (pas de binaires precompiles)
+- RunUAT.bat BuildPlugin avec -MaxParallelActions=2 (limite RAM sur cette machine)
+- npm install dans Resources/mcp-bridge apres copie dans Plugins/
+- Validation : `curl http://localhost:3000/mcp/status`
 
 ---
 
@@ -65,7 +57,7 @@ git push
 
 ---
 
-## Architecture clé (resume)
+## Architecture cle (resume)
 
 ### Personnage
 - `BP_PlatformingCharacter` (Blueprint Only)
@@ -120,10 +112,10 @@ git push
 - [x] #5 Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
 - [x] #6 OnStatChanged -> bindings UI event-driven (zero polling)
 - [x] #7 Hit Flash ennemi partiel (M_Mannequin) + fix GameMode PlayerController
+- [x] #8 Migration UE5.7 + UnrealClaude v1.4.5 (28 outils MCP, panel editeur)
 
 ## Roadmap
 
-- [ ] Migration UE5.7 + UnrealClaude (session dediee -- prochaine)
 - [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base + DMI)
 - [ ] Systeme de sauvegarde SaveGame
 - [ ] Setup ComfyUI generation textures/concepts (RTX 3080Ti)
@@ -132,13 +124,13 @@ git push
 
 ## Notes techniques importantes
 
-- UE5.6 : erreur threading Python -> contournee via `execute_python_script`
-- `BP_SoM_GameMode` : Player Controller Class doit etre BP_PlatformingPlayerController (sinon Lock-On et Radial cassent)
 - Hit Flash ennemi : utiliser Dynamic Material Instance (BeginPlay) + Set Scalar sur DMI, pas Set Scalar on Materials
 - M_Enemy_Base a creer avec HitFlashAmount integre des le depart pour les vrais ennemis
-- Substrate material system desactive (UE5.6)
+- `BP_SoM_GameMode` : Player Controller Class doit etre BP_PlatformingPlayerController (sinon Lock-On et Radial cassent)
+- Substrate material system : verifier statut dans UE5.7 (etait desactive en 5.6)
 - Toutes les anims de mort sur SK_Mannequin, retargeter `RTG_NewRetargeter` disponible
 - Convention nommage stats : sans espace, CamelCase (HealthCurrent pas "Health Current")
+- UnrealClaude : si MCP tools absents -> verifier `npm install` dans mcp-bridge + redemarrer editeur
 
 ---
 
@@ -150,4 +142,4 @@ git push
 
 ---
 
-*Derniere mise a jour : 10/05/2026*
+*Derniere mise a jour : 11/05/2026*
