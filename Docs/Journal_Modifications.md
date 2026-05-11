@@ -100,105 +100,82 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 #### UI_HUD_Main
 - 3 variables ajoutees : HealthPercent, StaminaPercent, ManaPercent (Float, default 1.0)
-- Get_HealthBar_Percent / Get_StaminaBar_Percent / Get_ManaBar_Percent : simplifiees, retournent la variable locale
+- Get_HealthBar_Percent / Get_StaminaBar_Percent / Get_ManaBar_Percent : simplifiees
 - Event Construct : Bind HUD_OnStatChanged sur AttributeSetRef.OnStatChanged
 - HUD_OnStatChanged : Switch on Name -> division Current/Max -> SET *Percent correspondant
-- InitHUD : fonction d'init appelee depuis Add_Main_HUD apres Add to Viewport
-- Add_Main_HUD (BP_PlatformingCharacter) : appel InitHUD apres creation widget
+- InitHUD : appelee depuis Add_Main_HUD apres Add to Viewport
 
 #### Architecture UI -- etat final
-- Zero polling : les barres ne lisent plus les stats chaque frame
-- Push pur : OnStatChanged notifie le HUD uniquement quand une stat change
+- Zero polling, push pur via OnStatChanged
 - SetStatValue = unique point de modification, garantit la notification
-- Extensible : tout nouvel abonne (minimap, boss bar) se bind sur OnStatChanged sans toucher le core
-
-#### Note architecture -- Sauvegarde future
-- Les valeurs Current ne sont pas dans la Datatable (valeurs de reference statiques)
-- Pour save/load (reprise boss, checkpoint) : prevoir un SaveGame Object dedie
-- Au load : reinjecter les Current via SetStatValue pour notifier tous les abonnes
 
 ### 10/05/2026 -- Nico + Claude -- Jalon #7 -- Hit Flash ennemi (partiel) + fix GameMode
 
 #### M_Mannequin
-- HitFlashAmount (Scalar Parameter, default 0.0) ajoute via MCP Python
-- Branche sur Emissive Color via Add (combine avec Emissive existant Logo/EmissivePower)
-- Note : materiau temporaire (mannequin Quinn), a refaire sur le vrai enemy mesh
+- HitFlashAmount (Scalar Parameter, default 0.0) ajoute
+- Note : materiau temporaire, a refaire sur vrai enemy mesh
 
 #### BP_EnemyBase
-- ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 -> Delay 0.12 -> 0.0
-- Note : non fonctionnel sur MI_Quinn (Material Instance) -- necessite DMI au BeginPlay
-- A finaliser quand le vrai enemy mesh/materiau sera en place
+- ReceiveDamage : Set Scalar Parameter HitFlashAmount 1.0 -> Delay 0.12 -> 0.0
+- Non fonctionnel sur MI_Quinn -- necessite DMI au BeginPlay
 
 #### Fix critique -- BP_SoM_GameMode
-- Player Controller Class n'etait pas assigne a BP_PlatformingPlayerController
-- Lock-On et Menu Radial ne repondaient plus suite au nettoyage jalon #4
-- Corrige : BP_SoM_GameMode -> Player Controller Class = BP_PlatformingPlayerController
+- Player Controller Class = BP_PlatformingPlayerController
 
 ### 11/05/2026 -- Nico + Claude -- Jalon stable #8 -- Migration UE5.7 + UnrealClaude
 
 #### Migration moteur
 - Projet migre de UE5.6 vers UE5.7.4-51494982
-- UnrealGenAISupport (ancien plugin MCP Python/unreal-handshake) supprime
-- Migration effectuee via ouverture directe dans UE5.7 (Convert in-place)
+- UnrealGenAISupport supprime, migration via ouverture directe UE5.7
 
 #### UnrealClaude v1.4.5
-- Repo clone : https://github.com/Natfii/UnrealClaude (avec --recurse-submodules)
-- Compilation : RunUAT.bat BuildPlugin -MaxParallelActions=2 (limite RAM) -- succes en 67s
-- Installation : Plugins/UnrealClaude/ dans le projet
-- MCP bridge : npm install dans Resources/mcp-bridge (151 packages)
-- Validation : curl http://localhost:3000/mcp/status -> 28 outils operationnels
-- Panel Tools -> Claude Assistant operationnel dans l'editeur UE5.7
-- Authentification : claude auth login (compte Pro, pas d'API key separee)
+- Compilation RunUAT.bat -MaxParallelActions=2, succes 67s
+- MCP bridge npm install, 28 outils operationnels
+- Panel Tools -> Claude Assistant operationnel
 
-#### Setup technique nouveau -- etat final
-- Claude Code CLI v2.1.138 installe globalement (npm install -g @anthropic-ai/claude-code)
-- UnrealClaude : MCP bridge Node.js port 3000 (auto-start au lancement editeur)
-- 28 outils MCP : Blueprint, AnimBlueprint, Enhanced Input, Material, Actor, Level, Asset...
-- Plus de dependance Python / fastmcp / socket port 9877
-- GitHub MCP : inchange (node.exe --use-system-ca, token Classic scope repo)
+### 11/05/2026 -- Nico + Agent UE -- Jalon #9 -- Audit complet + nettoyage
 
-### 11/05/2026 -- Nico + Agent UE -- Jalon #9 -- Audit complet + nettoyage Priorite 1 et 2
+#### Fixes Priorite 1 (Claude.ai)
+- DefaultGame.ini : suppression GenerativeAISupportSettings, ProjectName = Shadow of Mana
+- SoM_250617.uproject : declaration UnrealClaude
 
-#### Audit complet du projet (agent UnrealClaude -- lecture seule)
-- Analyse filesystem, configs, plugins, structure assets
-- 4 critiques, 5 importants, 5 mineurs identifies
-- Rapport complet dans Docs/Session_UnrealClaude.md
+#### Nettoyage Priorite 2 (agent UE)
+- Supprime Content/ThirdPerson/ entier (C3)
+- Supprime IA_TestFloat, IA_Test_AttachWaepon, IA_UI_TestFloat (I5)
 
-#### Fixes Priorite 1 (Claude.ai via GitHub MCP -- fichiers texte)
-- Config/DefaultGame.ini : suppression section GenerativeAISupportSettings (C1)
-- Config/DefaultGame.ini : ProjectName = Shadow of Mana (I3)
-- SoM_250617.uproject : declaration officielle UnrealClaude (C2)
-
-#### Nettoyage Priorite 2 (agent UE -- filesystem, references verifiees)
-- Supprime : Content/ThirdPerson/ entier -- 0 reference externe (C3)
-- Supprime : IA_TestFloat, IA_Test_AttachWaepon, IA_UI_TestFloat -- 0 reference externe (I5)
-
-### 11/05/2026 -- Nico -- Fix C4 : Lvl_Platforming GameMode Override
-- World Settings -> GameMode Override : BP_PlatformingGameMode -> BP_SoM_GameMode
-- Risque elimine : Lock-On et Radial Menu garantis sur cette map
+#### Fix C4
+- Lvl_Platforming -> World Settings -> GameMode Override = BP_SoM_GameMode
 
 ### 11/05/2026 -- Nico + Claude -- Session design + roadmap gameplay
+- Lore formalise : Docs/Lore_ShadowOfMana.md
+- Roadmap : Docs/Roadmap_Gameplay.md (6 priorites, 32 jalons)
+- Architecture magie : Docs/Architecture/Magic_System.md
 
-#### Lore formalise (Docs/Lore_ShadowOfMana.md)
-- Vision du jeu : fusion Dark Souls (combat/difficulte) + Secret of Mana (armes/magie) + Kingdom Hearts (fluidite/magie)
-- Structure narrative 4 actes, 9 deites elementaires, cast 5 personnages (1 jouable + 2 PNJ actifs)
-- Twist central : soeur du heros fusionnee avec Ondine -> devient nouvelle Deesse Mana
-- Choix moral : General de l'Empire (tue ou epargne) -> impact sur survie de Luna en Acte 4
-- Antagonistes : Empire (manipule) + Demon Mana + Demon Primordial
-- Ville de l'Oracle comme hub evolutif qui se reconstruit
+### 11/05/2026 -- Nico -- Jalon #10/#11 -- Assets systeme magie (POC Magie)
 
-#### Roadmap gameplay etablie (Docs/Roadmap_Gameplay.md)
-- 6 priorites, 32 jalons identifies (J-A a J-32)
-- Voir Docs/Roadmap_Gameplay.md pour le detail complet
+#### Assets crees dans Content/Systems/Magic/
+- E_SpellCategory (Enum : Attack, Buff, Debuff, Heal, Ultime)
+- E_SpellTarget (Enum : Enemy, Self, Area)
+- FSoM_SpellData (Struct : SpellID, SpellName, Deity, Category, ManaCost, CastTime, Cooldown, TargetType, EffectValues, Duration)
+- FSoM_DeitySpells (Struct : SpellIDs Array<Name>) -- contournement limite Map<Name, Array<Name>>
+- DT_Spells (DataTable, 4 lignes Lumina : Lumina_Heal, Lumina_Attack, Lumina_Buff, Lumina_Debuff)
+- BP_MagicComponent (ActorComponent) :
+  - Variables : UnlockedSpells (Map<Name, FSoM_DeitySpells>), QuickslotSlots (Array<Name>), SpellCooldowns (Map<Name, Float>), bIsCasting (Boolean)
+  - Dispatcher : OnSpellCast(SpellID : Name)
+  - Event BeginPlay + Event Tick (Can Ever Tick = true)
+  - Ajoute sur BP_PlatformingCharacter comme composant "MagicComponent"
 
-#### Ordre des priorites valide
-1. Nettoyage technique restant (J-A a J-F)
-2. POC Systeme de Magie (J-10 a J-14) -- colonne vertebrale
-3. Refonte Combat Multi-Armes (J-15 a J-19) -- identite du jeu
-4. POC Compagnons PNJ (J-20 a J-23) -- experience complete
-5. Corruption Magique (J-24 a J-26) -- tension et identite unique
-6. Ville Hub Evolutive + Forge (J-27 a J-29) -- narration mecanique
-7. Progression (J-30 a J-32) -- long terme
+#### Incident technique
+- Agent UE a tente d'utiliser execute_script -> crash UE
+- Regle : ne jamais utiliser execute_script dans UnrealClaude (blueprint_modify uniquement)
+- Tache zombie post-crash resolue par reboot machine (process node orphelin)
+
+#### Roadmap mise a jour
+- [x] J-10 : BP_MagicComponent + variables + dispatcher
+- [x] J-11 : DT_Spells + Enums + Struct
+- [ ] J-12 : Fonctions BP_MagicComponent (CanCast, ConsumeMana, UnlockDeity, IsSpellUnlocked) + BP_SpellBase + enfants Lumina
+- [ ] J-13 : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar
+- [ ] J-14 : Integration complete POC Lumina
 
 ---
 
