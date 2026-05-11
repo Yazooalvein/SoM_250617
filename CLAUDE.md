@@ -1,6 +1,7 @@
 # CLAUDE.md -- Shadow of Mana / Contexte IA
 
 Ce fichier est lu par Claude au debut de chaque session pour retrouver le contexte du projet rapidement.
+Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude dans l'editeur UE5.7.
 
 ---
 
@@ -34,6 +35,89 @@ Ce fichier est lu par Claude au debut de chaque session pour retrouver le contex
 
 ---
 
+## Workflow dual-agent
+
+Ce projet utilise deux instances Claude complementaires qui ne se voient pas en temps reel.
+Ce fichier (CLAUDE.md) est le point de synchronisation central entre les deux.
+
+### Roles
+
+**Claude.ai (chef de projet)**
+- Lit le repo via GitHub MCP au debut de chaque session
+- Planification, decisions d'architecture, roadmap
+- Met a jour Journal_Modifications.md et CLAUDE.md apres chaque jalon
+- Lit Session_UnrealClaude.md pour rester au courant de ce que l'agent UE a fait
+
+**Agent UnrealClaude (bras droit dans l'editeur)**
+- Modifications Blueprint directes (variables, nodes, connections, materials)
+- Queries temps reel sur assets, acteurs, niveaux
+- Logue systematiquement ses actions dans Docs/Session_UnrealClaude.md
+- Lit CLAUDE.md au demarrage pour connaitre l'architecture et les conventions
+
+### Regles de synchronisation
+
+1. **Nico pushe toujours en premier**, Claude.ai committe la doc ensuite (jamais l'inverse)
+2. **L'agent UE logue ses actions** dans Docs/Session_UnrealClaude.md en temps reel
+3. **Claude.ai lit Session_UnrealClaude.md** en debut de session pour rattraper ce qui a ete fait dans UE
+4. **Apres chaque jalon significatif** : Nico push -> Claude.ai met a jour Journal + CLAUDE.md
+
+### Deroulement type d'une session
+
+```
+DEBUT DE SESSION :
+1. Nico ouvre claude.ai
+2. Nico dit "on travaille sur SoM, lis le CLAUDE.md et le journal"
+3. Claude.ai lit CLAUDE.md + Journal_Modifications.md + Session_UnrealClaude.md
+4. Claude.ai fait un resume complet et propose la suite
+
+PENDANT LA SESSION :
+5. Nico ouvre UE5.7 + panel Claude Assistant
+6. Agent UE travaille sur les Blueprints, logue dans Session_UnrealClaude.md
+7. Claude.ai reste disponible pour decisions d'archi et questions
+
+FIN DE JALON :
+8. Nico : git add . && git commit -m "..." && git push
+9. Claude.ai : met a jour Journal_Modifications.md + CLAUDE.md via GitHub MCP
+```
+
+---
+
+## Instructions pour l'agent UnrealClaude
+
+**A lire et appliquer des le debut de chaque session dans l'editeur.**
+
+### Logging obligatoire
+
+Apres chaque modification significative, tu dois ecrire dans `Docs/Session_UnrealClaude.md`.
+Utilise l'outil Write/Edit pour maintenir ce fichier a jour en temps reel.
+
+Format d'entree a respecter :
+
+```
+### [DATE] -- [NOM DU BLUEPRINT / ASSET]
+**Action** : ce qui a ete fait (ajout variable, nouveau node, connexion, etc.)
+**Pourquoi** : raison ou contexte
+**Points d'attention** : gotchas, dependances, ce qui pourrait casser
+```
+
+### Conventions architecture a respecter (IMPERATIVES)
+
+- `SetStatValue(StatName, Value)` = UNIQUE point de modification des stats. Jamais de SET direct.
+- `OnStatChanged` = dispatcher de notification, tous les abonnes (HUD, ennemis) passent par lui
+- Nommage stats : sans espace, CamelCase (HealthCurrent, StaminaMax, etc.)
+- `BP_SoM_GameMode` : toujours verifier que Player Controller Class = BP_PlatformingPlayerController
+- Hit Flash ennemi : utiliser Dynamic Material Instance au BeginPlay, pas Set Scalar on Materials
+- Inputs : source unique Content/Input/InputActions/, ne jamais creer de doublons
+
+### Ce que Claude.ai sait et toi non (en temps reel)
+
+Claude.ai a acces a l'historique complet des sessions via GitHub.
+Toi tu as acces a l'editeur en temps reel.
+Le fichier Session_UnrealClaude.md est le pont entre vous deux.
+Maintiens-le scrupuleusement : Claude.ai s'en sert pour etre au courant de tout ce que tu fais.
+
+---
+
 ## Conventions de travail
 
 ### Git
@@ -42,17 +126,21 @@ git add .
 git commit -m "description courte et coherente"
 git push
 ```
--> Nico pushe d'abord, puis Claude committe le journal via GitHub MCP
--> Claude fournit systematiquement les commandes git + phrase de commit a chaque jalon
+-> Nico pushe d'abord, puis Claude.ai committe le journal via GitHub MCP
+-> Claude.ai fournit systematiquement les commandes git + phrase de commit a chaque jalon
 
 ### Journal
 - Fichier : `Docs/Journal_Modifications.md`
-- Claude le met a jour apres chaque jalon via GitHub MCP
+- Claude.ai le met a jour apres chaque jalon via GitHub MCP
 - SHA recupere dynamiquement avant chaque commit
 
-### Documentation
+### Session UnrealClaude
+- Fichier : `Docs/Session_UnrealClaude.md`
+- L'agent UE le met a jour en temps reel pendant ses interventions
+- Claude.ai le lit en debut de session pour rattraper le contexte
+
+### Documentation architecture
 - Toute nouvelle feature -> doc dans `Docs/Architecture/`
-- Docs d'archi mises a jour systematiquement apres chaque jalon
 - Index : `Docs/Project_Architecture_Index.md`
 
 ---
@@ -134,11 +222,17 @@ git push
 
 ---
 
-## Comment demarrer une session
+## Comment demarrer une session claude.ai
 
 1. Nico dit : "on travaille sur Shadow of Mana, lis le CLAUDE.md et le journal"
-2. Claude lit ce fichier + `Docs/Journal_Modifications.md`
-3. Claude fait un resume de l'etat du projet et propose la suite logique
+2. Claude.ai lit ce fichier + `Docs/Journal_Modifications.md` + `Docs/Session_UnrealClaude.md`
+3. Claude.ai fait un resume complet (jalons, dernières actions UE) et propose la suite logique
+
+## Comment demarrer une session UnrealClaude (dans l'editeur)
+
+1. Ouvrir Tools -> Claude Assistant
+2. Dire : "lis le CLAUDE.md du projet et logue tes actions dans Docs/Session_UnrealClaude.md"
+3. L'agent lit le contexte, confirme les conventions, et commence a travailler
 
 ---
 
