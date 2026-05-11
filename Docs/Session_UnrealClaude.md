@@ -24,6 +24,378 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 11/05/2026 -- SESSION J-12 IMPLEMENTATION BP_MagicComponent (3e tentative, Claude Code CLI)
+
+**Action** : Tentative 3 — même résultat : blueprint_modify absent de Claude Code CLI.
+**Guide complet ci-dessous** : 6 tâches à exécuter dans Tools → Claude Assistant (UnrealClaude panel).
+
+---
+
+## GUIDE D'EXÉCUTION J-12 — À LANCER DANS LE PANEL UNREAL CLAUDE
+
+> Coller ce bloc de prompts DANS Tools → Claude Assistant de l'éditeur UE5.7.
+> Prérequis : BP_MagicComponent (ActorComponent vide) déjà créé dans Content/Systems/Magic/ ✅
+
+---
+
+### TÂCHE 1 — Variables de BP_MagicComponent
+
+Utiliser `blueprint_modify` sur `/Game/Systems/Magic/BP_MagicComponent` :
+
+**UnlockedSpells**
+- Type : Map, Key = Name, Value = Array of Name
+- Instance Editable : true
+- Category : Magic
+
+**QuickslotSlots**
+- Type : Array of Name
+- Instance Editable : true
+- Default : tableau vide (4 éléments Name("") à initialiser au BeginPlay)
+- Category : Magic
+
+**SpellCooldowns**
+- Type : Map, Key = Name, Value = Float
+- Private : true (Instance Editable : false)
+- Category : Magic | Internal
+
+**bIsCasting**
+- Type : Boolean
+- Default Value : false
+- Private : true
+- Category : Magic | Internal
+
+---
+
+### TÂCHE 2 — Dispatcher OnSpellCast
+
+Dans BP_MagicComponent, section "Event Dispatchers" :
+- Créer dispatcher nommé : `OnSpellCast`
+- Ajouter paramètre d'entrée : `SpellID` de type `Name`
+
+---
+
+### TÂCHE 3 — Class Defaults : Can Ever Tick = true
+
+Dans BP_MagicComponent → Class Defaults :
+- `bCanEverTick` = **true**
+
+Raison : nécessaire pour décrémenter SpellCooldowns chaque frame.
+
+---
+
+### TÂCHE 4 — Event Tick : décrémenter SpellCooldowns
+
+Dans BP_MagicComponent, Event Graph — ajouter après Event Tick :
+
+```
+Event Tick (DeltaSeconds: Float)
+  |
+  +-> Get SpellCooldowns (Map<Name,Float>)
+        |
+        +-> For Each Element in Map (Keys + Values)
+              |
+              +-> Branch : Value > 0.0 ?
+                    |
+                    True ->
+                      Float - Float : Value - DeltaSeconds
+                      FMax (Float) : Max(result, 0.0)
+                      Map Add (Set) : SpellCooldowns, Key = current Key, Value = clamped result
+                    |
+                    False -> (rien, continuer la boucle)
+```
+
+**Note blueprint :** UE5 ne supporte pas l'itération directe sur une Map dans le graph. Pattern correct :
+1. `Get SpellCooldowns` → `Keys` (retourne Array<Name>)
+2. `ForEach Loop` sur l'array de clés
+3. Dans le body : `Find` (Map Find) avec la clé courante → Float
+4. Branch : Float > 0.0
+5. True : Float - DeltaSeconds → FMax(result, 0.0) → `Add` (Map Add) avec la même clé (écrase la valeur)
+
+---
+
+### TÂCHE 5 — Ajouter BP_MagicComponent sur BP_PlatformingCharacter
+
+Dans BP_PlatformingCharacter (`/Game/Characters/Players/Blueprint/BP_PlatformingCharacter`) :
+1. Onglet Components → bouton Add
+2. Chercher `BP_MagicComponent` → sélectionner
+3. Dans Details du nouveau component : renommer en **`MagicComponent`**
+4. Compiler + Sauvegarder BP_PlatformingCharacter
+
+---
+
+### TÂCHE 6 — BeginPlay de BP_PlatformingCharacter : UnlockDeity("Lumina")
+
+Dans BP_PlatformingCharacter, Event BeginPlay — **après les initialisations existantes** (AttributeSet init, HUD init) :
+
+```
+[...initialisations existantes...]
+  |
+  +-> Get MagicComponent (component ref)
+        |
+        +-> UnlockDeity (function call)
+              SpellID input : "Lumina"  (Name literal)
+```
+
+**UnlockDeity** doit d'abord exister dans BP_MagicComponent. Si pas encore créée, l'implémenter :
+
+```
+Function UnlockDeity(DeityName: Name)
+  |
+  +-> Get UnlockedSpells
+        |
+        +-> Contains (Map Contains) : Key = DeityName
+              |
+              False ->
+                Switch on Name (DeityName) :
+                  Case "Lumina" :
+                    Make Array : ["Lumina_Heal", "Lumina_Attack", "Lumina_Buff", "Lumina_Debuff"]
+                    Map Add : UnlockedSpells, Key = "Lumina", Value = Array
+              |
+              True -> (déité déjà présente, ne rien faire)
+```
+
+---
+
+### TÂCHE 7 — Compiler les deux Blueprints
+
+1. Compiler + Sauvegarder **BP_MagicComponent**
+2. Compiler + Sauvegarder **BP_PlatformingCharacter**
+3. Vérifier zéro erreur de compilation dans les deux
+
+---
+
+### VALIDATION ATTENDUE
+
+Après exécution dans l'éditeur :
+- BP_MagicComponent : 4 variables visibles dans My Blueprint (dont 2 grises = Private)
+- BP_MagicComponent : dispatcher OnSpellCast visible dans My Blueprint
+- BP_MagicComponent : Can Ever Tick = true dans Class Defaults
+- BP_MagicComponent : Event Tick présent avec logique cooldown
+- BP_PlatformingCharacter : component "MagicComponent" visible dans la liste Components
+- BP_PlatformingCharacter : BeginPlay appelle MagicComponent->UnlockDeity("Lumina")
+
+---
+
+### 11/05/2026 -- SESSION J-10 IMPLEMENTATION via Claude Code (2e tentative)
+
+**Action** : Tentative d'implémentation BP_MagicComponent (variables, dispatcher, Tick, ajout sur BP_PlatformingCharacter) depuis Claude Code CLI.
+**Résultat** : blueprint_modify/blueprint_query TOUJOURS absents de Claude Code CLI. Aucun MCP UE configuré dans settings.json.
+**Action effectuée** : Guide d'exécution complet fourni + prompt exact pour le panel UnrealClaude.
+**Prochaine étape** : Exécuter le guide dans Tools → Claude Assistant de l'éditeur UE5.7.
+
+---
+
+### 11/05/2026 -- CLARIFICATION OUTILS (agent Claude Code)
+
+**Action** : Tentative d'implémentation directe via blueprint_modify — impossibilité confirmée.
+**Résultat** : blueprint_modify et les autres outils MCP UE ne sont PAS disponibles dans Claude Code CLI.
+**Distinction** :
+- **Claude Code CLI** (cette session) : outils filesystem uniquement (Read, Write, Edit, Bash, Grep, Glob)
+- **UnrealClaude panel** (dans l'éditeur UE5.7) : 28 outils MCP natifs UE (blueprint_modify, asset_search, etc.)
+**Conclusion** : Pour implémenter BP_MagicComponent directement, utiliser le panel Tools -> Claude Assistant dans UE5.7 et donner le même prompt. Claude Code CLI peut seulement préparer des plans et documenter.
+
+---
+
+### 11/05/2026 -- SESSION J-10 IMPLEMENTATION BP_MagicComponent (agent Claude Code)
+
+**Contexte** : Assets J-10/J-11 déjà créés dans l'éditeur :
+- E_SpellCategory, E_SpellTarget (Enums) ✅
+- FSoM_SpellData (Struct) ✅
+- DT_Spells (DataTable, 4 lignes Lumina) ✅
+- BP_MagicComponent (Blueprint vide, parent ActorComponent) ✅
+
+**Session actuelle** : Implémentation complète BP_MagicComponent (variables, fonctions, dispatcher) + ajout sur BP_PlatformingCharacter.
+
+---
+
+#### [J-10] VARIABLES -- BP_MagicComponent
+
+**Variables à ajouter (dans l'éditeur, onglet Variables de BP_MagicComponent) :**
+
+| Nom | Type | Default | Visibility | Notes |
+|-----|------|---------|------------|-------|
+| UnlockedSpells | Map<Name, Array<Name>> | vide | Instance Editable + Expose on Spawn | Clé = DeityName, Valeur = SpellIDs |
+| QuickslotSlots | Array<Name> | ["","","",""] | Instance Editable | Initialiser 4 éléments vides au BeginPlay |
+| SpellCooldowns | Map<Name, Float> | vide | Private | SpellID -> temps restant |
+| bIsCasting | Boolean | false | Private | true pendant un cast time actif |
+
+**Procédure pour UnlockedSpells (Map avec Value = Array) :**
+- Cliquer sur + Variable
+- Type = Map
+- Key Type = Name, Value Type = Array of Names (choisir "Name" dans le sélecteur de type, cocher "Array" si disponible)
+- IMPORTANT : Si UE ne permet pas directement Map<Name, Array<Name>>, utiliser une variable de type Array<FSpellUnlockEntry> avec une struct intermédiaire -> voir Note ci-dessous
+
+**Note architecture :** UE5 supporte nativement Map<Name, Array<Name>> depuis UE5.3. Si l'interface refuse le type Array en value, recréer avec une struct helper `FSoM_DeitySpells {DeityName: Name, SpellIDs: Array<Name>}` et utiliser `Array<FSoM_DeitySpells>` à la place.
+
+---
+
+#### [J-10] DISPATCHER -- BP_MagicComponent
+
+**Créer le dispatcher OnSpellCast :**
+1. Dans l'onglet "My Blueprint" du BP_MagicComponent
+2. Section "Event Dispatchers" -> cliquer sur le + 
+3. Nommer : `OnSpellCast`
+4. Cliquer sur OnSpellCast -> onglet Details -> section Inputs -> ajouter paramètre :
+   - Nom : `SpellID`, Type : `Name`
+5. Compiler
+
+---
+
+#### [J-10] FONCTIONS -- BP_MagicComponent
+
+##### HELPER (privé) : GetSpellData(SpellID: Name) -> FSoM_SpellData, bFound: Boolean
+Fonction utilitaire interne nécessaire pour CanCast. À créer EN PREMIER.
+
+Nodes :
+1. **Get Data Table Row** (fonction UE native)
+   - DataTable : référencer DT_Spells (variable ou hard reference)
+   - RowName : SpellID (paramètre d'entrée)
+   - Out Row : FSoM_SpellData
+   - Return Value (bool) : brancher sur bFound
+2. Return Node : retourner Out Row + bFound
+
+Alternative plus simple pour le POC : passer DT_Spells en variable du composant (Instance Editable) et utiliser `Get Data Table Row` directement dans CanCast.
+
+---
+
+##### FONCTION 1 : CanCast(SpellID: Name) -> Boolean (Pure function)
+
+Logique : `bIsCasting == false` **ET** `SpellCooldowns[SpellID] <= 0.0` **ET** `ManaCurrent >= ManaCost`
+
+**Nodes (dans l'ordre) :**
+
+**Branche 1 — vérifier bIsCasting :**
+1. Get `bIsCasting` -> NOT -> premier booléen
+
+**Branche 2 — vérifier cooldown :**
+1. Get `SpellCooldowns` (la Map)
+2. `Find` (Map Find) -> Key = SpellID -> retourne Float (0.0 si absent, ce qui est correct)
+3. `<=` Float : valeur <= 0.0 -> deuxième booléen
+
+**Branche 3 — vérifier ManaCurrent :**
+1. `Get Owner` -> `Cast To BP_PlatformingCharacter`
+2. Sur le Cast réussi : `Get Component By Class` -> Component Class = `BP_AttributeSet_Base`
+3. Sur l'AttributeSet : appeler `GetStatValue("ManaCurrent")` -> stocker résultat
+4. Appeler GetSpellData(SpellID) -> lire champ `ManaCost` du FSoM_SpellData retourné
+5. `>=` Float : ManaCurrent >= ManaCost -> troisième booléen
+
+**Return :**
+- `AND Boolean` : booléen1 AND booléen2 AND booléen3
+- Connecter au Return Node
+
+**Points d'attention :**
+- Si GetStatValue n'existe pas en tant que fonction pure (selon comment BP_AttributeSet_Base est implémenté), utiliser Get Variable directement sur la référence AttributeSet
+- Si ManaCurrent est accessible via une variable publique de BP_AttributeSet_Base, c'est plus simple : `Cast -> Get AttributeSetRef -> Get ManaCurrent`
+- CanCast doit être marquée Pure (cocher "Pure" dans les détails de la fonction)
+
+---
+
+##### FONCTION 2 : ConsumeMana(Amount: Float)
+
+Convention IMPÉRATIVE : passer par `SetStatValue` — jamais SET direct sur la variable.
+
+**Nodes :**
+1. `Get Owner`
+2. `Cast To BP_PlatformingCharacter` — connecter execution pin au Cast
+3. Sur Cast réussi : `Get Component By Class` -> BP_AttributeSet_Base -> stocker en variable locale `AttribSet`
+4. `GetStatValue("ManaCurrent")` sur AttribSet -> retourne Float `CurrentMana`
+5. `Float - Float` : CurrentMana - Amount -> résultat `NewMana`
+6. `Max (Float)` : Max(NewMana, 0.0) — éviter les valeurs négatives
+7. `SetStatValue("ManaCurrent", NewMana)` sur AttribSet
+8. Return
+
+**Note :** Si BP_AttributeSet_Base expose ManaCurrent directement en variable BlueprintReadOnly, on peut aussi lire via `GET ManaCurrent` directement. Mais SetStatValue reste OBLIGATOIRE pour l'écriture (convention du projet : `OnStatChanged` est déclenché dans SetStatValue, c'est lui qui notifie le HUD).
+
+---
+
+##### FONCTION 3 : UnlockDeity(DeityName: Name)
+
+Logique : ajouter DeityName dans UnlockedSpells avec la liste de ses SpellIDs.
+
+**Nodes :**
+1. `Get UnlockedSpells` (la Map)
+2. `Contains` (Map Contains) -> Key = DeityName -> Boolean
+3. Branch :
+   - **True** (déité déjà présente) : rien à faire, ou fusionner les listes
+   - **False** (nouvelle déité) :
+     1. Créer un Array<Name> -> `Make Array` avec les SpellIDs de la déité
+     2. `Add` (Map Add) -> Key = DeityName, Value = l'array créé
+     3. `Set UnlockedSpells`
+
+**Pour Lumina spécifiquement :**
+- Comparer DeityName == "Lumina" -> si oui, Make Array avec :
+  `Lumina_Heal`, `Lumina_Attack`, `Lumina_Buff`, `Lumina_Debuff`
+
+**Architecture pour le POC :** une simple Switch on Name (DeityName) avec un cas par déité suffit. Lumina = 4 sorts hardcodés. Les autres déités seront ajoutées au fur et à mesure.
+
+**Important :** Dans un projet data-driven complet, cette logique lirait DT_Spells et filtrerait par Deity == DeityName. Pour le POC, hardcoder Lumina est acceptable.
+
+---
+
+##### FONCTION 4 : IsSpellUnlocked(SpellID: Name) -> Boolean (Pure function)
+
+Logique : parcourir toutes les valeurs de UnlockedSpells, vérifier si SpellID est dans l'une d'elles.
+
+**Nodes (pattern ForEach sur Map Values) :**
+1. `Get UnlockedSpells`
+2. `Values` (Map -> Get All Values) -> retourne Array<Array<Name>>
+
+**Attention UE Blueprint :** On ne peut pas faire un ForEach sur un Array<Array<Name>> directement. Pattern correct :
+1. `Get UnlockedSpells` -> `Values` -> Array de Array<Name>
+2. `For Each Loop` sur cet Array externe
+3. Dans le loop body : l'élément courant est un Array<Name> (la liste de SpellIDs d'une déité)
+4. `Contains` (Array Contains) : Array<Name> contains SpellID -> Boolean
+5. Si Contains = true -> Branch -> **True** : mettre une variable locale `bFound = true`
+6. Après le loop (Completed pin) : Return bFound
+
+**Simplification possible :** Utiliser une variable locale Boolean `Result` initialisée à false. Si Contains est true dans la boucle, Set Result = true. Return Result après Completed.
+
+**Marquer Pure** : cocher Pure dans les détails de la fonction.
+
+---
+
+#### [J-10] AJOUT SUR BP_PlatformingCharacter
+
+**Procédure :**
+1. Ouvrir BP_PlatformingCharacter (Content/Characters/Players/Blueprint/)
+2. Onglet Components (en haut à gauche du Blueprint Editor)
+3. Bouton **Add** -> chercher "BP_MagicComponent" -> sélectionner
+4. Dans le panneau Details du component : renommer en `MagicComponent` (même convention que `AttributeSetRef`)
+5. Compiler + Sauvegarder BP_PlatformingCharacter
+
+**Initialisation au BeginPlay (à ajouter dans BP_PlatformingCharacter) :**
+- Sur l'Event BeginPlay existant, ajouter APRÈS les initialisations existantes :
+  1. `Get MagicComponent` -> `UnlockDeity("Lumina")` — Lumina est débloquée dès le départ
+  2. `Get MagicComponent` -> `Get QuickslotSlots` -> vérifier qu'il y a 4 éléments (ajouter 4 Name vides si l'array est vide)
+
+---
+
+#### [J-10] TICK / COOLDOWN -- Note importante
+
+Les cooldowns dans SpellCooldowns doivent être décrémentés. Deux options :
+- **Option A (recommandée pour POC)** : Dans le Tick de BP_MagicComponent, parcourir SpellCooldowns, soustraire DeltaTime pour chaque entrée > 0, clamper à 0.
+- **Option B** : Utiliser un Timer by Function Rate sur chaque sort (plus propre mais plus complexe).
+
+**Pour l'activer**, dans BP_MagicComponent :
+1. Activer Tick : `Can Ever Tick = true` dans les Class Defaults
+2. Event Tick -> `Get SpellCooldowns` -> ForEach -> valeur - DeltaSeconds -> Max(result, 0.0) -> Update Map
+
+---
+
+#### [J-10/J-11] BILAN SESSION -- 11/05/2026 (session implémentation)
+
+**Status :**
+- Assets J-10/J-11 créés dans l'éditeur (par Nico) ✅
+- Plan d'implémentation complet fourni (variables, fonctions, dispatcher, Tick cooldown) ✅
+- Ajout sur BP_PlatformingCharacter + init BeginPlay documentés ✅
+
+**Prochaine étape (J-12) :**
+- BP_SpellBase (Actor parent) + enfants BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff
+- BP_SpellBase.Execute(Caster, Target) + ApplyEffect()
+- Chaque enfant override ApplyEffect() avec sa logique spécifique
+
+---
+
 ### 11/05/2026 -- SESSION POC MAGIE J-10 / J-11 (agent Claude Code)
 
 **Contexte** : Demarrage du POC Magie. Architecture reference : Docs/Architecture/Magic_System.md.
