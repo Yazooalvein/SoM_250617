@@ -170,32 +170,41 @@ Suivi precis de toutes les evolutions majeures du projet.
 - SoM_250617.uproject : declaration officielle UnrealClaude (C2)
 
 #### Nettoyage Priorite 2 (agent UE -- filesystem, references verifiees)
-- Supprime : Content/ThirdPerson/ entier (BP_ThirdPersonCharacter, BP_ThirdPersonGameMode, Lvl_ThirdPerson, MI_ThirdPersonColWay) -- 0 reference externe (C3)
+- Supprime : Content/ThirdPerson/ entier -- 0 reference externe (C3)
 - Supprime : IA_TestFloat, IA_Test_AttachWaepon, IA_UI_TestFloat -- 0 reference externe (I5)
 
 ### 11/05/2026 -- Nico -- Fix C4 : Lvl_Platforming GameMode Override
-
-#### Lvl_Platforming
 - World Settings -> GameMode Override : BP_PlatformingGameMode -> BP_SoM_GameMode
-- Risque elimine : Lock-On et Radial Menu sont desormais garantis sur cette map
-- BP_PlatformingGameMode peut etre supprime lors de la prochaine session de nettoyage
+- Risque elimine : Lock-On et Radial Menu garantis sur cette map
 
-#### Roadmap mise a jour
-- [x] Migration UE5.7 + UnrealClaude
-- [x] Audit complet + nettoyage Priorite 1 et 2
-- [x] Fix C4 : Lvl_Platforming GameMode Override corrige
-- [ ] Nettoyage final editeur : supprimer BP_PlatformingGameMode (Content Browser)
-- [ ] Fix I1 : Consolidation animations en double (session editeur)
-- [ ] Fix I2 : Verification et consolidation IMC (session editeur)
-- [ ] Fix I4 : Reorganisation dossier Enemies (session editeur)
-- [ ] Hit Flash ennemis (vrai enemy mesh + M_Enemy_Base + DMI)
-- [ ] Systeme de sauvegarde SaveGame
-- [ ] Setup ComfyUI generation textures/concepts (RTX 3080Ti)
+### 11/05/2026 -- Nico + Claude -- Session design + roadmap gameplay
+
+#### Lore formalise (Docs/Lore_ShadowOfMana.md)
+- Vision du jeu : fusion Dark Souls (combat/difficulte) + Secret of Mana (armes/magie) + Kingdom Hearts (fluidite/magie)
+- Structure narrative 4 actes, 9 deites elementaires, cast 5 personnages (1 jouable + 2 PNJ actifs)
+- Twist central : soeur du heros fusionnee avec Ondine -> devient nouvelle Deesse Mana
+- Choix moral : General de l'Empire (tue ou epargne) -> impact sur survie de Luna en Acte 4
+- Antagonistes : Empire (manipule) + Demon Mana + Demon Primordial
+- Ville de l'Oracle comme hub evolutif qui se reconstruit
+
+#### Roadmap gameplay etablie (Docs/Roadmap_Gameplay.md)
+- 6 priorites, 32 jalons identifies (J-A a J-32)
+- Voir Docs/Roadmap_Gameplay.md pour le detail complet
+
+#### Ordre des priorites valide
+1. Nettoyage technique restant (J-A a J-F)
+2. POC Systeme de Magie (J-10 a J-14) -- colonne vertebrale
+3. Refonte Combat Multi-Armes (J-15 a J-19) -- identite du jeu
+4. POC Compagnons PNJ (J-20 a J-23) -- experience complete
+5. Corruption Magique (J-24 a J-26) -- tension et identite unique
+6. Ville Hub Evolutive + Forge (J-27 a J-29) -- narration mecanique
+7. Progression (J-30 a J-32) -- long terme
 
 ---
 
 ## Rappel
 Ce document doit etre mis a jour a chaque modification significative.
+Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 
 ## Historique
 - Creation : 17/06/2025
