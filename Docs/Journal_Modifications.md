@@ -68,15 +68,11 @@ Magic/
   SpellCooldowns (Map<Name,Float>), bIsCasting (Boolean)
 - Dispatcher : OnSpellCast(SpellID : Name)
 - Fonctions : UnlockDeity / IsSpellUnlocked / ConsumeMana / CanCast / CastSpell
-- Event Tick : decrementation cooldowns (ForEach Keys -> Find -> subtract DeltaSeconds -> Max 0 -> Map Add)
-- CastSpell : Switch E_SpellTarget (Self=GetOwner, Enemy=LockOn) -> SpawnActor -> SET Caster/Target/SpellData -> Execute -> ConsumeMana -> cooldown
+- Event Tick : decrementation cooldowns
+- CastSpell : Switch E_SpellTarget -> SpawnActor -> Execute -> ConsumeMana -> cooldown
 
-#### BP_SpellBase + enfants Lumina -- VALIDES PIE ✅
-- BP_SpellBase : Execute (ApplyEffect -> chaque enfant gere son propre Destroy Actor)
-- BP_Spell_Heal : HealthCurrent + EffectValues, clamp MIN(result, HealthMax) ✅
-- BP_Spell_Attack : BPI_TakeDamage sur Target ✅
-- BP_Spell_Buff : AffectedStat + EffectValues, Set Timer RestoreStats, anti-cumul (OriginalHealthMax branch) ✅
-- BP_Spell_Debuff : MaxWalkSpeed - EffectValues, Set Timer RestoreSpeed, anti-cumul ✅
+#### BP_SpellBase + enfants Lumina -- VALIDES PIE
+- Heal, Attack, Buff, Debuff valides
 
 #### FSoM_SpellData -- champs complets
 SpellID, SpellName, Deity, Category, ManaCost, CastTime, Cooldown, TargetType,
@@ -84,57 +80,77 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
 
 #### HUD mis a jour
 - Switch HUD_OnStatChanged : ajout cases HealthMax, StaminaMax, ManaMax
-- HealthMax change -> HealthPercent = HealthCurrent / NewValue (barre se redimensionne)
-- Idem StaminaMax, ManaMax
 
-### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE ✅
+### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE
 
 #### Layout finalise (Content/UI/Widgets/Main/)
-```
-Canvas Panel
-└── HUD_Anchor (bas-gauche, pos 20/-20, size 400/150, alignment 0/1, Size To Content OFF)
-    └── Horizontal Box
-        ├── SizeBox_Weapon (64x64, Auto, V-Center, padding Right 8)
-        │   └── Image_Weapon (Fill/Fill)
-        └── HUD_Main_VertBox (Fill 1.0)
-            ├── Overlay_HP (Fill 1.0)
-            │   ├── SizeBox > HealthBar (Fill/Fill, rouge, Get_HealthBar_Percent)
-            │   └── RichTextBlock_HP (Center/Center)
-            ├── Overlay_ST (Fill 1.0)
-            │   ├── SizeBox > StaminaBar (Fill/Fill, vert)
-            │   └── RichTextBlock_ST (Center/Center)
-            ├── Overlay_MP (Fill 1.0)
-            │   ├── SizeBox > ManaBar (Fill/Fill, bleu)
-            │   └── RichTextBlock_MP (Center/Center)
-            └── XP (Auto, padding Top 8, violet)
-```
+- SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
+- RichTextBlock HP/ST/MP avec UpdateStatText centralisee
+- DT_HUD_RichTextStyle assigne sur les 3 RichTextBlocks
+- To Text Float, 0 decimales, format "X / Y"
 
-#### Fonction UpdateStatText (centralisee)
-- Inputs : Current (Float), Max (Float), Target (RichTextBlock ref)
-- Pipeline : To Text (Float, 0 decimales) -> To String -> Append " / " -> To Text String -> Set Text
-- Appelee depuis HUD_OnStatChanged (cases *Current) ET depuis InitHUD (init au demarrage)
+### 12/05/2026 -- Jalon J-13 WIP -- Refonte Radial Menu
 
-#### DT_HUD_RichTextStyle
-- Chemin : Content/UI/Widgets/Main/DT_HUD_RichTextStyle
-- Row structure : RichTextStyleRow
-- Row "Default" : font configuree, assignee sur les 3 RichTextBlocks
-- Base pour futures fonts stylisees par stat ou divinite
+#### Decisions de design actees
+- Radial unifie Armes + Magie, navigation verticale stick = changement categorie
+- Curseur fixe a 12h, plateau qui tourne (Cos/Sin positioning)
+- Slow-mo a l'ouverture : Time Dilation 0.2 (remplace Set Game Paused)
+- 2 niveaux magie : Niveau 1 = Divinite, Niveau 2 = Sort
+- Confirmation bouton A/X, Retour bouton B/Circle
+- QuickslotBar : 3 slots (Haut/Gauche/Droite gamepad), assignation depuis menu general uniquement
+- Slots non selectionnes : grises opacity 60%, selectionne : animation respiration + bordure or
 
-#### Points d'attention
-- SizeBox autour de chaque ProgressBar obligatoire (sinon Desired Size force hauteur excessive)
-- Size To Content sur HUD_Anchor doit etre DECOCHE (sinon ignore Size 400x150)
-- RichTextBlock necessite DT assignee pour afficher du texte (contrairement a TextBlock)
-- To Text (Float) avec Max/Min Fractional Digits = 0 pour supprimer les decimales
+#### Nouveaux assets (Content/UI/Widgets/RadialMenu/)
+- `ERadialMode` : enum Weapons / Magic
+- `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
+- `UI_RadialSlot` : widget 80x80
+  - Image_Background (noir A=0.7), Image_Icon, Image_SelectionBorder (or, Draw As Border),
+    Image_Grayout (noir A=0.5)
+  - SetSelected(bool) : toggle SelectionBorder/Grayout visibility
+  - SetSlotData(FSoM_RadialSlotData) : SET SlotData + Make Brush from Texture -> Set Brush
+  - Variable SlotData stockee
+- `UI_Radial_Main` : widget radial principal
+  - Overlay fullscreen + SizeBox 400x400 centree
+  - Canvas_Radial avec Text_Category, RadialContainer (Is Variable), Image_Cursor, VBox_Center
+  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList, RadialRadius(150)
+  - GenerateSlots() : Clear -> ForEach SlotDataList -> Create UI_RadialSlot -> SetSlotData ->
+    Cos/Sin angle (index*360/len - 90 -> D2R -> Cos*Radius/Sin*Radius) ->
+    Add Child to Canvas -> Set Position -> Set Alignment(0.5/0.5) -> ADD SlotWidgets
+  - Event Construct : 4 slots test hardcodes -> GenerateSlots
+  - VALIDE PIE : 4 slots en cercle affiches, slow-mo fonctionnel
+- `UI_RadialSlot_OLD` : ancien widget slot renomme (conserve, non utilise)
+
+#### Refonte BP_PlatformingPlayerController
+- `OpenRadialMenu` nouvelle logique :
+  - Create UI_Radial_Main -> SET RadialMainRef -> Add to Viewport (ZOrder 99)
+  - Set Global Time Dilation (0.2) -> Set Input Mode Game And UI -> SET Show Mouse Cursor true
+  - IMPORTANT : ancienne logique (DT_Weapons loop + InitializeRadialMenu + Set Game Paused)
+    toujours presente dans la fonction mais DECONNECTEE de l'exec chain
+- `CloseRadialMenu` nouvelle logique :
+  - Remove from Parent (RadialMainRef) -> Set Global Time Dilation (1.0)
+  - Set Input Mode Game Only -> SET Show Mouse Cursor false -> SET RadialMainRef null
+  - IMPORTANT : ancienne logique (ValidateSelectedWeapon + UI_RadialMenu) toujours presente
+    dans la fonction mais DECONNECTEE de l'exec chain
+- Variable `RadialMainRef` (UI_Radial_Main) ajoutee au PC
+
+#### Reste a faire J-13
+- [ ] Navigation stick G/D : UpdateSelection + rotation plateau (lerp angle)
+- [ ] UpdateCenterInfo : Text_ItemName + Text_Description depuis SlotData selectionne
+- [ ] Changement categorie stick Haut/Bas + animation transition
+- [ ] Confirmation bouton A (entrer divinite / caster) + Retour bouton B
+- [ ] UI_QuickslotBar : 3 slots HUD, alimentes par BP_MagicComponent.QuickslotSlots
 
 #### Roadmap mise a jour
 - [x] J-10/J-11/J-12 : BP_MagicComponent complet
-- [x] J-14 : BP_SpellBase + 4 sorts Lumina valides
-- [x] AffectedStat + E_DeliveryType ajoutes dans FSoM_SpellData
-- [x] HUD reactif aux stats Max
-- [x] J-15 : UI_HUD_Main finalise (layout, texte Current/Max, DT_RichTextStyle)
-- [ ] J-13 UI : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar + binding input
-- [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat dynamiquement (dette)
+- [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
+- [x] J-15 : UI_HUD_Main finalise
+- [x] J-13 WIP : fondations radial (assets, GenerateSlots, OpenRadialMenu slow-mo)
+- [ ] J-13 suite : navigation + categories + confirmation + UI_QuickslotBar
+- [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
+- [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
+- [ ] SaveGame
+- [ ] ComfyUI textures
 
 ---
 
