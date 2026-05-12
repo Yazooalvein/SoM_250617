@@ -34,119 +34,95 @@ Suivi precis de toutes les evolutions majeures du projet.
 - GitHub MCP operationnel (SSL fix, node.exe --use-system-ca)
 - M_Hero : HitFlashAmount sur Emissive via Python MCP
 - BP_PlatformingCharacter > ReceiveDamage : flash blanc 0.12s
-- Revue technique complete, priorites identifiees
 
 ### 07/05/2026 -- Nico + Claude -- Jalon stable #2 -- Mort du joueur
-- BP_SoM_GameMode cree (remplace BP_PlatformingGameMode)
-- bIsDead, IsDead(), OnPlayerDeath dispatcher, AM_Death
-- ReceiveDamage : check bIsDead + pipeline mort complet
-- BP_EnemyBase : bind OnPlayerDeath -> LoseAggro
-- Architecture propre : un point de blocage + dispatcher
+- BP_SoM_GameMode, bIsDead, OnPlayerDeath, LoseAggro
 
 ### 07/05/2026 -- Nico + Claude -- Jalon stable #3 -- OnStatChanged
-
-#### BP_AttributeSet_Base
-- Event Dispatcher OnStatChanged(StatName [Name], NewValue [Float])
-- SetStatValue : Call OnStatChanged apres le Switch, branche sur tous les SET
-- StatName et Value passes directement depuis les inputs de SetStatValue
-- Un seul node Call pour tous les cases du Switch
-- Dispatcher pret a etre utilise par UI, ennemis, boss, effets de seuil
-
-#### Architecture Stat System -- etat final priorites hautes
-- SetStatValue = unique point de modification des stats
-- OnStatChanged = notification event-driven vers tous les abonnes
-- UI peut se binder pour remplacer le polling continu
-- Extensible pour ennemis/boss/compagnons sans modification du core
+- SetStatValue = unique point de modification
+- OnStatChanged = notification event-driven
 
 ### 08/05/2026 -- Nico + Claude -- Jalon stable #4 -- Unification inputs
-
-#### Nettoyage vestiges template ThirdPerson
-- Supprime : BP_ThirdPersonGameMode + BP_ThirdPersonCharacter (vestiges template inutilises)
-- Supprime : Content/Input/Actions/ (doublons IA_Jump, IA_Look, IA_Move, IA_Dash, IA_MouseLook)
-- Supprime : IMC_MouseLook (lie uniquement aux vestiges supprimes)
-
-#### Architecture Input -- etat final
-- Source unique : Content/Input/InputActions/
-- IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
-- BP_PlatformingCharacter + BP_PlatformingPlayerController = seuls consommateurs des inputs
+- Source unique Content/Input/InputActions/
+- Suppression vestiges ThirdPerson
 
 ### 08/05/2026 -- Nico + Claude -- Jalon stable #5 -- Iframes dash/roll
+- bIsInvincible via AnimNotify AN_EndDash/AN_EndRoll
 
-#### BP_PlatformingCharacter
-- Variable bIsInvincible (Boolean, default false) ajoutee
-- ReceiveDamage : Branch (bIsInvincible?) insere en premier check
-- Dash/Roll : SET bIsInvincible true/false via AnimNotify AN_EndDash/AN_EndRoll
-
-#### Architecture Iframes -- etat final
-- Duree iframe = duree animation, approche Dark Souls
-- Un seul flag bIsInvincible partage Dash + Roll
-
-### 10/05/2026 -- Nico + Claude -- Jalon stable #6 -- OnStatChanged bindings UI event-driven
-
-#### Architecture UI -- etat final
+### 10/05/2026 -- Nico + Claude -- Jalon stable #6 -- UI event-driven
 - Zero polling, push pur via OnStatChanged
-- SetStatValue = unique point de modification, garantit la notification
 
-### 10/05/2026 -- Nico + Claude -- Jalon #7 -- Hit Flash ennemi (partiel) + fix GameMode
-- M_Mannequin : HitFlashAmount ajoute (temporaire)
-- Fix BP_SoM_GameMode : Player Controller Class = BP_PlatformingPlayerController
+### 10/05/2026 -- Nico + Claude -- Jalon #7 -- Hit Flash ennemi + fix GameMode
+- M_Mannequin HitFlashAmount (temporaire)
+- BP_SoM_GameMode : Player Controller Class = BP_PlatformingPlayerController
 
 ### 11/05/2026 -- Nico + Claude -- Jalon stable #8 -- Migration UE5.7 + UnrealClaude
 - Projet migre UE5.6 -> UE5.7.4
 - UnrealClaude v1.4.5 : 28 outils MCP, panel operationnel
 
 ### 11/05/2026 -- Nico + Agent UE -- Jalon #9 -- Audit complet + nettoyage
-- Fixes Priorite 1 : DefaultGame.ini, ProjectName, uproject
-- Nettoyage : ThirdPerson/, IA debug
-- Fix C4 : Lvl_Platforming GameMode Override
+- Fixes config, nettoyage vestiges ThirdPerson et IA debug
+- Fix Lvl_Platforming GameMode Override
 
 ### 11/05/2026 -- Nico + Claude -- Session design + roadmap gameplay
-- Lore formalise : Docs/Lore_ShadowOfMana.md
+- Lore : Docs/Lore_ShadowOfMana.md
 - Roadmap : Docs/Roadmap_Gameplay.md (6 priorites, 32 jalons)
 - Architecture magie : Docs/Architecture/Magic_System.md
 
-### 11/05/2026 -- Nico + Claude -- Jalons #10/#11/#12 -- POC Systeme Magie
+### 12/05/2026 -- Nico + Claude -- Jalons J-10 a J-14 -- POC Systeme Magie COMPLET
 
-#### Assets crees (J-10/J-11) dans Content/Systems/Magic/
-- E_SpellCategory, E_SpellTarget (Enums)
-- FSoM_SpellData (Struct complete)
-- FSoM_DeitySpells (Struct helper -- contournement limite Map<Name, Array<Name>>)
-- DT_Spells (DataTable, 4 sorts Lumina)
-- BP_MagicComponent (ActorComponent, variables + dispatcher + Tick)
-- Ajoute sur BP_PlatformingCharacter comme composant "MagicComponent"
+#### Structure des assets (Content/Systems/Magic/)
+```
+Magic/
+├── Core/     : BP_MagicComponent, BP_SpellBase
+├── Data/     : E_SpellCategory, E_SpellTarget, FSoM_SpellData, FSoM_DeitySpells, DT_Spells
+└── Spells/
+    └── Lumina/ : BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff
+```
 
-#### Fonctions BP_MagicComponent (J-12)
-- UnlockDeity(DeityName) : ajoute les sorts d'une deite dans UnlockedSpells
-  - Map Contains -> Branch -> Make FSoM_DeitySpells -> Map Add
-  - Lumina hardcode pour le POC : [Lumina_Heal, Lumina_Attack, Lumina_Buff, Lumina_Debuff]
-- IsSpellUnlocked(SpellID) -> Boolean (Pure)
-  - Map Values -> ForEach -> Break FSoM_DeitySpells -> Array Contains -> bFound
-- ConsumeMana(Amount)
-  - GetOwner -> Cast BP_PlatformingCharacter -> Get AttributeSetRef -> ManaCurrent - Amount -> SetStatValue("ManaCurrent")
-  - Convention respectee : SetStatValue OBLIGATOIRE, jamais SET direct
-- CanCast(SpellID) -> Boolean (Pure)
-  - NOT bIsCasting AND SpellCooldowns[SpellID] <= 0 AND ManaCurrent >= ManaCost (DT_Spells lookup)
-  - Note technique : fonctions Pure incompatibles avec exec pins -> deux AND en chaine
+#### BP_MagicComponent (J-10/J-11/J-12)
+- Variables : UnlockedSpells (Map<Name,FSoM_DeitySpells>), QuickslotSlots (Array<Name>), SpellCooldowns (Map<Name,Float>), bIsCasting (Boolean)
+- Dispatcher : OnSpellCast(SpellID : Name)
+- UnlockDeity(DeityName) : Map Contains -> Branch -> Make FSoM_DeitySpells -> Map Add
+- IsSpellUnlocked(SpellID) -> Boolean Pure : ForEach Values -> Break -> Array Contains
+- ConsumeMana(Amount) : GetOwner -> AttributeSetRef -> SetStatValue("ManaCurrent")
+- CanCast(SpellID) -> Boolean Pure : NOT bIsCasting AND cooldown<=0 AND mana>=cost
+- CastSpell(SpellID) : CanCast -> GetDT -> SpawnActor -> SET Caster/Target/SpellData -> Execute -> ConsumeMana -> ADD cooldown -> OnSpellCast
 
-#### BP_PlatformingCharacter BeginPlay
-- Ajout en fin de chaine : Get MagicComponent -> UnlockDeity("Lumina")
-- Chaine complete : InitAttributes -> AddMainHUD -> InitComboTree -> UnlockDeity
+#### BP_SpellBase + enfants Lumina (J-14)
+- BP_SpellBase (Actor) : variables Caster/Target/SpellData, fonctions Execute + ApplyEffect (vide)
+- Execute : ApplyEffect -> Destroy Actor
+- BP_Spell_Heal : ApplyEffect override -> HealthCurrent + EffectValues via SetStatValue
+- BP_Spell_Attack : ApplyEffect override -> BPI_TakeDamage sur Target (EffectValues comme degats)
+- BP_Spell_Buff : ApplyEffect override -> HealthMax + EffectValues, Set Timer "RestoreStats", EventGraph RestoreStats restaure HealthMax
+- BP_Spell_Debuff : ApplyEffect override -> CharacterMovement MaxWalkSpeed - EffectValues, Set Timer "RestoreSpeed", EventGraph RestoreSpeed restaure speed
 
-#### Dette technique notee
-- UnlockDeity hardcode les SpellIDs de Lumina -- a rendre data-driven via DT_Spells quand plusieurs deites
-- CanCast verifie ManaCurrent via DT_Spells lookup -- acceptable pour le POC
+#### DT_Spells mis a jour (J-14)
+- Champ SpellClass ajoute dans FSoM_SpellData (Class Reference -> BP_SpellBase)
+- 4 lignes Lumina pointent vers leurs BP respectifs
 
-#### Incident technique
-- Agent UE : execute_script -> crash UE -> INTERDIT definitivement
-- Tache zombie resolue par reboot machine (process node orphelin)
-- Regle : agent UE = yeux uniquement (blueprint_query, asset_search) -- zero modification
+#### BP_PlatformingCharacter
+- BeginPlay : InitAttributes -> AddMainHUD -> InitComboTree -> UnlockDeity("Lumina")
+- Composant MagicComponent ajoute
+
+#### CastSpell -- architecture finale
+- Ciblage sorts offensifs : Get Current Lock on Target (BP_CombatLockOnComponent)
+- SpellClass lue depuis DT_Spells -> Spawn Actor -> Execute
+- ConsumeMana + cooldown mis a jour systematiquement
+
+#### Notes techniques
+- FSoM_DeitySpells : struct helper pour contourner limite UE Map<Name, Array<Name>>
+- Fonctions Pure incompatibles avec exec pins -> AND en chaine pour CanCast
+- execute_script INTERDIT dans UnrealClaude (crash UE) -- agent = yeux uniquement
+- Dette : UnlockDeity hardcode Lumina, a rendre data-driven quand multi-deites
 
 #### Roadmap mise a jour
-- [x] J-10 : BP_MagicComponent structure de base
+- [x] J-10 : BP_MagicComponent structure
 - [x] J-11 : DT_Spells + Enums + Structs
-- [x] J-12 : Fonctions BP_MagicComponent + UnlockDeity au BeginPlay
-- [ ] J-13 : UI_RadialMagic (2 niveaux, slow-mo 0.15x) + UI_QuickslotBar
-- [ ] J-14 : BP_SpellBase + enfants Lumina + integration complete POC
+- [x] J-12 : Fonctions BP_MagicComponent
+- [x] J-13/J-14 : BP_SpellBase + sorts Lumina + CastSpell -- POC logique COMPLET
+- [ ] J-13 UI : UI_RadialMagic (2 niveaux, slow-mo 0.15x) + UI_QuickslotBar + binding input
+- [ ] Test gameplay : brancher CastSpell sur une touche et valider en PIE
 
 ---
 
@@ -156,4 +132,4 @@ Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 11/05/2026
+- Derniere mise a jour : 12/05/2026
