@@ -178,17 +178,32 @@ git push
 - `DT_Weapons` + `BP_Weapon_Base`
 
 ### UI / HUD
-- `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE ✅
+- `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
   - Layout : SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
-  - Variables : HealthPercent, StaminaPercent, ManaPercent
-  - HUD_OnStatChanged : Switch on Name -> SET *Percent + UpdateStatText
-  - UpdateStatText(Current, Max, RichTextBlock) : fonction centralisee, affiche "X / Y" sans decimales
-  - InitHUD : appelee depuis Add_Main_HUD apres Add to Viewport, init barres ET textes
-  - DT_HUD_RichTextStyle : Content/UI/Widgets/Main/, row Default, assigne sur les 3 RichTextBlocks
-  - ⚠️ SizeBox obligatoire autour de chaque ProgressBar (sinon hauteur excessive)
+  - UpdateStatText(Current, Max, RichTextBlock) : affiche "X / Y" sans decimales
+  - InitHUD : init barres ET textes au demarrage
+  - DT_HUD_RichTextStyle : Content/UI/Widgets/Main/
+  - ⚠️ SizeBox obligatoire autour de chaque ProgressBar
   - ⚠️ Size To Content sur HUD_Anchor doit etre DECOCHE
 - `UI_Enemy_HealthBar`, `UI_LockOnIndicator`
-- A faire : UI_RadialMagic (J-13), UI_QuickslotBar (J-13)
+
+### Radial Menu -- EN COURS DE REFONTE (J-13 WIP)
+- Chemin assets : Content/UI/Widgets/RadialMenu/
+- `ERadialMode` : enum Weapons / Magic
+- `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
+- `UI_RadialSlot` : widget slot 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
+- `UI_RadialSlot_OLD` : ancien widget slot (conserve, non utilise, renomme)
+- `UI_Radial_Main` : widget radial principal
+  - GenerateSlots() : Cos/Sin positioning, slots en cercle autour RadialContainer
+  - 4 slots test hardcodes valides PIE
+  - RESTE A FAIRE : navigation, categories, confirmation, UpdateCenterInfo
+- `BP_PlatformingPlayerController` :
+  - `OpenRadialMenu` : Create UI_Radial_Main + Time Dilation 0.2 + Add to Viewport
+    ⚠️ Ancienne logique (DT_Weapons loop + UI_RadialMenu + Set Game Paused) PRESENTE MAIS DECONNECTEE
+  - `CloseRadialMenu` : Remove from Parent + Time Dilation 1.0
+    ⚠️ Ancienne logique (ValidateSelectedWeapon + UI_RadialMenu) PRESENTE MAIS DECONNECTEE
+  - `RadialMainRef` (UI_Radial_Main) : nouvelle variable de reference
+  - `RadialMenuRef` (UI_RadialMenu_C) : ancienne variable, toujours presente pour l'ancienne logique
 
 ### Magie
 - `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
@@ -205,42 +220,35 @@ git push
 
 ## Jalons completes
 
-- [x] #1 Setup MCP Claude Desktop <> Unreal + Hit Flash joueur (M_Hero HitFlashAmount)
-- [x] #2 Mort du joueur (bIsDead, OnPlayerDeath, AM_Death, LoseAggro)
-- [x] #3 OnStatChanged dispatcher dans BP_AttributeSet_Base
-- [x] #4 Unification inputs (source unique InputActions/, suppression vestiges ThirdPerson)
-- [x] #5 Iframes dash/roll (bIsInvincible, pilote par AnimNotify)
-- [x] #6 OnStatChanged -> bindings UI event-driven (zero polling)
-- [x] #7 Hit Flash ennemi partiel (M_Mannequin) + fix GameMode PlayerController
-- [x] #8 Migration UE5.7 + UnrealClaude v1.4.5 (28 outils MCP, panel editeur)
-- [x] #9 Audit complet + nettoyage config
+- [x] #1 a #9 : MCP, mort, stats, inputs, iframes, UI, hit flash, migration UE5.7, audit
 - [x] J-10/11/12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise (layout, RichTextBlock Current/Max, DT_RichTextStyle)
+- [x] J-13 WIP : fondations radial (ERadialMode, FSoM_RadialSlotData, UI_RadialSlot,
+      UI_Radial_Main GenerateSlots, OpenRadialMenu slow-mo, 4 slots PIE valides)
 
 ## Roadmap immediate
 
-- [ ] J-13 : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar + binding input
-- [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat dynamiquement (dette)
+- [ ] J-13 suite : navigation stick + categories + confirmation + UI_QuickslotBar
+- [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
-- [ ] Hit Flash ennemis (vrai enemy mesh + M_Enemy_Base + DMI)
-- [ ] Systeme de sauvegarde SaveGame
-- [ ] Setup ComfyUI generation textures/concepts (RTX 3080Ti)
+- [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
+- [ ] SaveGame
+- [ ] ComfyUI textures (RTX 3080Ti)
 
 ---
 
 ## Notes techniques importantes
 
-- Hit Flash ennemi : utiliser Dynamic Material Instance (BeginPlay) + Set Scalar sur DMI, pas Set Scalar on Materials
-- M_Enemy_Base a creer avec HitFlashAmount integre des le depart pour les vrais ennemis
-- `BP_SoM_GameMode` : Player Controller Class doit etre BP_PlatformingPlayerController (sinon Lock-On et Radial cassent)
-- Substrate material system : verifier statut dans UE5.7 (etait desactive en 5.6)
-- Toutes les anims de mort sur SK_Mannequin, retargeter `RTG_NewRetargeter` disponible
-- Convention nommage stats : sans espace, CamelCase (HealthCurrent pas "Health Current")
-- UnrealClaude : si MCP tools absents -> verifier `npm install` dans mcp-bridge + redemarrer editeur
-- RichTextBlock UE5 : necessite DataTable (RichTextStyleRow) assignee dans Text Style Set pour afficher
+- Hit Flash ennemi : DMI au BeginPlay + Set Scalar sur DMI
+- `BP_SoM_GameMode` : Player Controller Class = BP_PlatformingPlayerController obligatoire
+- RichTextBlock : necessite DataTable (RichTextStyleRow) assignee dans Text Style Set
 - ProgressBar dans HBox/VBox : toujours wrapper dans SizeBox pour controler la hauteur
-- To Text (Float) : utiliser Max/Min Fractional Digits = 0 pour supprimer les decimales
+- To Text (Float) : Max/Min Fractional Digits = 0 pour supprimer les decimales
+- Radial : ancienne logique UI_RadialMenu deconnectee mais conservee dans Open/CloseRadialMenu
+- Time Dilation 0.2 a l'ouverture radial, 1.0 a la fermeture (remplace Set Game Paused)
+- Widget "Is Variable" obligatoire pour acceder depuis le graph (ex: RadialContainer)
+- Make Brush from Texture + Set Brush pour assigner une Texture2D a une Image widget
 
 ---
 
@@ -248,7 +256,7 @@ git push
 
 1. Nico dit : "on travaille sur Shadow of Mana, lis le CLAUDE.md et le journal"
 2. Claude.ai lit ce fichier + `Docs/Journal_Modifications.md` + `Docs/Session_UnrealClaude.md`
-3. Claude.ai fait un resume complet (jalons, dernières actions UE) et propose la suite logique
+3. Claude.ai fait un resume complet (jalons, dernieres actions UE) et propose la suite logique
 
 ## Comment demarrer une session UnrealClaude (dans l'editeur)
 
