@@ -178,11 +178,23 @@ git push
 - `DT_Weapons` + `BP_Weapon_Base`
 
 ### UI / HUD
-- `UI_HUD_Main` : event-driven via OnStatChanged, zero polling
+- `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE ✅
+  - Layout : SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
   - Variables : HealthPercent, StaminaPercent, ManaPercent
-  - HUD_OnStatChanged : Switch on Name -> division Current/Max -> SET *Percent
-  - InitHUD : appelee depuis Add_Main_HUD apres Add to Viewport
+  - HUD_OnStatChanged : Switch on Name -> SET *Percent + UpdateStatText
+  - UpdateStatText(Current, Max, RichTextBlock) : fonction centralisee, affiche "X / Y" sans decimales
+  - InitHUD : appelee depuis Add_Main_HUD apres Add to Viewport, init barres ET textes
+  - DT_HUD_RichTextStyle : Content/UI/Widgets/Main/, row Default, assigne sur les 3 RichTextBlocks
+  - ⚠️ SizeBox obligatoire autour de chaque ProgressBar (sinon hauteur excessive)
+  - ⚠️ Size To Content sur HUD_Anchor doit etre DECOCHE
 - `UI_Enemy_HealthBar`, `UI_LockOnIndicator`
+- A faire : UI_RadialMagic (J-13), UI_QuickslotBar (J-13)
+
+### Magie
+- `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
+- `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
+- `DT_Spells` + structs FSoM_SpellData / FSoM_DeitySpells
+- Chemin assets : Content/Systems/Magic/
 
 ### Inputs
 - Source unique : `Content/Input/InputActions/`
@@ -201,10 +213,17 @@ git push
 - [x] #6 OnStatChanged -> bindings UI event-driven (zero polling)
 - [x] #7 Hit Flash ennemi partiel (M_Mannequin) + fix GameMode PlayerController
 - [x] #8 Migration UE5.7 + UnrealClaude v1.4.5 (28 outils MCP, panel editeur)
+- [x] #9 Audit complet + nettoyage config
+- [x] J-10/11/12 : BP_MagicComponent complet
+- [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
+- [x] J-15 : UI_HUD_Main finalise (layout, RichTextBlock Current/Max, DT_RichTextStyle)
 
-## Roadmap
+## Roadmap immediate
 
-- [ ] Hit Flash ennemis (a finaliser avec vrai enemy mesh + M_Enemy_Base + DMI)
+- [ ] J-13 : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar + binding input
+- [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat dynamiquement (dette)
+- [ ] UnlockDeity data-driven depuis DT_Spells (dette)
+- [ ] Hit Flash ennemis (vrai enemy mesh + M_Enemy_Base + DMI)
 - [ ] Systeme de sauvegarde SaveGame
 - [ ] Setup ComfyUI generation textures/concepts (RTX 3080Ti)
 
@@ -219,6 +238,9 @@ git push
 - Toutes les anims de mort sur SK_Mannequin, retargeter `RTG_NewRetargeter` disponible
 - Convention nommage stats : sans espace, CamelCase (HealthCurrent pas "Health Current")
 - UnrealClaude : si MCP tools absents -> verifier `npm install` dans mcp-bridge + redemarrer editeur
+- RichTextBlock UE5 : necessite DataTable (RichTextStyleRow) assignee dans Text Style Set pour afficher
+- ProgressBar dans HBox/VBox : toujours wrapper dans SizeBox pour controler la hauteur
+- To Text (Float) : utiliser Max/Min Fractional Digits = 0 pour supprimer les decimales
 
 ---
 
@@ -236,4 +258,4 @@ git push
 
 ---
 
-*Derniere mise a jour : 11/05/2026*
+*Derniere mise a jour : 12/05/2026*
