@@ -89,7 +89,7 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
 - DT_HUD_RichTextStyle assigne sur les 3 RichTextBlocks
 - To Text Float, 0 decimales, format "X / Y"
 
-### 12/05/2026 -- Jalon J-13 WIP -- Refonte Radial Menu
+### 12/05/2026 -- Jalon J-13 WIP -- Refonte Radial Menu (fondations)
 
 #### Decisions de design actees
 - Radial unifie Armes + Magie, navigation verticale stick = changement categorie
@@ -116,36 +116,53 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
   - GenerateSlots() : Clear -> ForEach SlotDataList -> Create UI_RadialSlot -> SetSlotData ->
     Cos/Sin angle (index*360/len - 90 -> D2R -> Cos*Radius/Sin*Radius) ->
     Add Child to Canvas -> Set Position -> Set Alignment(0.5/0.5) -> ADD SlotWidgets
-  - Event Construct : 4 slots test hardcodes -> GenerateSlots
+  - Event Construct : 4 slots test hardcodes -> GenerateSlots -> UpdateCenterInfo
   - VALIDE PIE : 4 slots en cercle affiches, slow-mo fonctionnel
 - `UI_RadialSlot_OLD` : ancien widget slot renomme (conserve, non utilise)
 
-#### Refonte BP_PlatformingPlayerController
-- `OpenRadialMenu` nouvelle logique :
-  - Create UI_Radial_Main -> SET RadialMainRef -> Add to Viewport (ZOrder 99)
-  - Set Global Time Dilation (0.2) -> Set Input Mode Game And UI -> SET Show Mouse Cursor true
-  - IMPORTANT : ancienne logique (DT_Weapons loop + InitializeRadialMenu + Set Game Paused)
-    toujours presente dans la fonction mais DECONNECTEE de l'exec chain
-- `CloseRadialMenu` nouvelle logique :
-  - Remove from Parent (RadialMainRef) -> Set Global Time Dilation (1.0)
-  - Set Input Mode Game Only -> SET Show Mouse Cursor false -> SET RadialMainRef null
-  - IMPORTANT : ancienne logique (ValidateSelectedWeapon + UI_RadialMenu) toujours presente
-    dans la fonction mais DECONNECTEE de l'exec chain
-- Variable `RadialMainRef` (UI_Radial_Main) ajoutee au PC
+### 13/05/2026 -- Jalon J-13 WIP suite -- Navigation radial fonctionnelle
+
+#### UI_Radial_Main -- nouvelles fonctions
+- `UpdateCenterInfo` : lit SlotDataList[SelectedIndex] -> SET Text_ItemName/Description/Category
+  - Text_Category : ERadialMode -> Enum to String -> To Text
+  - 3 RichTextBlocks avec DT_HUD_RichTextStyle assigne
+- `UpdateSelection(AxisValue : Float)` : navigation par cran
+  - NbSlots = LENGTH(SlotDataList), AnglePerSlot = 360 / NbSlots
+  - Branch AxisValue > 0 :
+    True  -> SelectedIndex+1, TargetRotation+AnglePerSlot
+    False -> SelectedIndex-1, TargetRotation-AnglePerSlot
+  - Wrap : (SelectedIndex + NbSlots) % NbSlots
+  - ForEach SlotWidgets -> SetSelected(ArrayIndex == SelectedIndex)
+  - UpdateCenterInfo
+- `Event Tick` : rotation visuelle fluide
+  - FInterpTo(CurrentRotation, TargetRotation, DeltaSeconds, InterpSpeed=8.0) -> SET CurrentRotation
+  - SetRenderTransformAngle(RadialContainer, CurrentRotation)
+  - ForEach SlotWidgets -> SetRenderTransformAngle(slot, CurrentRotation * -1) (contre-rotation icones)
+
+#### BP_PlatformingPlayerController -- fixes
+- `OpenRadialMenu` : IsValid(RadialMainRef) guard (evite empilement infini)
+  - Set Input Mode Game And UI (WidgetToFocus = RadialMainRef)
+- `ValidateSelectedWeapon` : IsValid(RadialMenuRef) guard (stoppe erreurs runtime)
+- `Handle_UI_RadialMenu_Rotate` : branche sur RadialMainRef -> UpdateSelection(AxisValue)
+- Input IA_UI_RadialMenu_Rotate : Action Value directement en AxisValue (pas de Conv necessaire)
+
+#### Etat navigation
+- VALIDE PIE : Q/D (ou stick) = rotation par cran, lerp fluide, wrap correct dans les deux sens
+- Text_ItemName change selon slot selectionne
+- Icones restent droites pendant rotation plateau
 
 #### Reste a faire J-13
-- [ ] Navigation stick G/D : UpdateSelection + rotation plateau (lerp angle)
-- [ ] UpdateCenterInfo : Text_ItemName + Text_Description depuis SlotData selectionne
-- [ ] Changement categorie stick Haut/Bas + animation transition
-- [ ] Confirmation bouton A (entrer divinite / caster) + Retour bouton B
-- [ ] UI_QuickslotBar : 3 slots HUD, alimentes par BP_MagicComponent.QuickslotSlots
+- [ ] Changement categorie stick Haut/Bas (Weapons <-> Magic)
+- [ ] Confirmation bouton A + Retour bouton B
+- [ ] UI_QuickslotBar : 3 slots HUD
+- [ ] Recabler PC sur UI_Radial_Main pour confirmation/retour
 
 #### Roadmap mise a jour
 - [x] J-10/J-11/J-12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise
-- [x] J-13 WIP : fondations radial (assets, GenerateSlots, OpenRadialMenu slow-mo)
-- [ ] J-13 suite : navigation + categories + confirmation + UI_QuickslotBar
+- [x] J-13 WIP : fondations radial + navigation par cran + lerp fluide VALIDE PIE
+- [ ] J-13 suite : categories + confirmation + UI_QuickslotBar
 - [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
 - [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
@@ -159,4 +176,4 @@ Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 12/05/2026
+- Derniere mise a jour : 13/05/2026
