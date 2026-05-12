@@ -193,15 +193,29 @@ git push
 - `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` : widget slot 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
 - `UI_RadialSlot_OLD` : ancien widget slot (conserve, non utilise, renomme)
-- `UI_Radial_Main` : widget radial principal
+- `UI_Radial_Main` : widget radial principal -- NAVIGATION VALIDE PIE
+  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList, RadialRadius(150)
+  - TargetRotation, CurrentRotation, RotationSpeed(180), InterpSpeed(8.0)
   - GenerateSlots() : Cos/Sin positioning, slots en cercle autour RadialContainer
-  - 4 slots test hardcodes valides PIE
-  - RESTE A FAIRE : navigation, categories, confirmation, UpdateCenterInfo
+  - UpdateCenterInfo() : SET Text_ItemName/Description/Category depuis SlotDataList[SelectedIndex]
+  - UpdateSelection(AxisValue) : navigation par cran
+    - Branch AxisValue > 0 : SelectedIndex+1 / TargetRotation+AnglePerSlot
+    - Branch AxisValue < 0 : SelectedIndex-1 / TargetRotation-AnglePerSlot
+    - Wrap : (SelectedIndex + NbSlots) % NbSlots
+    - ForEach SlotWidgets -> SetSelected(ArrayIndex == SelectedIndex) -> UpdateCenterInfo
+  - Event Tick : FInterpTo(CurrentRotation->TargetRotation) -> SetRenderTransformAngle(RadialContainer)
+    + contre-rotation icones (CurrentRotation * -1)
+  - Event Construct : 4 slots test hardcodes -> GenerateSlots -> UpdateCenterInfo
+  - VALIDE PIE : navigation par cran Q/D, lerp fluide, wrap correct, texte centre mis a jour
+  - RESTE A FAIRE : categories Weapons/Magic, confirmation A, retour B, UI_QuickslotBar
 - `BP_PlatformingPlayerController` :
-  - `OpenRadialMenu` : Create UI_Radial_Main + Time Dilation 0.2 + Add to Viewport
+  - `OpenRadialMenu` : IsValid guard + Create UI_Radial_Main + Time Dilation 0.2 + Add to Viewport
+    + Set Input Mode Game And UI (WidgetToFocus = RadialMainRef) + Show Mouse Cursor
     ⚠️ Ancienne logique (DT_Weapons loop + UI_RadialMenu + Set Game Paused) PRESENTE MAIS DECONNECTEE
-  - `CloseRadialMenu` : Remove from Parent + Time Dilation 1.0
+  - `CloseRadialMenu` : Remove from Parent + Time Dilation 1.0 + Input Mode Game Only
     ⚠️ Ancienne logique (ValidateSelectedWeapon + UI_RadialMenu) PRESENTE MAIS DECONNECTEE
+  - `ValidateSelectedWeapon` : IsValid(RadialMenuRef) guard ajoute (evite erreurs runtime)
+  - `Handle_UI_RadialMenu_Rotate` : IsValid(RadialMainRef) -> UpdateSelection(AxisValue) sur RadialMainRef
   - `RadialMainRef` (UI_Radial_Main) : nouvelle variable de reference
   - `RadialMenuRef` (UI_RadialMenu_C) : ancienne variable, toujours presente pour l'ancienne logique
 
@@ -224,12 +238,11 @@ git push
 - [x] J-10/11/12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise (layout, RichTextBlock Current/Max, DT_RichTextStyle)
-- [x] J-13 WIP : fondations radial (ERadialMode, FSoM_RadialSlotData, UI_RadialSlot,
-      UI_Radial_Main GenerateSlots, OpenRadialMenu slow-mo, 4 slots PIE valides)
+- [x] J-13 WIP : fondations radial + navigation par cran + lerp fluide VALIDE PIE
 
 ## Roadmap immediate
 
-- [ ] J-13 suite : navigation stick + categories + confirmation + UI_QuickslotBar
+- [ ] J-13 suite : categories Weapons/Magic + confirmation + retour + UI_QuickslotBar
 - [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
 - [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
@@ -249,6 +262,8 @@ git push
 - Time Dilation 0.2 a l'ouverture radial, 1.0 a la fermeture (remplace Set Game Paused)
 - Widget "Is Variable" obligatoire pour acceder depuis le graph (ex: RadialContainer)
 - Make Brush from Texture + Set Brush pour assigner une Texture2D a une Image widget
+- Radial navigation : TargetRotation s'accumule (pas de % 360) pour que le lerp aille toujours dans le bon sens
+- Radial wrap index : (SelectedIndex + NbSlots) % NbSlots -- le +NbSlots evite les valeurs negatives
 
 ---
 
@@ -266,4 +281,4 @@ git push
 
 ---
 
-*Derniere mise a jour : 12/05/2026*
+*Derniere mise a jour : 13/05/2026*
