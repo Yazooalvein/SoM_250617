@@ -69,7 +69,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Roadmap : Docs/Roadmap_Gameplay.md (6 priorites, 32 jalons)
 - Architecture magie : Docs/Architecture/Magic_System.md
 
-### 12/05/2026 -- Nico + Claude -- Jalons J-10 a J-14 -- POC Systeme Magie COMPLET
+### 12/05/2026 -- Nico + Claude -- Jalons J-10 a J-14 -- POC Systeme Magie VALIDE EN GAMEPLAY
 
 #### Structure des assets (Content/Systems/Magic/)
 ```
@@ -80,49 +80,44 @@ Magic/
     └── Lumina/ : BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff
 ```
 
-#### BP_MagicComponent (J-10/J-11/J-12)
+#### BP_MagicComponent
 - Variables : UnlockedSpells (Map<Name,FSoM_DeitySpells>), QuickslotSlots (Array<Name>), SpellCooldowns (Map<Name,Float>), bIsCasting (Boolean)
 - Dispatcher : OnSpellCast(SpellID : Name)
-- UnlockDeity(DeityName) : Map Contains -> Branch -> Make FSoM_DeitySpells -> Map Add
-- IsSpellUnlocked(SpellID) -> Boolean Pure : ForEach Values -> Break -> Array Contains
-- ConsumeMana(Amount) : GetOwner -> AttributeSetRef -> SetStatValue("ManaCurrent")
-- CanCast(SpellID) -> Boolean Pure : NOT bIsCasting AND cooldown<=0 AND mana>=cost
-- CastSpell(SpellID) : CanCast -> GetDT -> SpawnActor -> SET Caster/Target/SpellData -> Execute -> ConsumeMana -> ADD cooldown -> OnSpellCast
+- UnlockDeity / IsSpellUnlocked / ConsumeMana / CanCast / CastSpell
+- Event Tick : decrementation cooldowns (ForEach Keys -> Find -> subtract DeltaSeconds -> Max 0.0 -> Map Add)
 
-#### BP_SpellBase + enfants Lumina (J-14)
-- BP_SpellBase (Actor) : variables Caster/Target/SpellData, fonctions Execute + ApplyEffect (vide)
-- Execute : ApplyEffect -> Destroy Actor
-- BP_Spell_Heal : ApplyEffect override -> HealthCurrent + EffectValues via SetStatValue
-- BP_Spell_Attack : ApplyEffect override -> BPI_TakeDamage sur Target (EffectValues comme degats)
-- BP_Spell_Buff : ApplyEffect override -> HealthMax + EffectValues, Set Timer "RestoreStats", EventGraph RestoreStats restaure HealthMax
-- BP_Spell_Debuff : ApplyEffect override -> CharacterMovement MaxWalkSpeed - EffectValues, Set Timer "RestoreSpeed", EventGraph RestoreSpeed restaure speed
+#### CastSpell -- architecture finale validee
+- CanCast -> GetDT -> SpawnActor -> SET Caster (GetOwner cast BP_PlatformingCharacter)
+- Switch on E_SpellTarget : Enemy -> GetCurrentLockOnTarget / Self -> GetOwner
+- SET Target -> SET SpellData -> Execute -> ConsumeMana -> ADD cooldown -> OnSpellCast
 
-#### DT_Spells mis a jour (J-14)
-- Champ SpellClass ajoute dans FSoM_SpellData (Class Reference -> BP_SpellBase)
-- 4 lignes Lumina pointent vers leurs BP respectifs
+#### BP_SpellBase + enfants Lumina
+- BP_SpellBase : Execute (ApplyEffect -> Destroy Actor), ApplyEffect (vide, overridee)
+- BP_Spell_Heal : HealthCurrent + EffectValues, clamp a HealthMax via MIN -- VALIDE PIE ✅
+- BP_Spell_Attack : BPI_TakeDamage sur Target
+- BP_Spell_Buff : HealthMax + EffectValues, Set Timer RestoreStats
+- BP_Spell_Debuff : MaxWalkSpeed - EffectValues, Set Timer RestoreSpeed
 
-#### BP_PlatformingCharacter
-- BeginPlay : InitAttributes -> AddMainHUD -> InitComboTree -> UnlockDeity("Lumina")
-- Composant MagicComponent ajoute
+#### Bugs corriges lors du test gameplay
+- Caster non assigne : GetOwner -> Cast BP_PlatformingCharacter manquait dans CastSpell
+- Target None pour sorts Self : Switch on E_SpellTarget ajoute (Self = GetOwner, Enemy = LockOn)
+- Heal depassait HealthMax : MIN(HealthCurrent + EffectValues, HealthMax) ajoute
+- Cooldown ne se decrementait pas : Event Tick vide -> implementé
 
-#### CastSpell -- architecture finale
-- Ciblage sorts offensifs : Get Current Lock on Target (BP_CombatLockOnComponent)
-- SpellClass lue depuis DT_Spells -> Spawn Actor -> Execute
-- ConsumeMana + cooldown mis a jour systematiquement
-
-#### Notes techniques
-- FSoM_DeitySpells : struct helper pour contourner limite UE Map<Name, Array<Name>>
-- Fonctions Pure incompatibles avec exec pins -> AND en chaine pour CanCast
-- execute_script INTERDIT dans UnrealClaude (crash UE) -- agent = yeux uniquement
-- Dette : UnlockDeity hardcode Lumina, a rendre data-driven quand multi-deites
+#### Architecture standardisee (decision design)
+- 4 sorts par deite exactement : Attack / Heal / Buff / Debuff
+- Hierachie Attack : Direct (actuel) / Projectile / AOE (futurs)
+- Hierachie Debuff : Direct (actuel) / AOE (futur)
+- AffectedStat (Name) a ajouter dans FSoM_SpellData pour rendre Buff/Debuff generiques
+- DeliveryType (E_DeliveryType) a creer et ajouter dans FSoM_SpellData
 
 #### Roadmap mise a jour
-- [x] J-10 : BP_MagicComponent structure
-- [x] J-11 : DT_Spells + Enums + Structs
-- [x] J-12 : Fonctions BP_MagicComponent
-- [x] J-13/J-14 : BP_SpellBase + sorts Lumina + CastSpell -- POC logique COMPLET
-- [ ] J-13 UI : UI_RadialMagic (2 niveaux, slow-mo 0.15x) + UI_QuickslotBar + binding input
-- [ ] Test gameplay : brancher CastSpell sur une touche et valider en PIE
+- [x] J-10/J-11/J-12 : BP_MagicComponent complet
+- [x] J-14 : BP_SpellBase + sorts Lumina + CastSpell
+- [x] Test gameplay POC valide (Heal fonctionne, cooldown, mana) ✅
+- [ ] Ajouter AffectedStat + E_DeliveryType dans FSoM_SpellData
+- [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat dynamiquement
+- [ ] J-13 UI : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar + binding input
 
 ---
 
