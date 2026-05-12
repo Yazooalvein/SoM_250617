@@ -87,28 +87,51 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
 - HealthMax change -> HealthPercent = HealthCurrent / NewValue (barre se redimensionne)
 - Idem StaminaMax, ManaMax
 
-#### UI_HUD_Main -- refonte en cours (WIP)
-Structure cible :
+### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE ✅
+
+#### Layout finalise (Content/UI/Widgets/Main/)
 ```
 Canvas Panel
-└── HUD_Anchor (bas-gauche, pos 20/-20, size 400/150, alignment 0/1)
+└── HUD_Anchor (bas-gauche, pos 20/-20, size 400/150, alignment 0/1, Size To Content OFF)
     └── Horizontal Box
-        ├── Image_Weapon (64x64, Fill, V-Center)
+        ├── SizeBox_Weapon (64x64, Auto, V-Center, padding Right 8)
+        │   └── Image_Weapon (Fill/Fill)
         └── HUD_Main_VertBox (Fill 1.0)
-            ├── Overlay_HP (HealthBar + RichTextBlock_HP)
-            ├── Overlay_ST (StaminaBar + RichTextBlock_ST)
-            ├── Overlay_MP (ManaBar + RichTextBlock_MP)
-            └── XP
+            ├── Overlay_HP (Fill 1.0)
+            │   ├── SizeBox > HealthBar (Fill/Fill, rouge, Get_HealthBar_Percent)
+            │   └── RichTextBlock_HP (Center/Center)
+            ├── Overlay_ST (Fill 1.0)
+            │   ├── SizeBox > StaminaBar (Fill/Fill, vert)
+            │   └── RichTextBlock_ST (Center/Center)
+            ├── Overlay_MP (Fill 1.0)
+            │   ├── SizeBox > ManaBar (Fill/Fill, bleu)
+            │   └── RichTextBlock_MP (Center/Center)
+            └── XP (Auto, padding Top 8, violet)
 ```
-Probleme en cours : sizing Image_Weapon (Scale 2.0/Translation incorrects a corriger)
-A faire : binding texte Current/Max sur RichTextBlock via HUD_OnStatChanged
+
+#### Fonction UpdateStatText (centralisee)
+- Inputs : Current (Float), Max (Float), Target (RichTextBlock ref)
+- Pipeline : To Text (Float, 0 decimales) -> To String -> Append " / " -> To Text String -> Set Text
+- Appelee depuis HUD_OnStatChanged (cases *Current) ET depuis InitHUD (init au demarrage)
+
+#### DT_HUD_RichTextStyle
+- Chemin : Content/UI/Widgets/Main/DT_HUD_RichTextStyle
+- Row structure : RichTextStyleRow
+- Row "Default" : font configuree, assignee sur les 3 RichTextBlocks
+- Base pour futures fonts stylisees par stat ou divinite
+
+#### Points d'attention
+- SizeBox autour de chaque ProgressBar obligatoire (sinon Desired Size force hauteur excessive)
+- Size To Content sur HUD_Anchor doit etre DECOCHE (sinon ignore Size 400x150)
+- RichTextBlock necessite DT assignee pour afficher du texte (contrairement a TextBlock)
+- To Text (Float) avec Max/Min Fractional Digits = 0 pour supprimer les decimales
 
 #### Roadmap mise a jour
 - [x] J-10/J-11/J-12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides
 - [x] AffectedStat + E_DeliveryType ajoutes dans FSoM_SpellData
 - [x] HUD reactif aux stats Max
-- [ ] Finaliser UI_HUD_Main (Image_Weapon sizing, texte Current/Max)
+- [x] J-15 : UI_HUD_Main finalise (layout, texte Current/Max, DT_RichTextStyle)
 - [ ] J-13 UI : UI_RadialMagic (2 niveaux, slow-mo) + UI_QuickslotBar + binding input
 - [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat dynamiquement (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
