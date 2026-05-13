@@ -13,96 +13,162 @@ Mis a jour apres chaque session de design ou de developpement.
 | HUD event-driven | ✅ Stable | Zero polling, extensible |
 | Iframes dash/roll | ✅ Stable | Via AnimNotify, Dark Souls style |
 | Mort du joueur | ✅ Stable | bIsDead + OnPlayerDeath dispatcher |
-| Lock-On | ✅ Stable | BP_PlatformingPlayerController |
-| Radial menu unifie | ⚠️ WIP | J-13 en cours, navigation + fixes valides PIE |
-| Combo system | ✅ POC | TMap + fenetre dynamique, a evaluer pour multi-types |
-| IA ennemis | ✅ POC | Behavior Tree + PawnSensing, base ennemie uniquement |
+| Lock-On | ⚠️ A revoir | Logique + UI a revoir (J-lock) |
+| Radial menu unifie | ⚠️ WIP | J-13 quasi-complet, Quickslot POC restant |
+| Combo system | ✅ POC | TMap + fenetre dynamique, a evaluer J-15 |
+| IA ennemis | ✅ POC | Behavior Tree + PawnSensing |
 | Hit Flash joueur | ✅ Stable | M_Hero HitFlashAmount |
 | Hit Flash ennemi | ⚠️ Partiel | Necessite DMI + vrai enemy mesh |
 | Systeme de magie | ✅ POC | BP_MagicComponent + 4 sorts Lumina valides PIE |
 
 ---
 
-## Jalons a venir — par priorite
+## Timeline reorganisee -- ordre de dependances
+
+```
+J-13 final
+  └─> J-A/C/D (nettoyage rapide)
+        └─> J-lock (Lock-On revision)
+              └─> J-15/16/17 (Armes : audit -> archi -> POC Epee)
+                    └─> J-F (SaveGame -- avant de complexifier)
+                          └─> J-18/19 (Arc + Switching)
+                                └─> J-B/E (animations + Hit Flash)
+                                      └─> J-20/21/22/23 (Compagnons)
+                                            └─> J-24/25/26 (Corruption)
+                                                  └─> J-27/28/29 (Hub + Forge)
+                                                        └─> J-30/31/32 (Progression)
+```
+
+Sessions creatives intercalees (voir section dediee).
 
 ---
 
-### PRIORITE 1 — Nettoyage technique restant
+## Jalons detailles
+
+---
+
+### J-13 -- Radial Menu + Quickslot (EN COURS)
+
+- [x] Navigation par cran, lerp fluide, wrap correct
+- [x] UpdateCenterInfo
+- [x] Fix surbrillance 12h + drift
+- [x] PopulateWeaponSlots (pont temporaire DiscoveredWeapons)
+- [x] SwitchCategory Weapons/Magic
+- [x] ValidateSelectedWeapon + EquipWeapon
+- [x] Cancel bouton B (IA_UI_Radial_Cancel)
+- [ ] **Quickslot POC mecanique** : assigner sort -> declencher via fleches ↑←→
+- [ ] **Quickslot HUD minimal** : afficher 3 icones dans le HUD
+
+---
+
+### J-A/C/D -- Nettoyage rapide (1 session)
 
 - [ ] **J-A** : Supprimer BP_PlatformingGameMode via Content Browser
-- [ ] **J-B** : Consolidation animations en double
-- [ ] **J-C** : Verification et consolidation IMC dans Enhanced Input UI
+- [ ] **J-C** : Verification et consolidation IMC (creer IMC_UI, clean IMC_Prototype)
 - [ ] **J-D** : Reorganisation dossier Enemies via Content Browser
-- [ ] **J-E** : Hit Flash ennemis finalise — vrai enemy mesh + M_Enemy_Base + DMI au BeginPlay
-- [ ] **J-F** : Systeme SaveGame — session dediee
 
 ---
 
-### PRIORITE 2 — POC Systeme de Magie
+### J-lock -- Revision Lock-On
 
-- [x] **J-10** : Architecture magie — BP_MagicComponent
-- [x] **J-11** : Structure des sorts — BP_SpellBase + DT_Spells
-- [x] **J-12** : Systeme de deblocage — liaison representants / deites
-- [ ] **J-13** : Integration radial menu unifie (armes + magie) -- EN COURS
-  - [x] Navigation par cran (stick G/D), lerp fluide, wrap correct
-  - [x] UpdateCenterInfo (textes centre)
-  - [x] Fix surbrillance a 12h des l'ouverture
-  - [x] Fix drift (RadialContainer 0.01x0.01, RadialRadius 330)
-  - [ ] Pont temporaire armes : DiscoveredWeapons -> FSoM_RadialSlotData
-    ⚠️ Temporaire — sera refactore lors de la refonte armes (J-15 a J-19)
-  - [ ] Changement de categorie stick Haut/Bas (Weapons <-> Magic)
-  - [ ] Confirmation bouton A + Retour bouton B
-  - [ ] UI_QuickslotBar : 3 slots HUD
-- [x] **J-14** : POC magie jouable — 4 sorts Lumina valides PIE
+- [ ] Audit complet systeme existant
+- [ ] Fix detection nouvelles cibles dans le radius (sans reset manuel)
+- [ ] Fix z-order indicateur lock (derriere le heros)
+- [ ] Fix positionnement barres HP ennemis
+- [ ] Decision : migrer / refactoriser / refaire from scratch ?
 
 ---
 
-### PRIORITE 3 — Refonte Combat Multi-Armes
+### J-15/16/17 -- Refonte Combat Armes
 
-- [ ] **J-15** : Audit BP_ComboManagerComponent
-- [ ] **J-16** : Architecture par type d'arme — BP_WeaponType_Base
+- [ ] **J-15** : Audit BP_ComboManagerComponent -- extensible ou refonte ?
+- [ ] **J-16** : Architecture BP_WeaponType_Base
   - Classe mere abstraite par TYPE (Epee, Arc, Fléau, Lance...)
-  - BP_Weapon_Base devient instance d'un type, pas classe mere
-- [ ] **J-17** : POC Epee — moveset complet
-- [ ] **J-18** : POC Arc — logique distance
+  - BP_Weapon_Base devient instance d'un type
+  - ⚠️ Conditionne J-17/18/19/31/32
+- [ ] **J-17** : POC Epee -- moveset complet (combo 3 coups, finisseur, coup charge)
+  - Feedback combo : subtil, dans le monde (flash arme, posture) -- pas d'UI ✅ ACTE
+
+---
+
+### J-F -- SaveGame (avant J-18)
+
+- [ ] Systeme SaveGame complet
+  - Stats joueur, armes debloquees, sorts debloques
+  - Progression hub, quetes
+  - ⚠️ A faire avant J-18 pour ne pas complexifier le save apres
+
+---
+
+### J-18/19 -- Arc + Switching
+
+- [ ] **J-18** : POC Arc
   - ✅ ACTE : munitions illimitees
   - Systeme de visee (lock-on oriente la fleche, visee libre sans lock)
   - Projectile BP, charge optionnelle
-- [ ] **J-19** : Switching en combat — validation fluidite
-  - Conservation du combo si switching rapide ou reset ? (point de design ouvert)
+- [ ] **J-19** : Switching en combat
+  - Conservation du combo si switching rapide ou reset ? (point ouvert)
 
 ---
 
-### PRIORITE 4 — POC Compagnons PNJ
+### J-B/E -- Animations + Hit Flash (moins urgent)
 
-- [ ] **J-20** : Architecture IA alliee — BP_AIController_Companion_Base
+- [ ] **J-B** : Consolidation animations en double
+- [ ] **J-E** : Hit Flash ennemis finalise -- DMI au BeginPlay + M_Enemy_Base
+
+---
+
+### J-20/21/22/23 -- Compagnons PNJ
+
+- [ ] **J-20** : Architecture IA alliee -- BP_AIController_Companion_Base
 - [ ] **J-21** : Gestion formation (2 compagnons max, positions relatives)
-- [ ] **J-22** : Compagnon combattant POC — Luna
-- [ ] **J-23** : Compagnon non combattant POC — Lumina
+- [ ] **J-22** : Compagnon combattant POC -- Luna
+  - Actions via L2 (mapping PS5)
+- [ ] **J-23** : Compagnon non combattant POC -- Lumina
+  - Actions via R2 (mapping PS5)
 
 ---
 
-### PRIORITE 5 — Corruption Magique
+### J-24/25/26 -- Corruption Magique
 
-- [ ] **J-24** : Compteur de corruption — BP_CorruptionComponent (0-100)
+- [ ] **J-24** : BP_CorruptionComponent (0-100) + indicateur HUD
 - [ ] **J-25** : Effets par seuil (25 / 50 / 75 / 100)
-- [ ] **J-26** : Integration narrative
+- [ ] **J-26** : Integration narrative (PNJ reagissent, sanctuaires purification)
 
 ---
 
-### PRIORITE 6 — Ville Hub Evolutive (Ville de l'Oracle)
+### J-27/28/29 -- Ville Hub Evolutive
 
-- [ ] **J-27** : Variable de progression globale — GameInstance
+- [ ] **J-27** : Variable progression globale -- GameInstance (HubProgressionLevel)
 - [ ] **J-28** : Actors conditionnels dans le niveau
-- [ ] **J-29** : Systeme de forge — BP_ForgeComponent (NPC Forgeron)
+- [ ] **J-29** : Systeme de forge -- BP_ForgeComponent (NPC Forgeron)
+  - ⚠️ Conditionne J-31 (Equipement) et J-32 (Talent)
 
 ---
 
-### PRIORITE 7 — Systeme de Progression (Arbre de Talent + Gear)
+### J-30/31/32 -- Systeme de Progression
 
 - [ ] **J-30** : Level general + stats de base
-- [ ] **J-31** : Systeme d'equipement — bonus % sur stats
+- [ ] **J-31** : Systeme d'equipement -- bonus % sur stats
 - [ ] **J-32** : Arbre de talent par type d'arme
+
+---
+
+## Sessions creatives (intercalees selon envie)
+
+Sessions de changement de rythme, sans pression de gameplay.
+A planifier librement entre les jalons techniques.
+
+- [ ] **J-MAP-1** : Creation niveau de test / prototype de zone (foret ? ruines ?)
+  - Terrain de base, collisions, lighting
+  - Pas besoin de finition -- juste assez pour tester le gameplay en situation
+- [ ] **J-MAP-2** : Premiere zone jouable -- ville de l'Oracle (hub)
+- [ ] **J-ART-1** : Sprites / textures -- personnages principaux (ComfyUI RTX 3080Ti)
+- [ ] **J-ART-2** : Sprites / textures -- ennemis de base
+- [ ] **J-ART-3** : Sprites / textures -- decors et props
+- [ ] **J-MUS-1** : Theme principal + theme combat (composition ou integration)
+- [ ] **J-MUS-2** : Ambiances par zone
+- [ ] **J-MUS-3** : Musique de boss
 
 ---
 
@@ -115,6 +181,9 @@ Mis a jour apres chaque session de design ou de developpement.
 - **Compagnons** : les PNJ peuvent-ils mourir de facon permanente (hors choix moral) ?
 - **Deites Loup et Colosse** : Salamandre ou Gnome pour le Loup ?
 - **Flammy** : quel moment narratif debloque le voyage rapide ?
+- **Touchpad PS5** : carte, journal, ou autre ?
+- **Menu global** : pause complete ou Time Dilation 0 ?
+- **Quickslot switch** : press = utiliser, hold = changer de page ?
 
 ---
 
