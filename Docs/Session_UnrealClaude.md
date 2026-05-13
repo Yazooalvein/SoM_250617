@@ -25,6 +25,235 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 13/05/2026 -- AUDIT SYSTEME ARMES COMPLET -- DT_Weapons / BP_Weapon_Base / BP_PlatformingCharacter / BP_PlatformingPlayerController
+
+**Action** : Audit complet du systeme d'armes par extraction binaire (.uasset) de tous les assets weapons.
+Assets inspectes : DT_Weapons, FWeaponData, FWeaponStats, EWeaponType, BP_Weapon_Base, BP_Weapon_Sword, BP_Weapon_2HSword, BP_PlatformingCharacter (refs weapons), BP_PlatformingPlayerController (refs weapons).
+
+**Pourquoi** : Preparer l'integration du systeme d'armes dans le nouveau radial menu (UI_Radial_Main + FSoM_RadialSlotData). Connaitre exactement ce qui existe avant toute refonte.
+
+---
+
+#### 1. DT_Weapons -- Etat actuel
+
+- **Chemin** : `Content/Weapons/Data/DT_Weapons.uasset`
+- **Row struct** : `FWeaponData`
+- **Nombre de lignes** : 2
+  - `Sword_01` → mesh SKM_Sword_01, DT_Combo = DT_Combo_Sword, BPClass = BP_Weapon_Sword_C
+  - `2HSword_01` → mesh SKM_Knight_s_Sword, DT_Combo = DT_Combo_2HSword, BPClass = BP_Weapon_2HSword_C
+- **Socket d'attache** : `HandGrip_R` (les deux armes)
+- **Icones** : dev sandbox (`Game/Dev/SandBox/icon_weapons_rpg/Sword_test_icon`, `2H_Sword_test_icon`) — pas de vrais assets icones final
+
+---
+
+#### 2. FWeaponData -- Structure complete
+
+- **Chemin** : `Content/Weapons/Data/FWeaponData.uasset`
+- **Type** : UserDefinedStruct
+
+| Champ (ID interne) | Nom visible | Type |
+|--------------------|-------------|------|
+| Name_11 | WeaponName / RowName | Name |
+| Type_12 | Type | EWeaponType |
+| Stats_14 | Stats | FWeaponStats (struct imbriquee) |
+| Socket_15 | Socket | Name |
+| Mesh_16 | Mesh | SkeletalMesh (SoftObject) |
+| Level_24 | Level | int |
+| icons_27 | Icon | Texture2D (SoftObject) |
+| DT_Combo_30 | DT_Combo | DataTable |
+| IdleAnim_38 | IdleAnim | AnimSequence |
+| BP_Weapon_21 | WeaponBPClass | Class Reference (BP_Weapon_Base sous-classe) |
+
+---
+
+#### 3. FWeaponStats -- Structure complete
+
+- **Chemin** : `Content/Weapons/Data/FWeaponStats.uasset`
+- **Type** : UserDefinedStruct imbriquee dans FWeaponData.Stats
+
+| Champ (ID interne) | Nom visible | Type |
+|--------------------|-------------|------|
+| Damage_13 | Damage | double |
+| DamageCrit_14 | DamageCrit | double |
+| ChanceCrit_15 | ChanceCrit | double |
+| AttackSpeed_12 | AttackSpeed | double |
+
+---
+
+#### 4. EWeaponType -- Enum complete
+
+- **Chemin** : `Content/Weapons/Data/EWeaponType.uasset`
+- **Valeurs** (7 enumerateurs) :
+  - `Sword` (NewEnumerator0)
+  - `HSword` / 2HSword (NewEnumerator1)
+  - `Axe` (NewEnumerator2)
+  - `HAxe` (NewEnumerator3)
+  - `Dagger` (NewEnumerator4)
+  - `Bow` (NewEnumerator5)
+  - `NewEnumerator6` (non nomme — slot reserve ou vestige)
+  - `EWeaponType_MAX`
+- **Note** : Sword et HSword sont les seuls types utilises actuellement (2 lignes DT_Weapons).
+
+---
+
+#### 5. BP_Weapon_Base -- Architecture complete
+
+- **Chemin** : `Content/Weapons/Blueprints/BP_Weapon_Base.uasset`
+- **Parent** : Actor
+- **Interfaces implementees** : aucune directement (reference a BPI_TakeDamage pour les CIBLES)
+
+**Composants** :
+- `DefaultSceneRoot` (SceneComponent)
+- `WeaponCollisionBox` (BoxComponent, Is Variable = true) — detection des overlaps de frappe
+
+**Variables** :
+| Nom | Type | Role |
+|-----|------|------|
+| `bIsEquipped` | bool | arme actuellement equipee |
+| `bCanDealDamage` | bool | collision active (toggle pendant animations) |
+| `OwnerCharacter` | BP_PlatformingCharacter ref | proprietaire de l'arme |
+| `ChoosenWeapon` | Name | RowName DT_Weapons de cette arme |
+| `CurrentWeapon` | BP_Weapon_Base ref | reference self pour le PC |
+
+**Fonctions exposees** :
+| Nom | Role |
+|-----|------|
+| `EnableWeaponCollision` | Set CollisionEnabled(QueryOnly) sur WeaponCollisionBox |
+| `DisableWeaponCollision` | Set CollisionEnabled(NoCollision) sur WeaponCollisionBox |
+| `OnEquipped` (Custom Event) | appele par BP_PlatformingCharacter a l'equipement |
+| `OnUnequipped` (Custom Event) | appele a la depose |
+
+**Logique de dommages (overlap)** :
+```
+WeaponCollisionBox.OnComponentBeginOverlap
+  → DoesImplementInterface(BPI_TakeDamage) sur OtherActor
+  → DynamicCast AsBPI_Take_Damage
+  → Array_Find (acteurs deja frappes — anti-multi-hit)
+  → ReceiveDamage / TryDealDamage(Damages, Instigator, Weapon)
+  → Also: DynamicCast AsBP_Platforming_Character (pour ignorer le owner)
+```
+- `IsCritical` : bool calcule depuis ChanceCrit — passe a TryDealDamage
+- `GetDataTableRowFromName` sur DT_Weapons dans BeginPlay → charge les stats de l'arme
+
+**BP_Weapon_Sword** + **BP_Weapon_2HSword** :
+- Children de BP_Weapon_Base
+- Overrides : BeginPlay (K2Node_CallParentFunction), OnComponentBeginOverlap (x2), ReceiveTick
+- Probablement rien de specifique — juste les sous-classes referees dans DT_Weapons pour le spawn
+
+---
+
+#### 6. References armes dans BP_PlatformingCharacter
+
+**Variables weapons** :
+| Nom | Type | Role |
+|-----|------|------|
+| `DiscoveredWeapons` | Array\<Name\> | RowNames DT_Weapons debloques |
+| `ChoosenWeapon` | Name | arme selectionnee via radial |
+| `CurrentWeapon` | BP_Weapon_Base | arme actuellement attachee/spawnee |
+| `WeaponID` | Name | ID de l'arme equipee (pour combo filter) |
+| `WeaponLevel` | int | niveau de l'arme equipee |
+| `WeaponType` | EWeaponType | type de l'arme (pilote AnimBP via Blend Pose by Enum) |
+| `WeaponMesh` | SkeletalMesh | mesh de l'arme (optionnel, peut etre sur BP_Weapon) |
+| `WeaponDataTest` | FWeaponData | variable debug (nommage "Test" = non finalisee) |
+
+**Fonctions weapons** :
+| Nom | Role |
+|-----|------|
+| `EquipWeapon(RowName)` | Lookup DT_Weapons → SpawnActor BP_Weapon_X → AttachToComponent(HandGrip_R) → Destroy ancien |
+| `InitComboTree` | Configure BP_ComboManagerComponent selon WeaponType/WeaponID |
+| `EnableWeaponCollision` | Delegue a CurrentWeapon.EnableWeaponCollision |
+| `DisableWeaponCollision` | Delegue a CurrentWeapon.DisableWeaponCollision |
+
+**Composants lies aux armes** :
+- `BP_ComboManagerComponent` (GEN_VARIABLE) — gere les combos par arme
+- `BP_CombatLockOnComponent` (GEN_VARIABLE) — lock-on, influence les attaques
+- `MagicComponent` (GEN_VARIABLE) — magie, separe des armes
+
+**Socket** : `HandGrip_R` — socket d'attache sur le squelette hero (confirme dans DT_Weapons et BP_PlatformingCharacter)
+
+---
+
+#### 7. References armes dans BP_PlatformingPlayerController
+
+**Variables weapons** :
+| Nom | Type | Role |
+|-----|------|------|
+| `ChoosenWeapon` | Name | copie de l'arme choisie dans le radial |
+| `DiscoveredWeapons` | Array\<Name\> | source de verite des armes debloques |
+| `SlotRowNames` | Array\<Name\> | construction locale pour InitializeRadialMenu (ancien systeme) |
+| `WeaponID` | Name | ID pour combo init |
+| `WeaponLevel` | int | niveau pour combo init |
+| `RadialMenuRef` | UI_RadialMenu_C | ANCIEN widget (deconnecte mais present) |
+
+**Fonctions weapons dans le PC** :
+| Nom | Role |
+|-----|------|
+| `OpenRadialMenu` | Construit SlotRowNames depuis DiscoveredWeapons + DT_Weapons → InitializeRadialMenu sur RadialMenuRef (ancien) |
+| `CloseRadialMenu` | ValidateSelectedWeapon → Remove widget |
+| `ValidateSelectedWeapon` | Lit SelectedRowName sur RadialMenuRef → GetDataTableRow → cast perso → EquipWeapon |
+| `ToggleRadialMenu` | IsValid(RadialMenuRef) → Open ou Close |
+| `Handle_UI_RadialMenu_Rotate` | → UpdateSelection(AxisValue) sur RadialMainRef (nouveau) |
+| `InitComboTree` | Appel sur character pour mettre a jour les combos |
+
+**Inputs lies aux armes** :
+- `IA_RadialMenu` → `ToggleRadialMenu`
+- `IA_UI_RadialMenu_Rotate` → `Handle_UI_RadialMenu_Rotate`
+- `IA_validate_radial_selection` → `ValidateSelectedWeapon`
+
+---
+
+#### 8. Points d'attention critiques pour l'integration radial
+
+1. **Ancien wiring deconnecte mais present** : `RadialMenuRef` (UI_RadialMenu_C) + toute la logique `InitializeRadialMenu(SlotRowNames, SlotIcons)` est encore dans Open/CloseRadialMenu mais non active.
+2. **WeaponDataTest dans BP_PlatformingCharacter** : variable FWeaponData nommee "Test" — a confirmer si utilisee ou vestige debug.
+3. **DiscoveredWeapons dans le PC vs le Character** : les deux ont la variable. Source de verite = PC. Le character y accede via GetPlayerController cast. A unifier ou documenter clairement.
+4. **EWeaponType a 7 slots** dont un non nomme (NewEnumerator6) — possiblement un vestige, a nettoyer.
+5. **Icones sandbox** : les 2 armes utilisent des icones de dev (`Dev/SandBox/icon_weapons_rpg/`). Pour l'integration radial, `FSoM_RadialSlotData.Icon` devra pointer sur ces textures (ou les vrais si faits).
+6. **WeaponBPClass dans FWeaponData** : le champ BP_Weapon_21 est une class reference. Le spawn se fait via `SpawnActorFromClass` avec cette ref — pas de hardcode du type d'arme dans EquipWeapon.
+7. **Socket HandGrip_R** : confirme dans DT_Weapons ET dans BP_PlatformingCharacter — coherent.
+8. **Anti-multi-hit dans BP_Weapon_Base** : `Array_Find` sur un array d'acteurs deja touches. Cet array doit etre Clear dans `DisableWeaponCollision` pour eviter les bugs entre 2 swings.
+
+---
+
+#### 9. Schema d'integration armes → nouveau radial
+
+Pour alimenter `UI_Radial_Main` en armes depuis `DiscoveredWeapons` :
+
+```
+PC.OpenRadialMenu (mode Weapons) :
+  1. ForEach DiscoveredWeapons (Array<Name>) :
+     a. GetDataTableRow(DT_Weapons, RowName) → FWeaponData
+     b. Make FSoM_RadialSlotData :
+        - SlotID = RowName
+        - DisplayName = To Text(RowName) [ou champ DisplayName si ajoute a FWeaponData]
+        - Description = WeaponType to String + Stats resume
+        - Icon = FWeaponData.icons (Texture2D)
+        - Category = ERadialMode.Weapons
+        - StatA = FWeaponData.Stats.Damage
+        - StatB = FWeaponData.Stats.AttackSpeed
+        - StatC = FWeaponData.Level
+     c. ADD to SlotDataList
+  2. UI_Radial_Main.GenerateSlots(SlotDataList)
+
+PC.ValidateSelectedWeapon (nouveau flow) :
+  - Lire RadialMainRef.SlotDataList[SelectedIndex].SlotID → RowName
+  - Cast perso → EquipWeapon(RowName)
+```
+
+**Dette identifiee** : `FWeaponData` n'a pas de champ `DisplayName` (Text) — le nom d'affichage est derive du RowName. A ajouter si on veut un nom localise dans le radial.
+
+**Points d'attention** :
+- `DiscoveredWeapons` dans le PC est l'Array\<Name\> source — ne pas dupliquer dans le Character
+- Le spawn de BP_Weapon_X utilise `WeaponBPClass` (Class Reference dans FWeaponData) : pipeline correct, pas de hardcode
+- `HandGrip_R` socket doit exister sur le squelette hero (base_rigged_Skeleton) — a verifier si le socket y est bien declare
+- `WeaponDataTest` dans BP_PlatformingCharacter : probablement variable de prototypage — ne pas utiliser en prod
+
+---
+
+*Entree creee le 13/05/2026 -- Claude.ai (session CLI, pas panel UnrealClaude)*
+
+---
+
 ### 12/05/2026 -- BP_PlatformingPlayerController / Radial Menu -- Audit fonctions Open/Close/Toggle + nouveaux assets
 
 **Action** : Audit approfondi des fonctions radial menu dans BP_PlatformingPlayerController et découverte d'un nouveau système radial (assets non commités).
