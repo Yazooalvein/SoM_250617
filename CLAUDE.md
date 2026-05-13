@@ -154,6 +154,7 @@ git push
 - `bIsInvincible` (iframes dash/roll, pilote par AnimNotify AN_EndDash/AN_EndRoll)
 - `OnPlayerDeath` dispatcher (sans params)
 - `OnStatChanged(StatName, NewValue)` dispatcher dans AttributeSet
+- `DiscoveredWeapons` (Array<FName>) : liste des armes debloquees (source de verite)
 
 ### Stats
 - `SetStatValue(StatName, Value)` = unique point de modification (jamais de SET direct)
@@ -175,7 +176,10 @@ git push
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
 
 ### Armes
-- `DT_Weapons` + `BP_Weapon_Base`
+- `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
+- `BP_Weapon_Base` : spawn data-driven via GetDataTableRowFromName au BeginPlay
+- `EquipWeapon(RowName)` dans BP_PlatformingCharacter : BeginDeferredActorSpawnFromClass + K2_AttachToComponent sur HandGrip_R
+- ⚠️ WeaponDataTest : variable debug a supprimer post-J-13
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
@@ -187,48 +191,58 @@ git push
   - ⚠️ Size To Content sur HUD_Anchor doit etre DECOCHE
 - `UI_Enemy_HealthBar`, `UI_LockOnIndicator`
 
-### Radial Menu -- EN COURS DE REFONTE (J-13 WIP)
+### Radial Menu -- J-13 QUASI-COMPLET
 - Chemin assets : Content/UI/Widgets/RadialMenu/
 - `ERadialMode` : enum Weapons / Magic
 - `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` : widget slot 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
 - `UI_RadialSlot_OLD` : ancien widget slot (conserve, non utilise, renomme)
-- `UI_Radial_Main` : widget radial principal -- NAVIGATION VALIDE PIE
-  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList, RadialRadius(150)
-  - TargetRotation, CurrentRotation, RotationSpeed(180), InterpSpeed(8.0)
+- `UI_Radial_Main` : widget radial principal -- VALIDE PIE
+  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList
+  - RadialRadius = 330, RadialContainer Size = 0.01x0.01 (fix drift)
+  - TargetRotation, CurrentRotation, InterpSpeed(8.0)
   - GenerateSlots() : Cos/Sin positioning, slots en cercle autour RadialContainer
   - UpdateCenterInfo() : SET Text_ItemName/Description/Category depuis SlotDataList[SelectedIndex]
   - UpdateSelection(AxisValue) : navigation par cran
-    - Branch AxisValue > 0 : SelectedIndex+1 / TargetRotation+AnglePerSlot
-    - Branch AxisValue < 0 : SelectedIndex-1 / TargetRotation-AnglePerSlot
+    - Branch AxisValue > 0 : SelectedIndex+1, TargetRotation+AnglePerSlot
+    - Branch AxisValue < 0 : SelectedIndex-1, TargetRotation-AnglePerSlot
     - Wrap : (SelectedIndex + NbSlots) % NbSlots
     - ForEach SlotWidgets -> SetSelected(ArrayIndex == SelectedIndex) -> UpdateCenterInfo
   - Event Tick : FInterpTo(CurrentRotation->TargetRotation) -> SetRenderTransformAngle(RadialContainer)
     + contre-rotation icones (CurrentRotation * -1)
-  - Event Construct : 4 slots test hardcodes -> GenerateSlots -> UpdateCenterInfo
-  - VALIDE PIE : navigation par cran Q/D, lerp fluide, wrap correct, texte centre mis a jour
-  - RESTE A FAIRE : categories Weapons/Magic, confirmation A, retour B, UI_QuickslotBar
+  - Event Construct : PopulateWeaponSlots -> GenerateSlots -> UpdateCenterInfo -> SetSelected(slot 0)
+  - PopulateWeaponSlots() : DiscoveredWeapons -> GetDataTableRow(DT_Weapons) -> FSoM_RadialSlotData
+  - SwitchCategory(Direction) : toggle Weapons/Magic -> PopulateWeaponSlots ou TODO Magic
+    + reset SelectedIndex/TargetRotation/CurrentRotation = 0
+  - ValidateSelectedWeapon() : SlotDataList[SelectedIndex].SlotID -> EquipWeapon -> CloseRadialMenu
+  - RESTE A FAIRE : UI_QuickslotBar
+  - ⚠️ Dette : surbrillance devrait se placer sur l'arme equipee a l'ouverture (pas slot 0)
+  - ⚠️ Dette : comportement categorie Magic a definir
 - `BP_PlatformingPlayerController` :
   - `OpenRadialMenu` : IsValid guard + Create UI_Radial_Main + Time Dilation 0.2 + Add to Viewport
-    + Set Input Mode Game And UI (WidgetToFocus = RadialMainRef) + Show Mouse Cursor
-    ⚠️ Ancienne logique (DT_Weapons loop + UI_RadialMenu + Set Game Paused) PRESENTE MAIS DECONNECTEE
+    + Set Input Mode Game And UI (WidgetToFocus = RadialMainRef)
   - `CloseRadialMenu` : Remove from Parent + Time Dilation 1.0 + Input Mode Game Only
-    ⚠️ Ancienne logique (ValidateSelectedWeapon + UI_RadialMenu) PRESENTE MAIS DECONNECTEE
-  - `ValidateSelectedWeapon` : IsValid(RadialMenuRef) guard ajoute (evite erreurs runtime)
-  - `Handle_UI_RadialMenu_Rotate` : IsValid(RadialMainRef) -> UpdateSelection(AxisValue) sur RadialMainRef
-  - `RadialMainRef` (UI_Radial_Main) : nouvelle variable de reference
-  - `RadialMenuRef` (UI_RadialMenu_C) : ancienne variable, toujours presente pour l'ancienne logique
+  - `Handle_UI_RadialMenu_Rotate` : IsValid(RadialMainRef) -> UpdateSelection(AxisValue)
+  - `Handle_UI_RadialMenu_ChangeCat` : IsValid(RadialMainRef) -> SwitchCategory(RadialMainRef)
+  - `IA_validate_radial_selection` : IsValid(RadialMainRef) -> ValidateSelectedWeapon
+  - `IA_UI_Radial_Cancel` : IsValid(RadialMainRef) -> CloseRadialMenu
+  - `RadialMainRef` (UI_Radial_Main) : variable de reference principale
+  - ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee -- a nettoyer post-J-13
+
+### Inputs (IMC_Prototype)
+- Source unique : `Content/Input/InputActions/`
+- IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
+- IA_UI_RadialMenu_Rotate : Axis1D (Q/D + Gamepad Right Thumbstick X)
+- IA_UI_RadialMenu_ChangeCat : Axis1D (Gamepad Left Thumbstick Y)
+- IA_validate_radial_selection : Axis1D (Bouton A/X gamepad)
+- IA_UI_Radial_Cancel : (Bouton B/Circle + Escape)
+- ⚠️ Dette : creer IMC_UI dedie pour les inputs menus, clean IMC_Prototype (prevu post-J-13)
 
 ### Magie
 - `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
 - `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
 - `DT_Spells` + structs FSoM_SpellData / FSoM_DeitySpells
 - Chemin assets : Content/Systems/Magic/
-
-### Inputs
-- Source unique : `Content/Input/InputActions/`
-- IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
-- Vestiges template ThirdPerson supprimes (jalon #4)
 
 ---
 
@@ -237,15 +251,16 @@ git push
 - [x] #1 a #9 : MCP, mort, stats, inputs, iframes, UI, hit flash, migration UE5.7, audit
 - [x] J-10/11/12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
-- [x] J-15 : UI_HUD_Main finalise (layout, RichTextBlock Current/Max, DT_RichTextStyle)
-- [x] J-13 WIP : fondations radial + navigation par cran + lerp fluide VALIDE PIE
+- [x] J-15 : UI_HUD_Main finalise
+- [x] J-13 WIP : radial navigation + PopulateWeaponSlots + SwitchCategory + ValidateSelectedWeapon + Cancel
 
 ## Roadmap immediate
 
-- [ ] J-13 suite : categories Weapons/Magic + confirmation + retour + UI_QuickslotBar
+- [ ] J-13 final : UI_QuickslotBar (3 slots HUD)
 - [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
 - [ ] UnlockDeity data-driven depuis DT_Spells (dette)
 - [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
+- [ ] IMC_UI dedie + clean IMC_Prototype (dette)
 - [ ] SaveGame
 - [ ] ComfyUI textures (RTX 3080Ti)
 
@@ -258,12 +273,14 @@ git push
 - RichTextBlock : necessite DataTable (RichTextStyleRow) assignee dans Text Style Set
 - ProgressBar dans HBox/VBox : toujours wrapper dans SizeBox pour controler la hauteur
 - To Text (Float) : Max/Min Fractional Digits = 0 pour supprimer les decimales
-- Radial : ancienne logique UI_RadialMenu deconnectee mais conservee dans Open/CloseRadialMenu
+- Radial : ancienne logique UI_RadialMenu deconnectee mais conservee -- a nettoyer
 - Time Dilation 0.2 a l'ouverture radial, 1.0 a la fermeture (remplace Set Game Paused)
-- Widget "Is Variable" obligatoire pour acceder depuis le graph (ex: RadialContainer)
+- Widget "Is Variable" obligatoire pour acceder depuis le graph
 - Make Brush from Texture + Set Brush pour assigner une Texture2D a une Image widget
-- Radial navigation : TargetRotation s'accumule (pas de % 360) pour que le lerp aille toujours dans le bon sens
-- Radial wrap index : (SelectedIndex + NbSlots) % NbSlots -- le +NbSlots evite les valeurs negatives
+- Radial navigation : TargetRotation s'accumule (pas de % 360) pour lerp correct
+- Radial wrap index : (SelectedIndex + NbSlots) % NbSlots
+- Radial drift fix : RadialContainer Size = 0.01x0.01 (pivot quasi-ponctuel)
+- IsValid(RadialMainRef) guard obligatoire avant tout appel sur le radial depuis le PC
 
 ---
 
