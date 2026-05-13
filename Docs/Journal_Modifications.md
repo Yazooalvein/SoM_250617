@@ -115,31 +115,47 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
   - UpdateCenterInfo() : SET Text_ItemName/Description/Category
   - UpdateSelection(AxisValue) : navigation par cran, accumulation TargetRotation
   - Event Tick : FInterpTo lerp + SetRenderTransformAngle + contre-rotation icones
-  - Event Construct : slots test + GenerateSlots + UpdateCenterInfo + SetSelected(slot 0)
+  - Event Construct : GenerateSlots + UpdateCenterInfo + SetSelected(slot 0)
 - `UI_RadialSlot_OLD` : ancien widget slot renomme (conserve, non utilise)
 
-### 13/05/2026 -- Jalon J-13 WIP suite -- Fixes rotation et alignement
+### 13/05/2026 -- Jalon J-13 WIP suite -- Fixes + Categories + Equipement
 
-#### Fixes apportes
+#### Fixes rotation et alignement
 - Surbrillance a 12h des l'ouverture : ForEach SetSelected dans Event Construct
 - Fix drift rotation : RadialContainer Size = 0.01x0.01 (pivot quasi-ponctuel)
-- Fix sens rotation : inversion signe accumulation TargetRotation (True = +, False = -)
+- Fix sens rotation : inversion signe accumulation TargetRotation
 - Centrage menu : RadialRadius = 330, SizeBox padding left = -50
 - Image_Cursor masquee (surbrillance or suffisante, curseur a faire plus tard)
 
-#### Etat radial
-- VALIDE PIE : navigation fluide, surbrillance correcte, drift imperceptible
-- ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee dans Open/CloseRadialMenu
+#### PopulateWeaponSlots -- pont temporaire armes VALIDE PIE
+- Lit DiscoveredWeapons (Array<FName>) depuis BP_PlatformingCharacter
+- GetDataTableRowFromName(DT_Weapons) -> Break FWeaponData -> Make FSoM_RadialSlotData
+- SlotID = RowName, DisplayName = To Text(RowName), Icon = FWeaponData.Icons
+- Appele depuis Event Construct (remplace les 4 slots hardcodes)
+
+#### SwitchCategory -- changement categorie VALIDE PIE
+- Toggle CurrentCategory Weapons <-> Magic
+- Branch sur nouvelle categorie -> PopulateWeaponSlots ou Print "Magic TODO"
+- Reset SelectedIndex/TargetRotation/CurrentRotation a 0 au switch
+- IA_UI_RadialMenu_ChangeCat (Axis1D) dans IMC_Prototype
+- Handle dans PC : IsValid(RadialMainRef) -> SwitchCategory(RadialMainRef)
+
+#### ValidateSelectedWeapon -- confirmation equipement VALIDE PIE
+- Recree dans UI_Radial_Main (migration depuis UI_RadialMenu)
+- SlotDataList[SelectedIndex].SlotID -> EquipWeapon(BP_PlatformingCharacter)
+- -> CloseRadialMenu(BP_PlatformingPlayerController)
+- IA_validate_radial_selection branchee avec IsValid(RadialMainRef) guard dans PC
+
+#### Dettes techniques identifiees
+- ⚠️ Radial armes : au chargement, la surbrillance devrait se placer sur l'arme actuellement equipee
+  (pas forcement le slot 0). A implementer lors de la refonte armes J-15+
+- ⚠️ Comportement radial Magic a definir quand on travaillera la categorie magie
+- ⚠️ UI_RadialMenu (ancien) toujours present mais deconnecte -- a nettoyer post-J-13
+- ⚠️ WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer post-J-13
 
 #### Reste a faire J-13
-- [ ] Pont temporaire armes : DiscoveredWeapons -> FSoM_RadialSlotData -> SlotDataList
-- [ ] Changement categorie stick Haut/Bas (Weapons <-> Magic)
-- [ ] Confirmation bouton A + Retour bouton B
+- [ ] Retour bouton B (CloseRadialMenu sans equiper)
 - [ ] UI_QuickslotBar : 3 slots HUD
-
-#### Decisions de design actees cette session
-- Arc : munitions illimitees (pas de gestion ressource munitions)
-- Systeme armes : pas de refacto maintenant, pont temporaire pour le radial (J-15+ pour la refonte)
 
 ---
 
