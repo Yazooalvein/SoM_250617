@@ -99,75 +99,47 @@ EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
 - Confirmation bouton A/X, Retour bouton B/Circle
 - QuickslotBar : 3 slots (Haut/Gauche/Droite gamepad), assignation depuis menu general uniquement
 - Slots non selectionnes : grises opacity 60%, selectionne : animation respiration + bordure or
+- Pont temporaire armes : DiscoveredWeapons -> FSoM_RadialSlotData (refacto prevu J-15+)
+- Arc : munitions illimitees (ACTE)
 
 #### Nouveaux assets (Content/UI/Widgets/RadialMenu/)
 - `ERadialMode` : enum Weapons / Magic
 - `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` : widget 80x80
-  - Image_Background (noir A=0.7), Image_Icon, Image_SelectionBorder (or, Draw As Border),
-    Image_Grayout (noir A=0.5)
   - SetSelected(bool) : toggle SelectionBorder/Grayout visibility
   - SetSlotData(FSoM_RadialSlotData) : SET SlotData + Make Brush from Texture -> Set Brush
-  - Variable SlotData stockee
-- `UI_Radial_Main` : widget radial principal
-  - Overlay fullscreen + SizeBox 400x400 centree
-  - Canvas_Radial avec Text_Category, RadialContainer (Is Variable), Image_Cursor, VBox_Center
-  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList, RadialRadius(150)
-  - GenerateSlots() : Clear -> ForEach SlotDataList -> Create UI_RadialSlot -> SetSlotData ->
-    Cos/Sin angle (index*360/len - 90 -> D2R -> Cos*Radius/Sin*Radius) ->
-    Add Child to Canvas -> Set Position -> Set Alignment(0.5/0.5) -> ADD SlotWidgets
-  - Event Construct : 4 slots test hardcodes -> GenerateSlots -> UpdateCenterInfo
-  - VALIDE PIE : 4 slots en cercle affiches, slow-mo fonctionnel
+- `UI_Radial_Main` : widget radial principal -- NAVIGATION VALIDE PIE
+  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList
+  - RadialRadius = 330, RadialContainer Size = 0.01x0.01 (fix drift)
+  - GenerateSlots() : Cos/Sin positioning, slots en cercle
+  - UpdateCenterInfo() : SET Text_ItemName/Description/Category
+  - UpdateSelection(AxisValue) : navigation par cran, accumulation TargetRotation
+  - Event Tick : FInterpTo lerp + SetRenderTransformAngle + contre-rotation icones
+  - Event Construct : slots test + GenerateSlots + UpdateCenterInfo + SetSelected(slot 0)
 - `UI_RadialSlot_OLD` : ancien widget slot renomme (conserve, non utilise)
 
-### 13/05/2026 -- Jalon J-13 WIP suite -- Navigation radial fonctionnelle
+### 13/05/2026 -- Jalon J-13 WIP suite -- Fixes rotation et alignement
 
-#### UI_Radial_Main -- nouvelles fonctions
-- `UpdateCenterInfo` : lit SlotDataList[SelectedIndex] -> SET Text_ItemName/Description/Category
-  - Text_Category : ERadialMode -> Enum to String -> To Text
-  - 3 RichTextBlocks avec DT_HUD_RichTextStyle assigne
-- `UpdateSelection(AxisValue : Float)` : navigation par cran
-  - NbSlots = LENGTH(SlotDataList), AnglePerSlot = 360 / NbSlots
-  - Branch AxisValue > 0 :
-    True  -> SelectedIndex+1, TargetRotation+AnglePerSlot
-    False -> SelectedIndex-1, TargetRotation-AnglePerSlot
-  - Wrap : (SelectedIndex + NbSlots) % NbSlots
-  - ForEach SlotWidgets -> SetSelected(ArrayIndex == SelectedIndex)
-  - UpdateCenterInfo
-- `Event Tick` : rotation visuelle fluide
-  - FInterpTo(CurrentRotation, TargetRotation, DeltaSeconds, InterpSpeed=8.0) -> SET CurrentRotation
-  - SetRenderTransformAngle(RadialContainer, CurrentRotation)
-  - ForEach SlotWidgets -> SetRenderTransformAngle(slot, CurrentRotation * -1) (contre-rotation icones)
+#### Fixes apportes
+- Surbrillance a 12h des l'ouverture : ForEach SetSelected dans Event Construct
+- Fix drift rotation : RadialContainer Size = 0.01x0.01 (pivot quasi-ponctuel)
+- Fix sens rotation : inversion signe accumulation TargetRotation (True = +, False = -)
+- Centrage menu : RadialRadius = 330, SizeBox padding left = -50
+- Image_Cursor masquee (surbrillance or suffisante, curseur a faire plus tard)
 
-#### BP_PlatformingPlayerController -- fixes
-- `OpenRadialMenu` : IsValid(RadialMainRef) guard (evite empilement infini)
-  - Set Input Mode Game And UI (WidgetToFocus = RadialMainRef)
-- `ValidateSelectedWeapon` : IsValid(RadialMenuRef) guard (stoppe erreurs runtime)
-- `Handle_UI_RadialMenu_Rotate` : branche sur RadialMainRef -> UpdateSelection(AxisValue)
-- Input IA_UI_RadialMenu_Rotate : Action Value directement en AxisValue (pas de Conv necessaire)
-
-#### Etat navigation
-- VALIDE PIE : Q/D (ou stick) = rotation par cran, lerp fluide, wrap correct dans les deux sens
-- Text_ItemName change selon slot selectionne
-- Icones restent droites pendant rotation plateau
+#### Etat radial
+- VALIDE PIE : navigation fluide, surbrillance correcte, drift imperceptible
+- ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee dans Open/CloseRadialMenu
 
 #### Reste a faire J-13
+- [ ] Pont temporaire armes : DiscoveredWeapons -> FSoM_RadialSlotData -> SlotDataList
 - [ ] Changement categorie stick Haut/Bas (Weapons <-> Magic)
 - [ ] Confirmation bouton A + Retour bouton B
 - [ ] UI_QuickslotBar : 3 slots HUD
-- [ ] Recabler PC sur UI_Radial_Main pour confirmation/retour
 
-#### Roadmap mise a jour
-- [x] J-10/J-11/J-12 : BP_MagicComponent complet
-- [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
-- [x] J-15 : UI_HUD_Main finalise
-- [x] J-13 WIP : fondations radial + navigation par cran + lerp fluide VALIDE PIE
-- [ ] J-13 suite : categories + confirmation + UI_QuickslotBar
-- [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
-- [ ] UnlockDeity data-driven depuis DT_Spells (dette)
-- [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
-- [ ] SaveGame
-- [ ] ComfyUI textures
+#### Decisions de design actees cette session
+- Arc : munitions illimitees (pas de gestion ressource munitions)
+- Systeme armes : pas de refacto maintenant, pont temporaire pour le radial (J-15+ pour la refonte)
 
 ---
 
