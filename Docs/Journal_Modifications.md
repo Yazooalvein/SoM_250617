@@ -49,118 +49,77 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ### 11/05/2026 -- Session design
 - Lore : Docs/Lore_ShadowOfMana.md
-- Roadmap : Docs/Roadmap_Gameplay.md (6 priorites, 32 jalons)
+- Roadmap : Docs/Roadmap_Gameplay.md
 - Architecture magie : Docs/Architecture/Magic_System.md
 
 ### 12/05/2026 -- Jalons J-10 a J-14 -- POC Systeme Magie VALIDE
 
 #### Structure assets (Content/Systems/Magic/)
-```
-Magic/
-├── Core/     : BP_MagicComponent, BP_SpellBase
-├── Data/     : E_SpellCategory, E_SpellTarget, E_DeliveryType,
-│               FSoM_SpellData, FSoM_DeitySpells, DT_Spells
-└── Spells/Lumina/ : BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff
-```
+- BP_MagicComponent, BP_SpellBase
+- E_SpellCategory, E_SpellTarget, E_DeliveryType, FSoM_SpellData, FSoM_DeitySpells, DT_Spells
+- BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff (Lumina) -- VALIDES PIE
 
 #### BP_MagicComponent
-- Variables : UnlockedSpells (Map<Name,FSoM_DeitySpells>), QuickslotSlots (Array<Name>),
-  SpellCooldowns (Map<Name,Float>), bIsCasting (Boolean)
-- Dispatcher : OnSpellCast(SpellID : Name)
-- Fonctions : UnlockDeity / IsSpellUnlocked / ConsumeMana / CanCast / CastSpell
-- Event Tick : decrementation cooldowns
+- UnlockedSpells, QuickslotSlots, SpellCooldowns, bIsCasting
 - CastSpell : Switch E_SpellTarget -> SpawnActor -> Execute -> ConsumeMana -> cooldown
 
-#### BP_SpellBase + enfants Lumina -- VALIDES PIE
-- Heal, Attack, Buff, Debuff valides
-
-#### FSoM_SpellData -- champs complets
-SpellID, SpellName, Deity, Category, ManaCost, CastTime, Cooldown, TargetType,
-EffectValues, Duration, AffectedStat, DeliveryType, SpellClass
-
-#### HUD mis a jour
-- Switch HUD_OnStatChanged : ajout cases HealthMax, StaminaMax, ManaMax
-
 ### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE
-
-#### Layout finalise (Content/UI/Widgets/Main/)
 - SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
-- RichTextBlock HP/ST/MP avec UpdateStatText centralisee
-- DT_HUD_RichTextStyle assigne sur les 3 RichTextBlocks
-- To Text Float, 0 decimales, format "X / Y"
+- RichTextBlock HP/ST/MP + UpdateStatText + DT_HUD_RichTextStyle
 
-### 12/05/2026 -- Jalon J-13 WIP -- Refonte Radial Menu (fondations)
+### 12-13/05/2026 -- Jalon J-13 COMPLET -- Radial Menu + Quickslot
 
-#### Decisions de design actees
-- Radial unifie Armes + Magie, navigation verticale stick = changement categorie
-- Curseur fixe a 12h, plateau qui tourne (Cos/Sin positioning)
-- Slow-mo a l'ouverture : Time Dilation 0.2 (remplace Set Game Paused)
-- 2 niveaux magie : Niveau 1 = Divinite, Niveau 2 = Sort
-- Confirmation bouton A/X, Retour bouton B/Circle
-- QuickslotBar : 3 slots (Haut/Gauche/Droite gamepad), assignation depuis menu general uniquement
-- Slots non selectionnes : grises opacity 60%, selectionne : animation respiration + bordure or
-- Pont temporaire armes : DiscoveredWeapons -> FSoM_RadialSlotData (refacto prevu J-15+)
-- Arc : munitions illimitees (ACTE)
-
-#### Nouveaux assets (Content/UI/Widgets/RadialMenu/)
-- `ERadialMode` : enum Weapons / Magic
-- `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
-- `UI_RadialSlot` : widget 80x80
-  - SetSelected(bool) : toggle SelectionBorder/Grayout visibility
-  - SetSlotData(FSoM_RadialSlotData) : SET SlotData + Make Brush from Texture -> Set Brush
-- `UI_Radial_Main` : widget radial principal -- NAVIGATION VALIDE PIE
-  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList
-  - RadialRadius = 330, RadialContainer Size = 0.01x0.01 (fix drift)
-  - GenerateSlots() : Cos/Sin positioning, slots en cercle
-  - UpdateCenterInfo() : SET Text_ItemName/Description/Category
-  - UpdateSelection(AxisValue) : navigation par cran, accumulation TargetRotation
-  - Event Tick : FInterpTo lerp + SetRenderTransformAngle + contre-rotation icones
-  - Event Construct : GenerateSlots + UpdateCenterInfo + SetSelected(slot 0)
-- `UI_RadialSlot_OLD` : ancien widget slot renomme (conserve, non utilise)
-
-### 13/05/2026 -- Jalon J-13 WIP suite -- Fixes + Categories + Equipement
-
-#### Fixes rotation et alignement
-- Surbrillance a 12h des l'ouverture : ForEach SetSelected dans Event Construct
-- Fix drift rotation : RadialContainer Size = 0.01x0.01 (pivot quasi-ponctuel)
+#### Radial Menu (UI_Radial_Main) -- VALIDE PIE
+- Navigation par cran (stick G/D), lerp fluide, wrap correct
+- UpdateCenterInfo : textes centre depuis SlotDataList[SelectedIndex]
+- Fix surbrillance 12h a l'ouverture + drift (RadialContainer 0.01x0.01)
 - Fix sens rotation : inversion signe accumulation TargetRotation
-- Centrage menu : RadialRadius = 330, SizeBox padding left = -50
-- Image_Cursor masquee (surbrillance or suffisante, curseur a faire plus tard)
+- Centrage : RadialRadius = 330, SizeBox padding left = -50
+- Image_Cursor masquee (a faire plus tard)
 
 #### PopulateWeaponSlots -- pont temporaire armes VALIDE PIE
-- Lit DiscoveredWeapons (Array<FName>) depuis BP_PlatformingCharacter
-- GetDataTableRowFromName(DT_Weapons) -> Break FWeaponData -> Make FSoM_RadialSlotData
-- SlotID = RowName, DisplayName = To Text(RowName), Icon = FWeaponData.Icons
-- Appele depuis Event Construct (remplace les 4 slots hardcodes)
+- DiscoveredWeapons (Array<FName>) -> GetDataTableRow(DT_Weapons) -> FSoM_RadialSlotData
+- Remplace les 4 slots hardcodes dans Event Construct
 
-#### SwitchCategory -- changement categorie VALIDE PIE
+#### SwitchCategory -- VALIDE PIE
 - Toggle CurrentCategory Weapons <-> Magic
-- Branch sur nouvelle categorie -> PopulateWeaponSlots ou Print "Magic TODO"
-- Reset SelectedIndex/TargetRotation/CurrentRotation a 0 au switch
-- IA_UI_RadialMenu_ChangeCat (Axis1D) dans IMC_Prototype
-- Handle dans PC : IsValid(RadialMainRef) -> SwitchCategory(RadialMainRef)
+- Reset SelectedIndex/TargetRotation/CurrentRotation = 0 au switch
+- IA_UI_RadialMenu_ChangeCat -> Handle dans PC avec IsValid guard
 
-#### ValidateSelectedWeapon -- confirmation equipement VALIDE PIE
-- Recree dans UI_Radial_Main (migration depuis UI_RadialMenu)
-- SlotDataList[SelectedIndex].SlotID -> EquipWeapon(BP_PlatformingCharacter)
-- -> CloseRadialMenu(BP_PlatformingPlayerController)
-- IA_validate_radial_selection branchee avec IsValid(RadialMainRef) guard dans PC
+#### ValidateSelectedWeapon -- VALIDE PIE
+- Migre depuis UI_RadialMenu vers UI_Radial_Main
+- SlotDataList[SelectedIndex].SlotID -> EquipWeapon -> CloseRadialMenu
+- IA_validate_radial_selection avec IsValid guard dans PC
 
-#### Dettes techniques identifiees
-- ⚠️ Radial armes : au chargement, la surbrillance devrait se placer sur l'arme actuellement equipee
-  (pas forcement le slot 0). A implementer lors de la refonte armes J-15+
-- ⚠️ Comportement radial Magic a definir quand on travaillera la categorie magie
-- ⚠️ UI_RadialMenu (ancien) toujours present mais deconnecte -- a nettoyer post-J-13
-- ⚠️ WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer post-J-13
+#### Cancel -- VALIDE PIE
+- IA_UI_Radial_Cancel -> IsValid(RadialMainRef) -> CloseRadialMenu
+- Note : a terme migrer vers IMC_UI dedie (dette)
 
-#### Reste a faire J-13
-- [ ] Retour bouton B (CloseRadialMenu sans equiper)
-- [ ] UI_QuickslotBar : 3 slots HUD
+#### Quickslot POC -- VALIDE PIE
+- 3 variables dans PC : QuickslotUp/Left/Right (FName, SpellID)
+- IA_Quickslot_Up/Left/Right -> CastSpell via MagicComponent
+- Mapping clavier : & (1) / e accent (2) / guillemet (3)
+- Mapping gamepad prevu : fleches ↑ ← →  (fleche ↓ = switch page futur)
+
+#### Session design actee (13/05/2026)
+- Mapping PS5 complet acte (voir Docs/Architecture/UI_GlobalMenu.md)
+- Quickslot : 3 slots, multi-pages via fleche bas, choix strategique (4 sorts / 3 slots)
+- Roadmap reorganisee par dependances + sessions creatives (J-MAP / J-ART / J-MUS)
+- Lock-On : dette confirmee (J-lock entre J-13 et J-15)
+- Arc : munitions illimitees ACTE
+
+#### Dettes techniques J-13
+- ⚠️ Radial : surbrillance devrait pointer l'arme equipee a l'ouverture (pas slot 0) -- J-15+
+- ⚠️ Categorie Magic : comportement a definir (affiche "TODO" pour l'instant)
+- ⚠️ UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A
+- ⚠️ WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer J-A
+- ⚠️ IMC_UI dedie a creer pour les inputs menus -- J-C
 
 ---
 
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
+Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
