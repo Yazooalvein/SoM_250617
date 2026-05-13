@@ -142,6 +142,7 @@ git push
 ### Documentation architecture
 - Toute nouvelle feature -> doc dans `Docs/Architecture/`
 - Index : `Docs/Project_Architecture_Index.md`
+- UI/HUD/Menu global : `Docs/Architecture/UI_GlobalMenu.md`
 
 ---
 
@@ -163,80 +164,75 @@ git push
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_PlatformingPlayerController
-- `BP_PlatformingPlayerController` : gere Lock-On, Menu Radial, IMC_Prototype
+- `BP_PlatformingPlayerController` : gere Lock-On, Radial Menu, Quickslots, IMC_Prototype
 - ⚠️ Toujours verifier Player Controller Class dans BP_SoM_GameMode apres toute refonte
 
 ### Ennemis
 - `BP_EnemyBase` -> `BP_AIController_Enemy_Base`
 - Behavior Tree + Blackboard + PawnSensing
 - `LoseAggro()` pour desengagement
+- ⚠️ Lock-On : a revoir (J-lock) -- detection nouvelles cibles + UI z-order
 
 ### Combat
 - `BPI_TakeDamage` + `BP_ComboManagerComponent`
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
+- Feedback combo : subtil, dans le monde (flash arme, posture) -- PAS d'UI visible (ACTE)
 
 ### Armes
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
 - `BP_Weapon_Base` : spawn data-driven via GetDataTableRowFromName au BeginPlay
-- `EquipWeapon(RowName)` dans BP_PlatformingCharacter : BeginDeferredActorSpawnFromClass + K2_AttachToComponent sur HandGrip_R
-- ⚠️ WeaponDataTest : variable debug a supprimer post-J-13
+- `EquipWeapon(RowName)` dans BP_PlatformingCharacter
+- ⚠️ WeaponDataTest : variable debug a supprimer (J-A)
+- ⚠️ Refonte armes prevue J-15/16/17 (BP_WeaponType_Base par TYPE)
+
+### Mapping Gamepad PS5 (ACTE)
+```
+X=Saut  Carre=Esquive  Rond=Blocage  Triangle=Radial
+L1=Attaque legere  R1=Attaque forte
+L2=Action PNJ compagnon 1  R2=Action PNJ compagnon 2
+L3=Sprint  R3=Lock-On (axis=changer cible)
+Fleche Haut/Gauche/Droite=Quickslots 1/2/3
+Fleche Bas=Switch page quickslots
+Options=Menu Global  Touchpad=TBD
+```
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
   - Layout : SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
   - UpdateStatText(Current, Max, RichTextBlock) : affiche "X / Y" sans decimales
-  - InitHUD : init barres ET textes au demarrage
   - DT_HUD_RichTextStyle : Content/UI/Widgets/Main/
-  - ⚠️ SizeBox obligatoire autour de chaque ProgressBar
-  - ⚠️ Size To Content sur HUD_Anchor doit etre DECOCHE
-- `UI_Enemy_HealthBar`, `UI_LockOnIndicator`
+- Design UI complet : voir `Docs/Architecture/UI_GlobalMenu.md`
 
-### Radial Menu -- J-13 QUASI-COMPLET
+### Radial Menu -- J-13 COMPLET
 - Chemin assets : Content/UI/Widgets/RadialMenu/
 - `ERadialMode` : enum Weapons / Magic
 - `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
-- `UI_RadialSlot` : widget slot 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
-- `UI_RadialSlot_OLD` : ancien widget slot (conserve, non utilise, renomme)
+- `UI_RadialSlot` : widget 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
 - `UI_Radial_Main` : widget radial principal -- VALIDE PIE
-  - Variables : CurrentCategory, SelectedIndex, SlotWidgets, SlotDataList
-  - RadialRadius = 330, RadialContainer Size = 0.01x0.01 (fix drift)
-  - TargetRotation, CurrentRotation, InterpSpeed(8.0)
-  - GenerateSlots() : Cos/Sin positioning, slots en cercle autour RadialContainer
-  - UpdateCenterInfo() : SET Text_ItemName/Description/Category depuis SlotDataList[SelectedIndex]
-  - UpdateSelection(AxisValue) : navigation par cran
-    - Branch AxisValue > 0 : SelectedIndex+1, TargetRotation+AnglePerSlot
-    - Branch AxisValue < 0 : SelectedIndex-1, TargetRotation-AnglePerSlot
-    - Wrap : (SelectedIndex + NbSlots) % NbSlots
-    - ForEach SlotWidgets -> SetSelected(ArrayIndex == SelectedIndex) -> UpdateCenterInfo
-  - Event Tick : FInterpTo(CurrentRotation->TargetRotation) -> SetRenderTransformAngle(RadialContainer)
-    + contre-rotation icones (CurrentRotation * -1)
-  - Event Construct : PopulateWeaponSlots -> GenerateSlots -> UpdateCenterInfo -> SetSelected(slot 0)
-  - PopulateWeaponSlots() : DiscoveredWeapons -> GetDataTableRow(DT_Weapons) -> FSoM_RadialSlotData
-  - SwitchCategory(Direction) : toggle Weapons/Magic -> PopulateWeaponSlots ou TODO Magic
-    + reset SelectedIndex/TargetRotation/CurrentRotation = 0
-  - ValidateSelectedWeapon() : SlotDataList[SelectedIndex].SlotID -> EquipWeapon -> CloseRadialMenu
-  - RESTE A FAIRE : UI_QuickslotBar
-  - ⚠️ Dette : surbrillance devrait se placer sur l'arme equipee a l'ouverture (pas slot 0)
-  - ⚠️ Dette : comportement categorie Magic a definir
+  - RadialRadius=330, RadialContainer Size=0.01x0.01 (fix drift)
+  - GenerateSlots() : Cos/Sin positioning
+  - UpdateCenterInfo() : textes centre depuis SlotDataList[SelectedIndex]
+  - UpdateSelection(AxisValue) : cran par cran, accumulation TargetRotation, wrap
+  - Event Tick : FInterpTo lerp + SetRenderTransformAngle + contre-rotation icones
+  - PopulateWeaponSlots() : DiscoveredWeapons -> DT_Weapons -> FSoM_RadialSlotData
+  - SwitchCategory() : toggle Weapons/Magic + reset rotations
+  - ValidateSelectedWeapon() : SlotID -> EquipWeapon -> CloseRadialMenu
 - `BP_PlatformingPlayerController` :
-  - `OpenRadialMenu` : IsValid guard + Create UI_Radial_Main + Time Dilation 0.2 + Add to Viewport
-    + Set Input Mode Game And UI (WidgetToFocus = RadialMainRef)
-  - `CloseRadialMenu` : Remove from Parent + Time Dilation 1.0 + Input Mode Game Only
-  - `Handle_UI_RadialMenu_Rotate` : IsValid(RadialMainRef) -> UpdateSelection(AxisValue)
-  - `Handle_UI_RadialMenu_ChangeCat` : IsValid(RadialMainRef) -> SwitchCategory(RadialMainRef)
-  - `IA_validate_radial_selection` : IsValid(RadialMainRef) -> ValidateSelectedWeapon
-  - `IA_UI_Radial_Cancel` : IsValid(RadialMainRef) -> CloseRadialMenu
-  - `RadialMainRef` (UI_Radial_Main) : variable de reference principale
-  - ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee -- a nettoyer post-J-13
+  - Open/CloseRadialMenu, Handle_Rotate, Handle_ChangeCat
+  - IA_validate_radial_selection, IA_UI_Radial_Cancel
+  - IsValid(RadialMainRef) guard OBLIGATOIRE avant tout appel radial
+  - ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee (a nettoyer J-A)
+
+### Quickslots -- POC VALIDE
+- Variables dans PC : QuickslotUp/Left/Right (FName = SpellID)
+- IA_Quickslot_Up/Left/Right -> CastSpell(MagicComponent)
+- Mapping : Fleches ↑←→ gamepad / &, e accent, guillemet clavier
+- Fleche bas = switch page (futur multi-pages)
+- ⚠️ HUD quickslot (affichage icones) : a faire (non urgent, polish)
 
 ### Inputs (IMC_Prototype)
-- Source unique : `Content/Input/InputActions/`
-- IMC actifs : IMC_Default, IMC_Platforming, IMC_Prototype
-- IA_UI_RadialMenu_Rotate : Axis1D (Q/D + Gamepad Right Thumbstick X)
-- IA_UI_RadialMenu_ChangeCat : Axis1D (Gamepad Left Thumbstick Y)
-- IA_validate_radial_selection : Axis1D (Bouton A/X gamepad)
-- IA_UI_Radial_Cancel : (Bouton B/Circle + Escape)
-- ⚠️ Dette : creer IMC_UI dedie pour les inputs menus, clean IMC_Prototype (prevu post-J-13)
+- Source unique : Content/Input/InputActions/
+- ⚠️ Dette : creer IMC_UI dedie pour inputs menus (J-C)
 
 ### Magie
 - `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
@@ -252,35 +248,37 @@ git push
 - [x] J-10/11/12 : BP_MagicComponent complet
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise
-- [x] J-13 WIP : radial navigation + PopulateWeaponSlots + SwitchCategory + ValidateSelectedWeapon + Cancel
+- [x] J-13 : Radial Menu complet + Quickslot POC VALIDE PIE
 
-## Roadmap immediate
+## Prochains jalons (ordre de dependances)
 
-- [ ] J-13 final : UI_QuickslotBar (3 slots HUD)
-- [ ] Refactorer BP_Spell_Buff/Debuff AffectedStat dynamique (dette)
-- [ ] UnlockDeity data-driven depuis DT_Spells (dette)
-- [ ] Hit Flash ennemis (vrai mesh + M_Enemy_Base + DMI)
-- [ ] IMC_UI dedie + clean IMC_Prototype (dette)
-- [ ] SaveGame
-- [ ] ComfyUI textures (RTX 3080Ti)
+1. J-A/C/D : Nettoyage rapide (1 session)
+2. J-lock : Revision Lock-On
+3. J-15/16/17 : Refonte armes
+4. J-F : SaveGame
+5. J-18/19 : Arc + Switching
+6. J-B/E : Animations + Hit Flash
+7. J-20+ : Compagnons
+8. J-24+ : Corruption
+9. J-27+ : Hub + Forge
+10. J-30+ : Progression
+
+Sessions creatives intercalees : J-MAP / J-ART / J-MUS (voir Roadmap)
 
 ---
 
 ## Notes techniques importantes
 
-- Hit Flash ennemi : DMI au BeginPlay + Set Scalar sur DMI
-- `BP_SoM_GameMode` : Player Controller Class = BP_PlatformingPlayerController obligatoire
-- RichTextBlock : necessite DataTable (RichTextStyleRow) assignee dans Text Style Set
-- ProgressBar dans HBox/VBox : toujours wrapper dans SizeBox pour controler la hauteur
-- To Text (Float) : Max/Min Fractional Digits = 0 pour supprimer les decimales
-- Radial : ancienne logique UI_RadialMenu deconnectee mais conservee -- a nettoyer
-- Time Dilation 0.2 a l'ouverture radial, 1.0 a la fermeture (remplace Set Game Paused)
+- SetStatValue = unique point de modification stats (jamais de SET direct)
+- RichTextBlock : necessite DataTable RichTextStyleRow assignee
+- ProgressBar : toujours wrapper dans SizeBox
+- To Text (Float) : Max/Min Fractional Digits = 0 pour supprimer decimales
+- Time Dilation 0.2 ouverture radial, 1.0 fermeture
 - Widget "Is Variable" obligatoire pour acceder depuis le graph
-- Make Brush from Texture + Set Brush pour assigner une Texture2D a une Image widget
-- Radial navigation : TargetRotation s'accumule (pas de % 360) pour lerp correct
-- Radial wrap index : (SelectedIndex + NbSlots) % NbSlots
-- Radial drift fix : RadialContainer Size = 0.01x0.01 (pivot quasi-ponctuel)
-- IsValid(RadialMainRef) guard obligatoire avant tout appel sur le radial depuis le PC
+- Radial drift fix : RadialContainer Size = 0.01x0.01
+- Radial wrap : (SelectedIndex + NbSlots) % NbSlots
+- IsValid(RadialMainRef) guard obligatoire avant tout appel radial depuis PC
+- EquipWeapon : BeginDeferredActorSpawnFromClass + K2_AttachToComponent HandGrip_R
 
 ---
 
@@ -288,7 +286,7 @@ git push
 
 1. Nico dit : "on travaille sur Shadow of Mana, lis le CLAUDE.md et le journal"
 2. Claude.ai lit ce fichier + `Docs/Journal_Modifications.md` + `Docs/Session_UnrealClaude.md`
-3. Claude.ai fait un resume complet (jalons, dernieres actions UE) et propose la suite logique
+3. Claude.ai fait un resume complet et propose la suite logique
 
 ## Comment demarrer une session UnrealClaude (dans l'editeur)
 
