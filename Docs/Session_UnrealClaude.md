@@ -25,6 +25,130 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 13/05/2026 -- AUDIT IA_UI_Radial* / ValidateSelectedWeapon / EquipWeapon -- Inspection inputs radial + logique equipement
+
+**Action** : Audit ciblé par extraction binaire sur 3 sujets :
+1. Toutes les IA_UI_Radial* dans Content/Input/InputActions/
+2. ValidateSelectedWeapon dans BP_PlatformingPlayerController (commité + autosave Auto7)
+3. Logique d'équipement d'arme dans BP_PlatformingCharacter
+
+**Pourquoi** : Préparer la complétion du J-13 (ValidateSelectedWeapon → nouveau radial, SwitchCategory). Identifier précisément l'état réel vs l'état git.
+
+---
+
+#### 1. Input Actions IA_UI_Radial* -- État complet
+
+| Asset | ValueType | bTriggerWhenPaused | Version UE compilée |
+|-------|-----------|---------------------|---------------------|
+| `IA_UI_RadialMenu_Rotate` | Axis1D | bool (présent) | UE5.5 (plus ancien) |
+| `IA_UI_RadialMenu_ChangeCat` | Axis1D | bool (présent) | **UE5.7** (le plus récent — nouvellement créé) |
+| `IA_validate_radial_selection` | Axis1D | bool (présent) | UE5.6 |
+| `IA_RadialMenu` (toggle ouverture) | Axis1D | — | non vérifié |
+
+**Tous les 4 sont déclarés dans IMC_Prototype** (confirmé dans les strings IMC_Prototype.uasset).
+
+**Bindings physiques dans IMC_Prototype (extrait complet) :**
+- Gamepad : `Gamepad_Left2D`, `Gamepad_LeftY`, `Gamepad_RightX`, `Gamepad_RightShoulder`, `Gamepad_LeftShoulder`, `Gamepad_FaceButton_Bottom` (A), `Gamepad_FaceButton_Right` (B), `Gamepad_FaceButton_Left` (X), `Gamepad_FaceButton_Top` (Y), `Gamepad_LeftTrigger`, `Gamepad_LeftThumbstick`, `Gamepad_Special_Left`
+- Clavier/souris : `LeftMouseButton`, `MiddleMouseButton`, `RightMouseButton`, `MouseX`, `Mouse2D`
+- (Affectation précise par IA non déductible du binaire sans l'éditeur)
+
+**Note critique** : `IA_validate_radial_selection` est de type `Axis1D` (pas Digital/Bool). Si le handler ne filtre pas la valeur axis (≠ 0), il se déclenche en continu. À vérifier PIE.
+
+---
+
+#### 2. ValidateSelectedWeapon -- État commité vs WIP
+
+**Version commitée (BP_PlatformingPlayerController.uasset) :**
+- `ValidateSelectedWeapon` présent **mais pas de binding IA dans le commité**
+- Le commité n'a PAS `InpActEvt_IA_UI_RadialMenu_ChangeCat` ni `SwitchCategory`
+- Le commité n'a PAS de référence à `UI_Radial_Main` ni `RadialMainRef`
+- `Handle_UI_RadialMenu_Rotate` présent mais sans `RadialMainRef` → câblage incomplet dans le commité
+
+**Version autosave Auto7 (WIP J-13 non commité) :**
+- `InpActEvt_IA_UI_RadialMenu_ChangeCat_K2Node_EnhancedInputActionEvent` → **`SwitchCategory`** présent ✅
+- `InpActEvt_IA_UI_RadialMenu_Rotate_K2Node_EnhancedInputActionEvent` → `Handle_UI_RadialMenu_Rotate` ✅
+- `InpActEvt_IA_validate_radial_selection_K2Node_EnhancedInputActionEvent` → `ValidateSelectedWeapon` ✅
+- `RadialMainRef` (UI_Radial_Main_C) présent ✅
+- `UI_Radial_Main_C` référencé ✅
+- `UI_RadialMenu_C` encore présent (ancienne logique conservée)
+
+**Logique de ValidateSelectedWeapon (déduite du binaire) :**
+```
+IA_validate_radial_selection → ValidateSelectedWeapon :
+  1. IsValid(RadialMenuRef) guard [ancienne logique]
+  2. GetDataTableRow(DT_Weapons, SelectedRowName) → FWeaponData [lit sur RadialMenuRef old]
+  3. K2Node_DynamicCast_AsBP_Platforming_Character (sur GetPawn)
+  4. → appel EquipWeapon(ChoosenWeapon) sur le character
+```
+
+**⚠️ PROBLÈME CRITIQUE** : ValidateSelectedWeapon lit encore `SelectedRowName` depuis `RadialMenuRef` (ancien UI_RadialMenu_C). Elle doit être mise à jour pour lire depuis `RadialMainRef.SlotDataList[SelectedIndex].SlotID` (nouveau flow).
+
+Séquence cible après migration :
+```
+ValidateSelectedWeapon (nouveau) :
+  IsValid(RadialMainRef) guard
+  → SlotID = RadialMainRef.SlotDataList[RadialMainRef.SelectedIndex].SlotID
+  → Cast GetPawn → BP_PlatformingCharacter
+  → EquipWeapon(SlotID)
+```
+
+---
+
+#### 3. EquipWeapon dans BP_PlatformingCharacter -- Logique complète
+
+**Fonction EquipWeapon(RowName : Name) -- flux déduit du binaire :**
+```
+1. GetDataTableRowFromName(DT_Weapons, ChoosenWeapon) → FWeaponData
+   (note : utilise ChoosenWeapon variable, pas le param direct — à vérifier)
+
+2. BeginDeferredActorSpawnFromClass(BP_Weapon_X_C, SpawnTransform)
+   → ReturnValue stocké temporairement
+
+3. FinishSpawningActor(ReturnValue, SpawnTransform)
+   → Arme spawnée
+
+4. K2_AttachToComponent(ArmeSpawnée, Component=Mesh, SocketName="HandGrip_R",
+   LocationRule=SnapToTarget, RotationRule=SnapToTarget, ScaleRule=KeepRelative)
+
+5. Set CurrentWeapon = ArmeSpawnée
+6. Set bIsEquipped = true (sur l'arme)
+7. [probable] Destroy ancien CurrentWeapon si IsValid
+```
+
+**Pattern BeginDeferred + Finish** : plus robuste que `SpawnActorFromClass` direct — permet de configurer l'acteur avant son initialisation complète. Correct pour les armes.
+
+**Variables armes dans BP_PlatformingCharacter (état final) :**
+| Variable | Type | Rôle | Statut |
+|----------|------|------|--------|
+| `DiscoveredWeapons` | Array\<Name\> | RowNames DT_Weapons débloqués | **DUPLIQUÉ** avec PC |
+| `ChoosenWeapon` | Name | RowName sélectionné via radial | Source = PC |
+| `CurrentWeapon` | BP_Weapon_Base | Arme actuellement attachée | Set dans EquipWeapon |
+| `WeaponID` | Name | ID pour combo filter | Set dans EquipWeapon |
+| `WeaponLevel` | int | Niveau pour combo | Set dans EquipWeapon |
+| `WeaponType` | EWeaponType | Pilote AnimBP Blend Pose by Enum | Set dans EquipWeapon |
+| `WeaponMesh` | SkeletalMesh | Mesh de l'arme | Optionnel, peut rester vide |
+| `WeaponDataTest` | FWeaponData | **Variable debug** — ne pas utiliser | À supprimer post-J13 |
+| `bIsEquipped` | bool | Arme montée/démontée | Sur BP_Weapon_Base, pas Character |
+
+**`GetDataTableRowNames`** présent dans le binaire — probablement utilisé pour peupler `DiscoveredWeapons` au BeginPlay (toutes les armes de DT_Weapons disponibles par défaut). À confirmer.
+
+---
+
+#### 4. Points d'attention J-13 completion
+
+1. **ValidateSelectedWeapon à migrer** : remplacer lecture `RadialMenuRef.SelectedRowName` par `RadialMainRef.SlotDataList[SelectedIndex].SlotID`
+2. **SwitchCategory dans WIP non commité** : câblage IA_UI_RadialMenu_ChangeCat → SwitchCategory existe dans autosave mais pas dans git. Push requis pour synchroniser.
+3. **DiscoveredWeapons dans PC = source de vérité** : le Character l'a aussi mais le PC doit être l'unique source d'alimentation du radial.
+4. **IA_validate_radial_selection est Axis1D** : s'assurer que le handler filtre (ex: ActionValue > 0.5 ou utiliser ETriggerEvent::Started) pour éviter déclenchement continu.
+5. **WeaponDataTest** à supprimer après J-13 validé.
+6. **Vieux wiring InitializeRadialMenu(SlotRowNames, SlotIcons)** encore dans OpenRadialMenu du commité — à remplacer par `PopulateWeaponSlots` → `GenerateSlots` sur `RadialMainRef`.
+
+---
+
+*Entrée créée le 13/05/2026 -- Claude.ai (session CLI)*
+
+---
+
 ### 13/05/2026 -- AUDIT SYSTEME ARMES COMPLET -- DT_Weapons / BP_Weapon_Base / BP_PlatformingCharacter / BP_PlatformingPlayerController
 
 **Action** : Audit complet du systeme d'armes par extraction binaire (.uasset) de tous les assets weapons.
