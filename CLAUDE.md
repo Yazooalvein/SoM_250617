@@ -156,6 +156,19 @@ git push
 - `OnPlayerDeath` dispatcher (sans params)
 - `OnStatChanged(StatName, NewValue)` dispatcher dans AttributeSet
 - `DiscoveredWeapons` (Array<FName>) : liste des armes debloquees (source de verite)
+- ⚠️ Mesh hero : voir section Hero 3D ci-dessous -- retargeting skeleton a faire
+
+### Hero 3D -- DESIGN VALIDE (14/05/2026)
+- Design valide via workflow : Dessin -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5
+- Palette actee : cheveux brun, echarpe rouge, armure gris anthracite, veste bleu nuit, pantalon marron sombre, bottes+gants noirs
+- Assets dans : Content/Characters/Players/Hero_Test/
+  - Skeletal Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
+  - Material Instance + Textures PBR (Diffuse + Normal)
+  - Physics Asset + Skeleton avec IK (ik_foot, ik_hand, pelvis, spine x4)
+- ⚠️ Skeleton hero ≠ UE5 Mannequin -> retargeting necessaire (session J-ART dediee)
+- ⚠️ 246K triangles LOD0 -> retopo necessaire avant prod (cible 10-15K)
+- ⚠️ 6 doigts par main (artefact Meshy) -> correction Blender en J-ART final
+- Armes : assets SEPARES du mesh hero (switch armes = BP_Weapon_Base, pas skinne)
 
 ### Stats
 - `SetStatValue(StatName, Value)` = unique point de modification (jamais de SET direct)
@@ -249,6 +262,8 @@ Options=Menu Global  Touchpad=TBD
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise
 - [x] J-13 : Radial Menu complet + Quickslot POC VALIDE PIE
+- [x] J-ART (partiel) : Design hero valide + mesh 3D importe UE5 -- retargeting restant
+- [x] J-MUS (exploration) : Workflow MP3->MIDI->Suno explore, prompt theme sombre etabli
 
 ## Prochains jalons (ordre de dependances)
 
@@ -263,7 +278,35 @@ Options=Menu Global  Touchpad=TBD
 9. J-27+ : Hub + Forge
 10. J-30+ : Progression
 
-Sessions creatives intercalees : J-MAP / J-ART / J-MUS (voir Roadmap)
+Sessions creatives intercalees : J-MAP / J-ART (retargeting + LODs) / J-MUS (theme principal)
+
+---
+
+## Workflows creatifs etablis (sessions J-ART / J-MUS)
+
+### J-ART -- Workflow hero 3D
+```
+Dessin crayon
+  -> Leonardo.ai (modele : Lucid Origin, guidance 8, 1024x1024)
+  -> Gemini (vues complementaires : dos, profil, T-Pose)
+  -> Meshy 5 (image-to-3D, single image T-Pose, style Cartoon)
+  -> Texture Meshy (PBR depuis image reference Leonardo)
+  -> AccuRIG (rig humanoid, meilleur que Mixamo pour stylise)
+  -> Export FBX T-Pose
+  -> Import UE5 (Skeletal Mesh, skeleton None, Use T0 As Ref Pose)
+  -> Retargeting vers UE5 Mannequin (a faire)
+```
+Points critiques : T-Pose mains ouvertes obligatoire, bras ecartes du corps, pas d'arme sur le mesh
+
+### J-MUS -- Workflow theme musical
+```
+Reference melodique (fredonnement personnel, pas audio protege)
+  -> Suno.ai (gratuit 50 credits/jour, Upload Audio + Covers)
+  -> Iterations par Remix (slider style + slider audio fidelity)
+  -> Export MP3
+  -> UE5 : Sound Cue ou MetaSound source
+```
+Prompt etabli : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolate overworld
 
 ---
 
@@ -296,4 +339,4 @@ Sessions creatives intercalees : J-MAP / J-ART / J-MUS (voir Roadmap)
 
 ---
 
-*Derniere mise a jour : 13/05/2026*
+*Derniere mise a jour : 14/05/2026*
