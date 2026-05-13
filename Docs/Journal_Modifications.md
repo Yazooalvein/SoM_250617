@@ -117,10 +117,73 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
+### 14/05/2026 -- Session creative J-MUS (exploration workflow)
+
+#### Workflow MP3 -> MIDI -> transformation explore
+- Basic Pitch (Spotify) : conversion MP3 -> MIDI validee, gratuit, navigateur
+- AIVA.ai : teste pour transformation MIDI -> orchestration sombre -- resultats insuffisants
+- Workflow retenu pour J-MUS futur :
+  - Humming / fredonnement -> Suno (gratuit, 50 credits/jour)
+  - Suno Covers : transformation style avec preservation melodique
+  - Suno Remix : iterations "plus sombre / autre instru" par slider
+  - Export MP3 -> import UE5 (Sound Cue / MetaSound)
+- Prompt Suno etabli pour le theme overworld sombre (monde devaste, cordes graves, 60 BPM)
+- ⚠️ Theme Seiken Densetsu 1 : source protegee, workflow via fredonnement personnel uniquement
+
+---
+
+### 14/05/2026 -- Session creative J-ART -- Design Hero VALIDE
+
+#### Workflow etabli et teste
+```
+Dessin crayon (Nico)
+  -> Leonardo.ai (cel-shaded, prompt optimise)
+    -> Gemini (vues dos + profil, coherence garantie)
+      -> Meshy 5 (image-to-3D, vue T-Pose)
+        -> Texture Meshy (PBR depuis image reference)
+          -> AccuRIG (rig humanoid propre)
+            -> Export FBX T-Pose
+              -> Import UE5.7 (Content/Characters/Players/Hero_Test/)
+```
+
+#### Design hero valide -- palette finale ACTEE
+- Cheveux : brun fonce spiky asymetrique
+- Echarpe : rouge cramoisi
+- Armure : gris anthracite
+- Veste : bleu nuit
+- Pantalon : marron sombre
+- Bottes + gants : noir
+- Lanières croisées en X : marron cuir
+- Medaillon Mana : centre poitrine
+- Pas d'arme sur le modele (switch armes = assets separes)
+
+#### Assets crees -- Content/Characters/Players/Hero_Test/
+- Skeletal Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
+- Material Instance + Textures PBR (Diffuse + Normal)
+- Physics Asset : genere automatiquement
+- Skeleton : propre avec IK (ik_foot, ik_hand, pelvis, spine x4)
+- Animation Sequences : exportees depuis AccuRIG
+
+#### Lecons apprises workflow
+- Image source : T-Pose obligatoire, mains ouvertes, bras ecartes du corps
+- Meshy : single image > composite multi-vues (en plan gratuit)
+- Meshy 5 gratuit : 6 doigts par main (artefact connu, a corriger en J-ART final)
+- AccuRIG > Mixamo pour rig stylise (meilleure hierarchie, IK propres)
+- Skeleton hero ≠ skeleton UE5 Mannequin -> retargeting necessaire pour animations existantes
+- Poly count : ~246K triangles LOD0, retopo necessaire avant prod (cible : 10-15K)
+
+#### Prochaines etapes J-ART (session dediee)
+- Retargeting skeleton hero -> UE5 Mannequin pour animations BP_PlatformingCharacter
+- Correction 6 doigts -> 5 dans Blender
+- LODs (LOD1 : ~50K, LOD2 : ~15K)
+- Armes comme assets separes (Sword_01, 2HSword_01 en priorite)
+
+---
+
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 13/05/2026
+- Derniere mise a jour : 14/05/2026
