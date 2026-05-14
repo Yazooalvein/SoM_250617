@@ -33,7 +33,7 @@ COUCHE 2 — Combat & Ennemis           (après fondations)
 COUCHE 3 — Monde & Navigation         (en parallèle possible avec C2)
 COUCHE 4 — Systèmes narratifs         (après monde + combat)
 COUCHE 5 — Forge & Équipement         (après systèmes narratifs)
-COUCHE 6 — Audio & Feedback           (intercalé dès que possible)
+COUCHE 6 — Audio & Feedback           (SFX1 en C1, reste intercalé)
 COUCHE 7 — UI/UX complet              (intercalé, avant build)
 COUCHE 8 — Qualité & Build            (fin de développement)
 
@@ -45,24 +45,25 @@ Sessions créatives (J-ART / J-MUS / J-MAP) : intercalées librement.
 ## Ordre de dépendances global
 
 ```
-J-lock
-  └─> J-Camera
-        └─> J-15/16/17 (Armes + Combo)
-              └─> J-F (SaveGame)
-                    └─> J-18/19 (Arc + Switching)
-                          └─> J-B/E (Animations + Hit Flash)
-                                └─> J-EnemyArt
-                                      └─> J-EnemyAI
-                                            └─> J-Boss1
+J-TestBed (mini zone + mini mob + SFX placeholder)
+  └─> J-SFX1 (sons de base — remonté en C1 pour calibrer le feel)
+        └─> J-lock
+              └─> J-Camera
+                    └─> J-15/16/17 (Armes + Combo)
+                          └─> J-F (SaveGame)
+                                └─> J-18/19 (Arc + Switching)
+                                      └─> J-B/E (Animations + Hit Flash)
+                                            └─> J-EnemyArt
+                                                  └─> J-EnemyAI
+                                                        └─> J-Boss1
 
 J-MAP-1 (Map de test réelle, apprendre la compétence)
-  └─> J-SFX1
-        └─> J-Dialogue
-              └─> J-Hub1/2/3
-                    └─> J-Deités (toutes ensemble)
-                          └─> J-Corruption
-                                └─> J-ChoixMoral
-                                      └─> J-Acte1Test
+  └─> J-Dialogue
+        └─> J-Hub1/2/3
+              └─> J-Deités (toutes ensemble)
+                    └─> J-Corruption
+                          └─> J-ChoixMoral
+                                └─> J-Acte1Test
 
 J-Acte1Test
   └─> J-Perf1
@@ -74,6 +75,29 @@ J-Acte1Test
 
 ## COUCHE 1 — Fondations gameplay
 
+### J-TestBed — Zone & Mob de Test (PREMIER JALON)
+- [ ] **Mini zone BSP** (1-2h de travail, pas une vraie map) :
+  - Couloir avec angle (test caméra espace contraint)
+  - Plateforme haute (test caméra verticalité)
+  - Obstacle bloquant la vue (test collision caméra)
+  - Espace ouvert pour le combat
+- [ ] **BP_Enemy_TestBed** (hérite BP_EnemyBase) :
+  - Tourne autour du joueur (test lock-on sur cible mobile latéralement)
+  - Recule après avoir attaqué (test caméra sur cible qui s'éloigne)
+  - Attaque chargée avec tell visuel (test hitstop + screen shake)
+  - Mort propre (test feedback mort)
+  - BT simple : 3 états (Rôder, Attaquer, Reculer)
+- [ ] **SFX placeholder** libres de droits importés (attaque, esquive, impact, mort)
+- ⚠️ Objectif : avoir de la matière concrète pour calibrer J-lock et J-Camera
+
+### J-SFX1 — Sons de Base (remonté en C1)
+- [ ] Attaques (léger, lourd, finisseur)
+- [ ] Esquive, dash, roulade
+- [ ] Dégâts reçus, mort joueur
+- [ ] Dégâts ennemis, mort ennemi
+- [ ] Sons UI : radial menu, quickslot, validation
+- ⚠️ Fait avant J-lock pour calibrer le feel du combat sans biais
+
 ### J-lock — Révision Lock-On
 - [ ] Audit complet système existant
 - [ ] Fix détection nouvelles cibles dans le radius (sans reset manuel)
@@ -81,6 +105,7 @@ J-Acte1Test
 - [ ] Fix positionnement barres HP ennemis
 - [ ] Comportement caméra pendant Lock-On (lié à J-Camera)
 - [ ] Décision : migrer / refactoriser / refaire from scratch ?
+- ⚠️ Nécessite J-TestBed pour tester sur un mob qui bouge réellement
 
 ### J-Camera — Caméra & Feel de base
 - [ ] Révision caméra 3/4 (distance, angle, lag)
@@ -89,6 +114,7 @@ J-Acte1Test
 - [ ] Premier pass screen shake (hits reçus, dash)
 - [ ] Hitstop POC (freeze frame 2-3 frames sur coup fort)
 - [ ] Vibration gamepad standard (hits, mort) — pas de haptique avancé
+- ⚠️ Nécessite J-TestBed (obstacles, hauteurs) + J-lock fonctionnel
 
 ### J-C — IMC_UI dédié
 - [ ] Créer IMC_UI séparé pour inputs menus
@@ -320,12 +346,7 @@ J-Acte1Test
 
 ## COUCHE 6 — Audio & Feedback
 
-### J-SFX1 — Sons de Base (priorité haute)
-- [ ] Attaques (léger, lourd, finisseur)
-- [ ] Esquive, dash, roulade
-- [ ] Dégâts reçus, mort joueur
-- [ ] Dégâts ennemis, mort ennemi
-- [ ] Sons UI : radial menu, quickslot, validation
+*Note : J-SFX1 a été remonté en Couche 1 (avant J-lock) pour calibrer le feel dès le début.*
 
 ### J-SFX2 — Ambiances Par Zone
 - [ ] Ambiance forêt / ruines (vent, insectes, décombres)
@@ -482,4 +503,4 @@ J-Acte1Test
 
 - Création : 11/05/2026
 - Refonte complète : 14/05/2026
-- Dernière mise à jour : 14/05/2026
+- Mise à jour : 14/05/2026 — Ajout J-TestBed, J-SFX1 remonté en C1
