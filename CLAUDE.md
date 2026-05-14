@@ -155,8 +155,7 @@ git push
 - `bIsInvincible` (iframes dash/roll, pilote par AnimNotify AN_EndDash/AN_EndRoll)
 - `OnPlayerDeath` dispatcher (sans params)
 - `OnStatChanged(StatName, NewValue)` dispatcher dans AttributeSet
-- `DiscoveredWeapons` (Array<FName>) : liste des armes debloquees (source de verite)
-- ⚠️ Mesh hero : voir section Hero 3D ci-dessous -- retargeting skeleton a faire
+- `DiscoveredWeapons` (Array<FName>) : liste des armes debloquees (source de verite dans PC)
 
 ### Hero 3D -- DESIGN VALIDE (14/05/2026)
 - Design valide via workflow : Dessin -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5
@@ -165,7 +164,7 @@ git push
   - Skeletal Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
   - Material Instance + Textures PBR (Diffuse + Normal)
   - Physics Asset + Skeleton avec IK (ik_foot, ik_hand, pelvis, spine x4)
-- ⚠️ Skeleton hero ≠ UE5 Mannequin -> retargeting necessaire (session J-ART dediee)
+- Retargeting VALIDE PIE : Mannequin source -> Hero target (ABP_Manny reutilise via Compatible Skeletons)
 - ⚠️ 246K triangles LOD0 -> retopo necessaire avant prod (cible 10-15K)
 - ⚠️ 6 doigts par main (artefact Meshy) -> correction Blender en J-ART final
 - Armes : assets SEPARES du mesh hero (switch armes = BP_Weapon_Base, pas skinne)
@@ -190,13 +189,14 @@ git push
 - `BPI_TakeDamage` + `BP_ComboManagerComponent`
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
 - Feedback combo : subtil, dans le monde (flash arme, posture) -- PAS d'UI visible (ACTE)
+- ⚠️ Logique combo/armes dans PC EventGraph supprimee (J-Nettoyage) -- a refaire en J-15/16/17
 
 ### Armes
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
 - `BP_Weapon_Base` : spawn data-driven via GetDataTableRowFromName au BeginPlay
 - `EquipWeapon(RowName)` dans BP_PlatformingCharacter
-- ⚠️ WeaponDataTest : variable debug a supprimer (J-A)
 - ⚠️ Refonte armes prevue J-15/16/17 (BP_WeaponType_Base par TYPE)
+- ⚠️ DiscoveredWeapons : present dans PC (source verite) ET dans Character -- a unifier J-15/16/17
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -216,8 +216,10 @@ Options=Menu Global  Touchpad=TBD
   - DT_HUD_RichTextStyle : Content/UI/Widgets/Main/
 - Design UI complet : voir `Docs/Architecture/UI_GlobalMenu.md`
 
-### Radial Menu -- J-13 COMPLET
+### Radial Menu -- J-13 COMPLET + J-Nettoyage PROPRE
 - Chemin assets : Content/UI/Widgets/RadialMenu/
+- Assets actifs : ERadialMode, FSoM_RadialSlotData, UI_Radial_Main, UI_RadialSlot
+- Assets supprimes : UI_RadialMenu (ancien), UI_RadialSlot_old
 - `ERadialMode` : enum Weapons / Magic
 - `FSoM_RadialSlotData` : struct SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` : widget 80x80, SetSelected(bool) + SetSlotData(FSoM_RadialSlotData)
@@ -234,7 +236,7 @@ Options=Menu Global  Touchpad=TBD
   - Open/CloseRadialMenu, Handle_Rotate, Handle_ChangeCat
   - IA_validate_radial_selection, IA_UI_Radial_Cancel
   - IsValid(RadialMainRef) guard OBLIGATOIRE avant tout appel radial
-  - ⚠️ Ancienne logique UI_RadialMenu presente mais deconnectee (a nettoyer J-A)
+  - Ancien systeme UI_RadialMenu entierement supprime (J-Nettoyage)
 
 ### Quickslots -- POC VALIDE
 - Variables dans PC : QuickslotUp/Left/Right (FName = SpellID)
@@ -262,14 +264,15 @@ Options=Menu Global  Touchpad=TBD
 - [x] J-14 : BP_SpellBase + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise
 - [x] J-13 : Radial Menu complet + Quickslot POC VALIDE PIE
-- [x] J-ART (partiel) : Design hero valide + mesh 3D importe UE5 -- retargeting restant
+- [x] J-Nettoyage : Suppression ancien radial, WeaponDataTest, assets obsoletes
+- [x] J-ART (partiel) : Design hero valide + mesh 3D importe UE5 + retargeting VALIDE PIE
 - [x] J-MUS (exploration) : Workflow MP3->MIDI->Suno explore, prompt theme sombre etabli
 
 ## Prochains jalons (ordre de dependances)
 
-1. J-A/C/D : Nettoyage rapide (1 session)
-2. J-lock : Revision Lock-On
-3. J-15/16/17 : Refonte armes
+1. J-lock : Revision Lock-On
+2. J-15/16/17 : Refonte armes (+ unification DiscoveredWeapons + logique combo)
+3. J-C : IMC_UI dedie pour inputs menus
 4. J-F : SaveGame
 5. J-18/19 : Arc + Switching
 6. J-B/E : Animations + Hit Flash
@@ -294,7 +297,7 @@ Dessin crayon
   -> AccuRIG (rig humanoid, meilleur que Mixamo pour stylise)
   -> Export FBX T-Pose
   -> Import UE5 (Skeletal Mesh, skeleton None, Use T0 As Ref Pose)
-  -> Retargeting vers UE5 Mannequin (a faire)
+  -> Compatible Skeletons + RTG Mannequin source -> Hero target
 ```
 Points critiques : T-Pose mains ouvertes obligatoire, bras ecartes du corps, pas d'arme sur le mesh
 
@@ -322,6 +325,7 @@ Prompt etabli : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, 
 - Radial wrap : (SelectedIndex + NbSlots) % NbSlots
 - IsValid(RadialMainRef) guard obligatoire avant tout appel radial depuis PC
 - EquipWeapon : BeginDeferredActorSpawnFromClass + K2_AttachToComponent HandGrip_R
+- RTG retargeting : toujours Mannequin SOURCE, hero TARGET (pas l'inverse !)
 
 ---
 
