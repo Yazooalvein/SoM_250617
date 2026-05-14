@@ -25,6 +25,72 @@ Il est lu par Claude.ai en debut de session pour rester au courant de tout ce qu
 
 ## Historique des sessions
 
+### 14/05/2026 -- J-NETTOYAGE -- Audit pré-modifications (3 points)
+
+**Action** : Audit de l'état actuel avant nettoyage sur 3 cibles : WeaponDataTest, ancien système radial dans PC, NewEnumerator6 dans EWeaponType.
+Source : données Session_UnrealClaude.md du 13/05/2026 (audit binaire confirmé). Session Claude Code CLI, pas panel UnrealClaude.
+
+**Résultats confirmés :**
+
+1. **WeaponDataTest dans BP_PlatformingCharacter**
+   - Type : `FWeaponData`
+   - Statut : variable debug vestige, non utilisée en production
+   - Action prévue : supprimer la variable
+
+2. **Ancien système radial dans BP_PlatformingPlayerController**
+   - `RadialMenuRef` (UI_RadialMenu_C) : présente, créée dans OpenRadialMenu
+   - `SlotRowNames` (Array\<Name\>) : présente, construite dans OpenRadialMenu
+   - `SlotIcons` (Array\<Texture2D\>) : présente, passée à InitializeRadialMenu
+   - Fonctions à migrer : OpenRadialMenu, CloseRadialMenu, ToggleRadialMenu, ValidateSelectedWeapon
+   - ValidateSelectedWeapon lit encore `RadialMenuRef.SelectedRowName` → doit lire `RadialMainRef.SlotDataList[SelectedIndex].SlotID`
+   - `RadialMainRef` (UI_Radial_Main_C) existe dans le WIP — migration à finaliser
+
+3. **NewEnumerator6 dans EWeaponType**
+   - 7 enumerateurs (Sword/HSword/Axe/HAxe/Dagger/Bow/NewEnumerator6)
+   - NewEnumerator6 : non nommé, vestige probable
+   - Action prévue : supprimer ou renommer selon décision Nico
+
+**Points d'attention** :
+- Ne pas supprimer WeaponDataTest avant d'avoir confirmé qu'aucun Blueprint n'y fait référence (asset_referencers recommandé)
+- Supprimer NewEnumerator6 peut casser AnimBP si Blend Pose by Enum l'utilise — vérifier avant suppression
+- Migrer l'ancien radial = modifier OpenRadialMenu + CloseRadialMenu + ValidateSelectedWeapon + supprimer InitializeRadialMenu + RadialMenuRef
+
+**Statut** : ✅ AUDIT VALIDÉ PAR NICO — modifications approuvées
+
+---
+
+### 14/05/2026 -- J-NETTOYAGE -- Plan d'exécution (en attente panel UnrealClaude)
+
+**Action** : Session Claude Code CLI. Audit validé par Nico. Plan d'exécution détaillé établi. Modifications blueprint à exécuter via panel UnrealClaude (outils blueprint_query/blueprint_modify requis).
+
+**Pourquoi** : Claude Code CLI n'a pas accès aux outils MCP blueprint_* — ces outils sont disponibles uniquement dans le panel UnrealClaude de l'éditeur.
+
+**Plan d'exécution validé (ordre 1→2→3) :**
+
+**POINT 1 — BP_PlatformingCharacter : WeaponDataTest**
+- asset_referencers sur WeaponDataTest → si 0 référence → supprimer la variable
+- Compile + Save
+
+**POINT 2 — BP_PlatformingPlayerController : migration radial (4 fonctions)**
+- OpenRadialMenu : remplacer CreateWidget(UI_RadialMenu_C) + InitializeRadialMenu par IsValid(RadialMainRef) → PopulateWeaponSlots() → GenerateSlots()
+- CloseRadialMenu : supprimer lecture SelectedRowName sur RadialMenuRef, garder RemoveFromParent + SetInputMode + TimeDilation restore
+- ToggleRadialMenu : remplacer IsValid(RadialMenuRef) par IsValid(RadialMainRef)
+- ValidateSelectedWeapon : remplacer RadialMenuRef.SelectedRowName par RadialMainRef.SlotDataList[SelectedIndex].SlotID, guard = IsValid(RadialMainRef)
+- Supprimer variables : RadialMenuRef (UI_RadialMenu_C), SlotRowNames (Array<Name>), SlotIcons (Array<Texture2D>)
+- Compile + Save
+
+**POINT 3 — EWeaponType : NewEnumerator6**
+- Ouvrir AnimBP hero → vérifier Blend Pose by Enum → si NewEnumerator6 non connecté → supprimer dans EWeaponType
+- Compile + Save
+
+**Points d'attention** :
+- IsValid(RadialMainRef) = guard obligatoire sur tous les appels radial (convention projet)
+- Si Blend Pose by Enum référence NewEnumerator6, le renommer avant de supprimer
+
+**Statut** : ⏸ EN ATTENTE EXÉCUTION VIA PANEL UNREALCLAUDE
+
+---
+
 ### 13/05/2026 -- AUDIT IA_UI_Radial* / ValidateSelectedWeapon / EquipWeapon -- Inspection inputs radial + logique equipement
 
 **Action** : Audit ciblé par extraction binaire sur 3 sujets :
