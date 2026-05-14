@@ -86,6 +86,28 @@ FIN DE JALON :
 
 **A lire et appliquer des le debut de chaque session dans l'editeur.**
 
+### IMPORTANT -- Ligne de contexte obligatoire dans chaque prompt
+
+Chaque prompt envoye a l'agent UnrealClaude DOIT commencer par cette ligne :
+
+```
+CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Claude Assistant", tu as acces a 28 MCP Tools.
+```
+
+**Pourquoi c'est critique** : sans cette ligne, l'agent peut se croire dans Claude Code CLI
+(terminal) et ne pas utiliser ses outils MCP natifs (blueprint_query, blueprint_modify, etc.).
+Cette ligne lui confirme son contexte d'execution et l'oblige a utiliser les bons outils.
+
+**Exemple de prompt correct** :
+```
+CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Claude Assistant", tu as acces a 28 MCP Tools.
+
+Lis CLAUDE.md pour le contexte du projet.
+REGLE : blueprint_query et blueprint_modify UNIQUEMENT. Jamais execute_script.
+
+[... suite du prompt ...]
+```
+
 ### Logging obligatoire
 
 Apres chaque modification significative, tu dois ecrire dans `Docs/Session_UnrealClaude.md`.
@@ -270,16 +292,16 @@ Options=Menu Global  Touchpad=TBD
 
 ## Prochains jalons (ordre de dependances)
 
-1. J-lock : Revision Lock-On
-2. J-15/16/17 : Refonte armes (+ unification DiscoveredWeapons + logique combo)
-3. J-C : IMC_UI dedie pour inputs menus
-4. J-F : SaveGame
-5. J-18/19 : Arc + Switching
-6. J-B/E : Animations + Hit Flash
-7. J-20+ : Compagnons
-8. J-24+ : Corruption
-9. J-27+ : Hub + Forge
-10. J-30+ : Progression
+1. J-TestBed : Mini zone + mini mob + SFX placeholder (PROCHAIN)
+2. J-SFX1 : Sons de base
+3. J-lock : Revision Lock-On
+4. J-Camera : Camera & Feel
+5. J-15/16/17 : Refonte armes + combo
+6. J-C : IMC_UI dedie
+7. J-F : SaveGame
+8. J-18/19 : Arc + Switching
+9. J-B/E : Animations + Hit Flash
+10. J-EnemyArt/AI/Types : Ennemis complets
 
 Sessions creatives intercalees : J-MAP / J-ART (retargeting + LODs) / J-MUS (theme principal)
 
@@ -338,8 +360,15 @@ Prompt etabli : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, 
 ## Comment demarrer une session UnrealClaude (dans l'editeur)
 
 1. Ouvrir Tools -> Claude Assistant
-2. Dire : "lis le CLAUDE.md du projet et logue tes actions dans Docs/Session_UnrealClaude.md"
-3. L'agent lit le contexte, confirme les conventions, et commence a travailler
+2. Ouvrir une NOUVELLE session (bouton New Conversation / icone +)
+   ⚠️ Ne jamais continuer une session existante -- les outils MCP peuvent ne pas etre actifs
+3. Toujours commencer le prompt par :
+   "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis 'Tools => Claude Assistant', tu as acces a 28 MCP Tools."
+4. Puis ajouter : "Lis le CLAUDE.md du projet et logue tes actions dans Docs/Session_UnrealClaude.md"
+5. L'agent lit le contexte, confirme les conventions, et commence a travailler
+
+**Pourquoi la ligne CONTEXTE est obligatoire** : sans elle, l'agent peut se croire dans Claude Code CLI
+et ne pas utiliser ses outils MCP natifs. Cette ligne lui confirme son environnement d'execution.
 
 ---
 
