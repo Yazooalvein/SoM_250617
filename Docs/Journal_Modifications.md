@@ -99,7 +99,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 - 3 variables dans PC : QuickslotUp/Left/Right (FName, SpellID)
 - IA_Quickslot_Up/Left/Right -> CastSpell via MagicComponent
 - Mapping clavier : & (1) / e accent (2) / guillemet (3)
-- Mapping gamepad prevu : fleches ↑ ← →  (fleche ↓ = switch page futur)
+- Mapping gamepad prevu : fleches haut gauche droite (bas = switch page futur)
 
 #### Session design actee (13/05/2026)
 - Mapping PS5 complet acte (voir Docs/Architecture/UI_GlobalMenu.md)
@@ -109,11 +109,11 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Arc : munitions illimitees ACTE
 
 #### Dettes techniques J-13
-- ⚠️ Radial : surbrillance devrait pointer l'arme equipee a l'ouverture (pas slot 0) -- J-15+
-- ⚠️ Categorie Magic : comportement a definir (affiche "TODO" pour l'instant)
-- ⚠️ UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A
-- ⚠️ WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer J-A
-- ⚠️ IMC_UI dedie a creer pour les inputs menus -- J-C
+- Radial : surbrillance devrait pointer l'arme equipee a l'ouverture (pas slot 0) -- J-15+
+- Categorie Magic : comportement a definir (affiche TODO pour l'instant)
+- UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A
+- WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer J-A
+- IMC_UI dedie a creer pour les inputs menus -- J-C
 
 ---
 
@@ -125,26 +125,27 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Workflow retenu pour J-MUS futur :
   - Humming / fredonnement -> Suno (gratuit, 50 credits/jour)
   - Suno Covers : transformation style avec preservation melodique
-  - Suno Remix : iterations "plus sombre / autre instru" par slider
+  - Suno Remix : iterations plus sombre / autre instru par slider
   - Export MP3 -> import UE5 (Sound Cue / MetaSound)
 - Prompt Suno etabli pour le theme overworld sombre (monde devaste, cordes graves, 60 BPM)
-- ⚠️ Theme Seiken Densetsu 1 : source protegee, workflow via fredonnement personnel uniquement
+- Theme Seiken Densetsu 1 : source protegee, workflow via fredonnement personnel uniquement
 
 ---
 
-### 14/05/2026 -- Session creative J-ART -- Design Hero VALIDE
+### 14/05/2026 -- Session creative J-ART -- Hero PLACEHOLDER COMPLET
 
 #### Workflow etabli et teste
-```
-Dessin crayon (Nico)
-  -> Leonardo.ai (cel-shaded, prompt optimise)
-    -> Gemini (vues dos + profil, coherence garantie)
-      -> Meshy 5 (image-to-3D, vue T-Pose)
-        -> Texture Meshy (PBR depuis image reference)
-          -> AccuRIG (rig humanoid propre)
-            -> Export FBX T-Pose
-              -> Import UE5.7 (Content/Characters/Players/Hero_Test/)
-```
+- Dessin crayon (Nico)
+- Leonardo.ai (cel-shaded, prompt optimise, seed fixe)
+- Gemini (vues dos + profil + T-Pose mains ouvertes)
+- Meshy 5 (image-to-3D, single image T-Pose)
+- Texture Meshy (PBR depuis image reference Leonardo)
+- AccuRIG (rig humanoid, meilleur que Mixamo)
+- Export FBX T-Pose
+- Import UE5.7 (Content/Characters/Players/Hero_Test/)
+- IK Rig + RTG (Mannequin source -> Hero target)
+- M_Hero_Body (material PBR + HitFlash)
+- BP_PlatformingCharacter assigne -- VALIDE PIE
 
 #### Design hero valide -- palette finale ACTEE
 - Cheveux : brun fonce spiky asymetrique
@@ -153,29 +154,45 @@ Dessin crayon (Nico)
 - Veste : bleu nuit
 - Pantalon : marron sombre
 - Bottes + gants : noir
-- Lanières croisées en X : marron cuir
+- Lanieres croisees en X : marron cuir
 - Medaillon Mana : centre poitrine
 - Pas d'arme sur le modele (switch armes = assets separes)
 
 #### Assets crees -- Content/Characters/Players/Hero_Test/
 - Skeletal Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
-- Material Instance + Textures PBR (Diffuse + Normal)
+- M_Hero_Body : material PBR propre (Diffuse + Normal + Roughness + Metallic + HitFlashAmount)
+- Material_001 : Material Instance parent M_Hero_Body
+- Textures : Material_001_Diffuse, Material_001_Normal + textures Meshy PBR
 - Physics Asset : genere automatiquement
-- Skeleton : propre avec IK (ik_foot, ik_hand, pelvis, spine x4)
-- Animation Sequences : exportees depuis AccuRIG
+- Skeleton AccuRIG : IK propres (ik_foot, ik_hand, pelvis, spine x5)
+- IKRig_Hero_Test : chaines auto-generees (Root, Spine, Neck, Head, bras, jambes, doigts)
+- RTG_Hero_To_Mannequin : Mannequin source -> Hero AccuRIG target -- VALIDE
+
+#### Retargeting -- VALIDE PIE
+- Sens correct : Mannequin source, Hero target
+- Toutes animations existantes jouent sur le hero : AM_Dash, AM_Roll, AM_Death, AM_Light/Heavy_Sword...
+- Compatible Skeletons : hero compatible avec base_rigged_Skeleton
+- ABP_Manny reutilise directement sans export animations
+
+#### Sockets recrees sur skeleton hero
+- HandGrip_R sur os hand_r -- placement a affiner
+- HandGrip_L sur os hand_l -- placement a affiner
 
 #### Lecons apprises workflow
-- Image source : T-Pose obligatoire, mains ouvertes, bras ecartes du corps
-- Meshy : single image > composite multi-vues (en plan gratuit)
-- Meshy 5 gratuit : 6 doigts par main (artefact connu, a corriger en J-ART final)
-- AccuRIG > Mixamo pour rig stylise (meilleure hierarchie, IK propres)
-- Skeleton hero ≠ skeleton UE5 Mannequin -> retargeting necessaire pour animations existantes
-- Poly count : ~246K triangles LOD0, retopo necessaire avant prod (cible : 10-15K)
+- T-Pose mains ouvertes + bras ecartes OBLIGATOIRE
+- Meshy single image > composite multi-vues en plan gratuit
+- Meshy 5 : 6 doigts par main (artefact connu, a corriger en J-ART final)
+- AccuRIG > Mixamo pour rig stylise
+- RTG : toujours Mannequin SOURCE, hero TARGET (pas l'inverse !)
+- Auto Create Retarget Chains > creation manuelle
+- Compatible Skeletons = solution simple pour reutiliser ABP sans export animations
+- FBXLegacyPhongSurface = parent par defaut a remplacer par M_Hero_Body
 
-#### Prochaines etapes J-ART (session dediee)
-- Retargeting skeleton hero -> UE5 Mannequin pour animations BP_PlatformingCharacter
-- Correction 6 doigts -> 5 dans Blender
+#### Dettes J-ART restantes (session dediee)
+- 6 doigts -> 5 dans Blender
+- Poly count : ~246K triangles LOD0 -> retopo (cible 10-15K)
 - LODs (LOD1 : ~50K, LOD2 : ~15K)
+- Placement sockets HandGrip_R/L a affiner
 - Armes comme assets separes (Sword_01, 2HSword_01 en priorite)
 
 ---
