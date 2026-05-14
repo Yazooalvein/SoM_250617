@@ -108,13 +108,6 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Lock-On : dette confirmee (J-lock entre J-13 et J-15)
 - Arc : munitions illimitees ACTE
 
-#### Dettes techniques J-13
-- Radial : surbrillance devrait pointer l'arme equipee a l'ouverture (pas slot 0) -- J-15+
-- Categorie Magic : comportement a definir (affiche TODO pour l'instant)
-- UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A
-- WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer J-A
-- IMC_UI dedie a creer pour les inputs menus -- J-C
-
 ---
 
 ### 14/05/2026 -- Session creative J-MUS (exploration workflow)
@@ -194,6 +187,38 @@ Suivi precis de toutes les evolutions majeures du projet.
 - LODs (LOD1 : ~50K, LOD2 : ~15K)
 - Placement sockets HandGrip_R/L a affiner
 - Armes comme assets separes (Sword_01, 2HSword_01 en priorite)
+
+---
+
+### 14/05/2026 -- J-Nettoyage COMPLET
+
+#### Suppressions effectuees
+
+**BP_PlatformingCharacter**
+- Variable `WeaponDataTest` (FWeaponData) supprimee -- vestige debug prototypage J-13
+
+**BP_PlatformingPlayerController**
+- Variables `RadialMenuRef` (UI_RadialMenu_C), `SlotRowNames`, `SlotIcons` supprimees
+- Fonctions nettoyees : OpenRadialMenu, CloseRadialMenu, ToggleRadialMenu, ValidateSelectedWeapon
+  - Ancien wiring vers UI_RadialMenu retire
+  - Logique combo/armes dans EventGraph retiree (sera refaite en J-15/16/17)
+- Guard RadialMainRef (IsValid) desormais seul point d'entree radial
+
+**Assets supprimes**
+- `UI_RadialMenu` (Content/UI/Widgets/RadialMenu/) -- ancien widget radial remplace par UI_Radial_Main
+- `UI_RadialSlot_old` (Content/UI/Widgets/RadialMenu/Slots/) -- ancienne version du slot
+
+**EWeaponType**
+- NewEnumerator6 absent -- enum deja propre (Sword, HSword, Axe, HAxe, Dagger, Bow)
+
+#### Dettes soldees
+- ~~WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer~~ FAIT
+- ~~UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A~~ FAIT
+
+#### Dettes restantes (inchangees)
+- IMC_UI dedie a creer pour les inputs menus (J-C) -- toujours dans IMC_Prototype
+- DiscoveredWeapons : present dans PC (source verite) ET dans Character -- a unifier J-15/16/17
+- Logique combo/armes dans PC EventGraph : supprimee, sera refaite proprement en J-15/16/17
 
 ---
 
