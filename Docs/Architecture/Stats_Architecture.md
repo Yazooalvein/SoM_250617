@@ -14,11 +14,11 @@ Centraliser toute la logique liée à la gestion des statistiques du jeu :
 ## 🧩 Composants principaux
 
 - **BP_AttributeSet_Base** (Blueprint d'Object, dossier `/Content/Systems/Stats/`)
-- **Datatable_StatList** (DataTable avec struct `StatStruct`)
+- **DT_StatList** (DataTable avec struct `StatStruct`)
 - **Enums** :
     - `EElementType` : None, Athanor, Dryade, Gnome, Lumina, Luna, Ombre, Ondine, Sylphide
     - `EStatType` : Principal, Elem, Second, Progression, Temp
-- **BP_PlatformingCharacter** (possède une variable `AttributeSetRef`)
+- **BP_SoM_HeroCharacter** (possède une variable `AttributeSetRef`)
 - **OnStatChanged** (Event Dispatcher, notifie tous les abonnés)
 - **Widgets liés** (UI_HUD_Main)
 
@@ -79,7 +79,7 @@ Centraliser toute la logique liée à la gestion des statistiques du jeu :
 ## 🔁 Pipeline de fonctionnement
 
 1. **Initialisation au lancement** :
-    - BP_PlatformingCharacter instancie BP_AttributeSet_Base (Construct Object from Class)
+    - BP_SoM_HeroCharacter instancie BP_AttributeSet_Base (Construct Object from Class)
     - Loop sur la DataTable → SetStatValue(StatID, BaseValue) pour chaque Max
     - Apres Completed : SetStatValue("HealthCurrent", HealthMax) + Stamina + Mana
     - Stocke la reference dans `AttributeSetRef`
@@ -140,5 +140,6 @@ Centraliser toute la logique liée à la gestion des statistiques du jeu :
 
 - Création : 17/06/2025
 - Dernière mise à jour : 10/05/2026
+- Nommage mis à jour : 15/05/2026 (J-Renommage)
 
 ---
