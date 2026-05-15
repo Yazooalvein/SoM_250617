@@ -4,15 +4,15 @@
 
 ## 🎯 Objectif
 
-Documenter la logique complète du comportement IA des ennemis basiques dans le projet ARPG. Cette logique est intégrée dans le contrôleur IA, sans usage de Behavior Tree pour l’instant, afin de rester simple, lisible et modulaire.
+Documenter la logique complète du comportement IA des ennemis basiques dans le projet ARPG. Cette logique est intégrée dans le contrôleur IA, sans usage de Behavior Tree pour l'instant, afin de rester simple, lisible et modulaire.
 
 ---
 
 ## 🧠 Composants principaux
 
-### 🎮 `BP_EnemyBase` (Pawn)
+### 🎮 `BP_Enemy_Base` (Pawn)
 - Composant `PawnSensing_Enemy` (vision)
-- Propriétés d’interaction (`bIsDead`, `bIsValid`, `bCanBeLocked`)
+- Propriétés d'interaction (`bIsDead`, `bIsValid`, `bCanBeLocked`)
 - Événement `OnSeePawn` → déclenche un `RegisterTarget()` dans son AIController
 
 ### 📦 `BP_AIController_Enemy_Base`
@@ -26,12 +26,12 @@ Documenter la logique complète du comportement IA des ennemis basiques dans le 
 | Nom | Type | Description |
 |------|------|-------------|
 | `CurrentTarget` | Actor | Référence de la cible actuelle |
-| `bHasAggro` | Booléen | Indique si l’ennemi est en poursuite |
-| `HomeLocation` | Vector | Position d’origine (spawn) |
-| `ControlledEnemy` | BP_EnemyBase | Référence au pawn contrôlé |
-| `AggroRadius` | Float | Distance max pour conserver l’aggro |
-| `AttackRadius` | Float | Distance à laquelle l’ennemi s’arrête pour attaquer |
-| `LoseAggroRadius` | Float | Distance max avant perte d’intérêt |
+| `bHasAggro` | Booléen | Indique si l'ennemi est en poursuite |
+| `HomeLocation` | Vector | Position d'origine (spawn) |
+| `ControlledEnemy` | BP_Enemy_Base | Référence au pawn contrôlé |
+| `AggroRadius` | Float | Distance max pour conserver l'aggro |
+| `AttackRadius` | Float | Distance à laquelle l'ennemi s'arrête pour attaquer |
+| `LoseAggroRadius` | Float | Distance max avant perte d'intérêt |
 | `LoseAggroDelay` | Float | Délai avant désengagement si cible perdue |
 | `LoseAggroTimerHandle` | TimerHandle | Timer de désengagement |
 
@@ -74,7 +74,7 @@ Le Delay (0.6s) avant `LoseAggro` empêche les pertes d'aggro trop brutales lors
 ## 🧠 Système de perception (`PawnSensing`)
 
 - `PawnSensing_Enemy` détecte un `PlayerCharacter`
-- L’événement `OnSeePawn` déclenche la fonction `RegisterTarget()` du contrôleur
+- L'événement `OnSeePawn` déclenche la fonction `RegisterTarget()` du contrôleur
 - `Sensing Interval` ≤ 0.3 recommandé
 
 ---
@@ -84,8 +84,8 @@ Le Delay (0.6s) avant `LoseAggro` empêche les pertes d'aggro trop brutales lors
 | Situation | Réaction |
 |----------|----------|
 | Joueur dans champ de vision | Poursuite via MoveToActor |
-| Joueur s’éloigne trop | L’ennemi s’arrête + timer de désengagement |
-| Perte d’aggro | Retour automatique au point de spawn |
+| Joueur s'éloigne trop | L'ennemi s'arrête + timer de désengagement |
+| Perte d'aggro | Retour automatique au point de spawn |
 | Re-détection | Reprise immédiate de la poursuite |
 
 ---
@@ -94,15 +94,15 @@ Le Delay (0.6s) avant `LoseAggro` empêche les pertes d'aggro trop brutales lors
 
 - Attaque (animation + montage si dans `AttackRadius`)
 - Gestion d'un `bCanAttack`
-- Ajout d’un état de `Stagger` / interruption
-- Coopération / Alerte à d’autres ennemis
+- Ajout d'un état de `Stagger` / interruption
+- Coopération / Alerte à d'autres ennemis
 - Passage à `Behavior Tree` + `Blackboard` pour gestion avancée
 
 ---
 
 ## 🔗 Liens associés
 
-- [AI_Architecture.md] (vue d’ensemble de l’IA)
+- [AI_Architecture.md] (vue d'ensemble de l'IA)
 - [Combat_Architecture.md]
 - [HUD_Architecture.md]
 
@@ -111,5 +111,6 @@ Le Delay (0.6s) avant `LoseAggro` empêche les pertes d'aggro trop brutales lors
 ## 🕒 Historique
 - Création : 27/06/2025
 - Dernière mise à jour : 27/06/2025
+- Nommage mis à jour : 15/05/2026 (J-Renommage)
 
 ---
