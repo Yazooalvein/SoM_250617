@@ -18,7 +18,7 @@ Définir et centraliser toute la logique technique liée au système de combat :
 - BP_CombatComponent (logique principale d'action/attaque)
 - BP_CombatLockOnComponent (module Lock-On)
 - AnimMontage_AttackLight/Heavy (animation de combat)
-- BP_PlatformingCharacter / BP_EnemyBase (utilisateurs du composant)
+- BP_SoM_HeroCharacter / BP_Enemy_Base (utilisateurs du composant)
 - EventDispatchers pour feedback UI, FX, etc.
 - BP_WeaponBase (structure pour les armes)
 - UI_LockOnIndicator (affichage/suivi)
@@ -27,7 +27,7 @@ Définir et centraliser toute la logique technique liée au système de combat :
 
 ## 📦 Variables, Fonctions & Structures clés
 
-### BP_PlatformingCharacter — Variables combat
+### BP_SoM_HeroCharacter — Variables combat
 
 | Variable | Type | Description |
 |---|---|---|
@@ -68,7 +68,7 @@ Event ReceiveDamage
 ### Hit Flash ennemis (Jalon #7 — partiel)
 
 - M_Mannequin : HitFlashAmount (Scalar Parameter) ajoute sur Emissive via Add
-- BP_EnemyBase ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 → Delay 0.12 → 0.0
+- BP_Enemy_Base ReceiveDamage : Set Scalar Parameter Value on Materials HitFlashAmount 1.0 → Delay 0.12 → 0.0
 - ⚠️ Non fonctionnel actuellement : ennemi utilise MI_Quinn (Material Instance), necessite Dynamic Material Instance
 - A finaliser quand le vrai enemy mesh sera en place avec M_Enemy_Base dedie
 - Pattern a suivre : BeginPlay → Create DMI slot 0 + slot 1 → SET DMI refs → ReceiveDamage → Set Scalar sur chaque DMI
@@ -76,15 +76,15 @@ Event ReceiveDamage
 ### Fix critique GameMode (Jalon #7 — 10/05/2026)
 
 - **Symptome** : Lock-On et Menu Radial ne repondaient plus
-- **Cause** : BP_SoM_GameMode n'avait pas BP_PlatformingPlayerController assigne comme Player Controller Class
-- **Fix** : BP_SoM_GameMode → Player Controller Class = BP_PlatformingPlayerController
+- **Cause** : BP_SoM_GameMode n'avait pas BP_SoM_PlayerController assigne comme Player Controller Class
+- **Fix** : BP_SoM_GameMode → Player Controller Class = BP_SoM_PlayerController
 - **Prevention** : toujours verifier Player Controller Class dans le GameMode apres creation/remplacement
 
 ---
 
 ## 🔁 Pipeline de fonctionnement
 
-1. Input "attaque/defense" recu via Enhanced Input (IMC_Prototype dans BP_PlatformingPlayerController)
+1. Input "attaque/defense" recu via Enhanced Input (IMC_Prototype dans BP_SoM_PlayerController)
 2. Test validite/action possible (canAttack, stamina, etat joueur)
 3. Execution de l'anim, detection hit/collision, application effet
 4. Application degats via BPI_TakeDamage → ReceiveDamage → SetStatValue("HealthCurrent")
@@ -129,5 +129,6 @@ Event ReceiveDamage
 
 - Création : 17/06/2025
 - Dernière mise à jour : 10/05/2026
+- Nommage mis à jour : 15/05/2026 (J-Renommage)
 
 ---
