@@ -14,7 +14,7 @@ Definir la structure et les regles du HUD principal en jeu :
 ## Composants principaux
 
 - `UI_HUD_Main` (widget Blueprint central) -- FINALISE 12/05/2026
-- `BP_PlatformingCharacter` (cree le widget, passe AttributeSetRef, appelle InitHUD)
+- `BP_SoM_HeroCharacter` (cree le widget, passe AttributeSetRef, appelle InitHUD)
 - `BP_AttributeSet_Base` (dispatche OnStatChanged a chaque changement de stat)
 - `DT_HUD_RichTextStyle` (DataTable styles texte pour RichTextBlocks)
 
@@ -69,7 +69,7 @@ Canvas Panel
   - ManaMax        -> SET ManaPercent    = ManaCurrent / NewValue
 
 ### Fonction InitHUD
-- Appelee depuis BP_PlatformingCharacter apres Add to Viewport
+- Appelee depuis BP_SoM_HeroCharacter apres Add to Viewport
 - Init les 3 *Percent + appelle UpdateStatText pour les 3 RichTextBlocks
 - Garantit affichage correct des la premiere frame
 
@@ -91,7 +91,7 @@ Canvas Panel
 
 ## Pipeline d'integration
 
-1. BeginPlay (BP_PlatformingCharacter) :
+1. BeginPlay (BP_SoM_HeroCharacter) :
    - InitAttributesFromDatatable -> stats initialisees via SetStatValue
    - Add_Main_HUD : Create Widget (AttributeSetRef Expose on Spawn) -> Add to Viewport -> InitHUD
 
@@ -144,4 +144,4 @@ Canvas Panel
 - Creation : 17/06/2025
 - Migration event-driven : 10/05/2026
 - Finalisation layout + RichTextBlock + UpdateStatText : 12/05/2026
-- Derniere mise a jour : 12/05/2026
+- Nommage mis à jour : 15/05/2026 (J-Renommage)
