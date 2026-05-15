@@ -21,7 +21,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Systeme armes data-driven, Menu Radial data-driven, Combo multi-armes
 
 ### 26/06/2025 -- Nico
-- BPI_TakeDamage, BP_EnemyBase ReceiveDamage + OnDeath
+- BPI_TakeDamage, BP_Enemy_Base ReceiveDamage + OnDeath
 
 ### 27/06/2025 -- Nico
 - BP_AIController_Enemy_Base, PawnSensing, aggro/perte
@@ -94,8 +94,8 @@ Suivi precis de toutes les evolutions majeures du projet.
 ---
 
 ### 14/05/2026 -- J-Nettoyage COMPLET
-- BP_PlatformingCharacter : WeaponDataTest supprimee
-- BP_PlatformingPlayerController : RadialMenuRef, SlotRowNames, SlotIcons supprimes
+- BP_SoM_HeroCharacter : WeaponDataTest supprimee
+- BP_SoM_PlayerController : RadialMenuRef, SlotRowNames, SlotIcons supprimes
 - Assets : UI_RadialMenu, UI_RadialSlot_old, BP_PlatformingGameMode, BP_test_IA
 - Reorganisation dossier Enemies (Animations/, Model/, Blueprints/)
 
@@ -114,12 +114,12 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Fix `IsLockOnActive` : retourne desormais `bisLockOnActive` (etait vide)
 - Fix espace dans dispatcher : `OnLockOnDeactivated ` -> `OnLockOnDeactivated`
 
-#### Fixes BP_PlatformingPlayerController
+#### Fixes BP_SoM_PlayerController
 - Fix bind dispatcher : "On Lock on Activated/Deactivated" (custom) et non "On Component Activated"
 - UpdateLockOnUIIndicator : SetVisibility selon Project World to Screen bool
 - Socket indicateur lock-on deplace au-dessus de la tete (nouveau socket sur skeleton Mannequin)
 
-#### Fixes BP_PlatformingCharacter
+#### Fixes BP_SoM_HeroCharacter
 - Bindings OnLockOnActivated/Deactivated au BeginPlay :
   - Activated : bOrientRotationToMovement=false + UseControllerRotationYaw=true
   - Deactivated : bOrientRotationToMovement=true + UseControllerRotationYaw=false
@@ -138,12 +138,12 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Indicateur positionne au-dessus de la tete ✅
 - Indicateur masque si hors frustum ✅
 
-#### Dettes reportees
-- Switch cible : comportement a revoir en profondeur en J-Camera (KH style)
-- LoseAggro -> DeactivateLockOn : a verifier en J-EnemyAI
+#### Dettes reportees J-Camera
+- Switch cible : comportement a revoir en profondeur (KH style)
+- Fix z-order indicateur (AddToViewport ZOrder=10 dans UpdateLockOnUIIndicator)
+- Unification cooldown switch PC/Component
 - Animations strafe gauche/droite distinctes : J-B
-- TargetActor espace dans UI_LockOnIndicator : cosmétique, a corriger
-- Unification cooldown switch PC/Component : J-lock etait suffisant sans cette correction
+- TargetActor espace dans UI_LockOnIndicator : cosmetique, a corriger
 
 #### Design note J-Camera (lock-on)
 - Camera KH style : suit activement pour garder la cible lockee visible
@@ -153,8 +153,24 @@ Suivi precis de toutes les evolutions majeures du projet.
 #### Audit T3D complet effectue
 - BP_ComboManagerComponent : architecture TMap solide, a conserver (InitComboTree aligne avec forge)
 - BP_Weapon_Base/Sword : pattern propre, OnEquipped/OnUnequipped overridables
-- BP_EnemyBase : WeaponClass hardcode -> a generaliser en J-EnemyArt
+- BP_Enemy_Base : WeaponClass hardcode -> a generaliser en J-EnemyArt
 - UI_LockOnIndicator : widget statique minimal (1 image), positionne par PC via Set Position in Viewport
+
+---
+
+### 15/05/2026 -- J-Renommage COMPLET
+
+#### Convention de nommage unifiee
+- `BP_PlatformingCharacter` -> `BP_SoM_HeroCharacter`
+- `BP_PlatformingPlayerController` -> `BP_SoM_PlayerController`
+- `BP_EnemyBase` -> `BP_Enemy_Base`
+- `BB_enemy` -> `BB_Enemy_Base`
+- `BT_Enemy` -> `BT_Enemy_Base`
+- `BP_enemyTest` -> `BP_Enemy_Test`
+- `Datatable_FCombo` -> `DT_Combo_Base`
+- `Datatable_StatList` -> `DT_StatList`
+- Renames effectues via UE Rename + Fix Up Redirectors, VALIDE PIE
+- `ABP_Manny_Platforming` -> rename prevu en `ABP_Hero` lors de J-B (chantier animations)
 
 ---
 

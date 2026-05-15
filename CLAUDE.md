@@ -32,7 +32,7 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 
 ### Roles
 **Claude.ai** : chef de projet, planification, decisions archi, mise a jour docs via GitHub MCP
-**Agent UnrealClaude** : modifications Blueprint, queries assets, logue dans Session_UnrealClaude.md
+**Agent UnrealClaude** : discovery/audit Blueprint uniquement (pas de modif/creation), logue dans Session_UnrealClaude.md
 
 ### Regles
 1. Nico pushe toujours en premier, Claude.ai committe la doc ensuite
@@ -50,10 +50,10 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 Sans cette ligne, l'agent se croit dans Claude Code CLI et n'utilise pas ses outils MCP.
 
 ### Regles agent
-- blueprint_query et blueprint_modify UNIQUEMENT. Jamais execute_script.
+- blueprint_query UNIQUEMENT. Jamais blueprint_modify, jamais execute_script.
 - JAMAIS creer d'assets AnimGraph via MCP (add_state produit des shells corrompus)
 - Toute creation d'etat AnimGraph = manuelle dans l'editeur
-- Agent = discovery/audit + modifications Blueprint simples. Pas de creation AnimGraph.
+- Agent = discovery/audit uniquement. Pas de creation, pas de modification.
 - Ouvrir une NOUVELLE session a chaque fois (pas continuer une ancienne)
 
 ### Logging obligatoire
@@ -68,7 +68,7 @@ Format dans Docs/Session_UnrealClaude.md :
 ### Conventions architecture (IMPERATIVES)
 - `SetStatValue(StatName, Value)` = UNIQUE point de modification des stats
 - `OnStatChanged` = dispatcher de notification
-- `BP_SoM_GameMode` : Player Controller Class = BP_PlatformingPlayerController
+- `BP_SoM_GameMode` : Player Controller Class = BP_SoM_PlayerController
 - Hit Flash ennemi : DMI au BeginPlay, pas Set Scalar on Materials
 - Inputs : source unique Content/Input/InputActions/
 
@@ -77,7 +77,7 @@ Format dans Docs/Session_UnrealClaude.md :
 ## Architecture cle
 
 ### Personnage
-- `BP_PlatformingCharacter` (Blueprint Only)
+- `BP_SoM_HeroCharacter` (Blueprint Only, ex BP_PlatformingCharacter)
 - Stats via `BP_AttributeSet_Base` (ref : `AttributeSetRef`)
 - `bIsDead` (private) + `IsDead()` (public pure)
 - `bIsInvincible` (iframes dash/roll, pilote par AnimNotify)
@@ -96,7 +96,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - ⚠️ 246K triangles LOD0 -> retopo (cible 10-15K) -- J-ART final
 - ⚠️ 6 doigts par main (artefact Meshy) -- J-ART final
 
-### Lock-On -- J-lock PARTIEL (15/05/2026)
+### Lock-On -- J-lock COMPLET VALIDE PIE (15/05/2026)
 - `BP_CombatLockOnComponent` : sur le Character, architecture propre
   - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
   - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom -- pas les events systeme)
@@ -104,12 +104,12 @@ Format dans Docs/Session_UnrealClaude.md :
   - SelectInitialTarget (tri par distance), SwitchLockOnTarget (cooldown + angle DotProduct)
   - HandleTargetDeath (auto-switch ou delock), UpdateLockOnRotation (dans PC, RInterp vers cible)
   - ⚠️ TargetActor dans UI_LockOnIndicator a un espace dans son nom ("TargetActor ")
-- `BP_PlatformingPlayerController` :
+- `BP_SoM_PlayerController` (ex BP_PlatformingPlayerController) :
   - UpdateLockOnRotation : Find Look At Rotation + RInterp To + Set Control Rotation (Speed=30)
   - UpdateLockOnUIIndicator : gestion widget indicateur
   - LockOnPitchMin/Max : contraintes pitch camera configurable
   - ⚠️ Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
-- `BP_PlatformingCharacter` bindings (au BeginPlay) :
+- `BP_SoM_HeroCharacter` bindings (au BeginPlay) :
   - OnLockOnActivated_Handler : bOrientRotationToMovement=false + UseControllerRotationYaw=true
   - OnLockOnDeactivated_Handler : bOrientRotationToMovement=true + UseControllerRotationYaw=false
 - Strafe VALIDE PIE :
@@ -117,18 +117,22 @@ Format dans Docs/Session_UnrealClaude.md :
   - State Machine : etat LockedOn_Strafe avec BS_Unarmed_Strafe
   - BS_Unarmed_Strafe : Content/Characters/Mannequins/Anims/Unarmed/ (Forward x Strafe [-1,1])
   - Animations placeholder : MF_Unarmed_Jog_Left pour gauche ET droite -- a affiner en J-B
-- ⚠️ Dettes restantes J-lock :
+- Dettes reportees J-Camera :
+  - Switch cible : comportement a revoir en profondeur (KH style)
   - Fix z-order indicateur (AddToViewport ZOrder=10 dans UpdateLockOnUIIndicator)
   - Unification cooldown switch PC/Component
-  - Tests edge cases (mort ennemi, switch, delock)
 
 ### Ennemis
-- `BP_EnemyBase` : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
+- `BP_Enemy_Base` (ex BP_EnemyBase) : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
   - MaxHealth/CurrentHealth (pas via SetStatValue -- coherent pour ennemis)
   - AttackRadius (ExposeOnSpawn), WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser J-EnemyArt)
   - EquipWeapon, EnableWeaponCollision, DisableWeaponCollision, KillMeNow (debug)
   - Implements BPI_TakeDamage
 - `BP_AIController_Enemy_Base` : Behavior Tree + PawnSensing
+- `BB_Enemy_Base` (ex BB_enemy) : Blackboard ennemi
+- `BT_Enemy_Base` (ex BT_Enemy) : Behavior Tree ennemi
+- `BP_Enemy_Test` (ex BP_enemyTest) : ennemi de test
+- `BP_Enemy_Knight` : essai conserve de cote
 - ABP_Unarmed : pour les ENNEMIS SANS ARME (pas le hero)
   - Strafe calcule via DotProduct -- ne pas modifier pour le hero
 
@@ -137,7 +141,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - InitComboTree(WeaponID, WeaponLevel), HandleAttack, PlayAttackMontage, ResetCombo
   - RotateTowardLockTarget (deja present), GetBP_CombatLockOnComponent
   - UpgradeWeaponLevel -- aligne avec la future forge
-- `BPI_TakeDamage` : interface implementee par Character et EnemyBase
+- `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
 - ⚠️ Logique combo/armes dans PC EventGraph supprimee (J-Nettoyage) -- refaire en J-15/16/17
 
@@ -148,13 +152,13 @@ Format dans Docs/Session_UnrealClaude.md :
   - TryDealDamage sur BeginOverlap
 - `BP_Weapon_Sword` : herite BP_Weapon_Base, quasi-vide (CallParentFunction) -- bon pattern
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
-- `EquipWeapon(RowName)` dans BP_PlatformingCharacter
+- `EquipWeapon(RowName)` dans BP_SoM_HeroCharacter
 - ⚠️ Refonte armes prevue J-15/16/17 (BP_WeaponType_Base par TYPE)
 - ⚠️ DiscoveredWeapons dans PC ET Character -- a unifier J-15/16/17
 
 ### GameMode / Controllers
-- `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_PlatformingPlayerController
-- `BP_PlatformingPlayerController` :
+- `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
+- `BP_SoM_PlayerController` (ex BP_PlatformingPlayerController) :
   - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation, UpdateLockOnUIIndicator
   - Radial Menu : Open/CloseRadial, Handle_Rotate, Handle_ChangeCat, ToggleRadial
   - Quickslots : QuickslotUp/Left/Right (FName)
@@ -176,6 +180,13 @@ Format dans Docs/Session_UnrealClaude.md :
 - `UI_LockOnIndicator` : 1 image LockOnCross, tous events desactives -- widget statique positionne par PC
   - ⚠️ TargetActor a un espace dans son nom
   - ⚠️ Z-order : ajouter ZOrder=10 sur AddToViewport dans UpdateLockOnUIIndicator
+
+### Data / Structs
+- `DT_Combo_Base` (ex Datatable_FCombo) : DataTable combo de base
+- `DT_Combo_Sword` / `DT_Combo_2HSword` : combos par arme
+- `DT_StatList` (ex Datatable_StatList) : liste des stats
+- `FComboStep`, `EAttackInputType` : structs/enums combo
+- `EStatType`, `EElementType`, `StatStruct` : structs/enums stats
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -202,19 +213,19 @@ Options=Menu Global  Touchpad=TBD
 - [x] J-Nettoyage : Suppression ancien radial, WeaponDataTest, assets obsoletes
 - [x] J-ART (partiel) : Hero placeholder PIE, workflow etabli
 - [x] J-MUS (exploration) : Workflow etabli, prompt theme sombre acte
-- [x] J-lock (partiel) : Strafe VALIDE PIE, fix IsLockOnActive, fix dispatcher espace
+- [x] J-lock COMPLET : Strafe VALIDE PIE, fix IsLockOnActive, fix dispatcher, edge cases valides
+- [x] J-Renommage : Convention de nommage unifiee sur tous les assets cles
 
 ## Prochains jalons (ordre de dependances)
 
-1. **J-lock (fin)** : fix z-order indicateur, unification cooldown, tests edge cases
-2. **J-Camera** : camera 3/4, collision, lock-on smooth, screen shake, hitstop
-3. **J-TestBed** : mini zone BSP + BP_Enemy_TestBed + SFX placeholder
-4. **J-SFX1** : sons de base (remonté en C1)
-5. **J-15/16/17** : refonte armes + combo + unification DiscoveredWeapons
-6. **J-C** : IMC_UI dedie
-7. **J-F** : SaveGame
-8. **J-18/19** : Arc + Weapon Switching
-9. **J-B/E** : Animations + Hit Flash ennemis
+1. **J-Camera** : camera 3/4, collision, lock-on smooth (KH style), screen shake, hitstop
+2. **J-TestBed** : mini zone BSP + BP_Enemy_TestBed + SFX placeholder
+3. **J-SFX1** : sons de base (remonte en C1)
+4. **J-15/16/17** : refonte armes + combo + unification DiscoveredWeapons
+5. **J-C** : IMC_UI dedie
+6. **J-F** : SaveGame
+7. **J-18/19** : Arc + Weapon Switching
+8. **J-B/E** : Animations + Hit Flash ennemis (+ rename ABP_Manny_Platforming -> ABP_Hero)
 
 Sessions creatives intercalees : J-MAP / J-ART / J-MUS
 
@@ -268,6 +279,7 @@ Prompt : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolat
 1. Ouvrir Tools -> Claude Assistant -> NOUVELLE session
 2. Commencer par : "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis 'Tools => Claude Assistant', tu as acces a 28 MCP Tools."
 3. Ajouter : "Lis le CLAUDE.md et logue tes actions dans Docs/Session_UnrealClaude.md"
+4. Agent en mode DISCOVERY UNIQUEMENT -- pas de blueprint_modify
 
 ---
 
