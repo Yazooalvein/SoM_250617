@@ -207,18 +207,83 @@ Suivi precis de toutes les evolutions majeures du projet.
 **Assets supprimes**
 - `UI_RadialMenu` (Content/UI/Widgets/RadialMenu/) -- ancien widget radial remplace par UI_Radial_Main
 - `UI_RadialSlot_old` (Content/UI/Widgets/RadialMenu/Slots/) -- ancienne version du slot
+- `BP_PlatformingGameMode` -- remplace par BP_SoM_GameMode, aucune reference entrante
+- `BP_test_IA` -- vestige debug IA, aucune reference utile
+
+**Reorganisation dossier Enemies**
+- Creation : Content/Characters/Enemies/Animations/
+- Deplacement : AM_Enemy_Light_Sword_1, AN_Enemy_DisableCollision, AN_Enemy_EnableCollision -> Animations/
+- Deplacement : SKM_Enemy_Sword_01 + Skeleton -> Model/
+- Deplacement : BP_Enemy_Sword01 -> Blueprints/
+- BP_enemyTest conserve (reference par Lvl_ThirdPerson, sera repris en J-EnemyArt)
 
 **EWeaponType**
 - NewEnumerator6 absent -- enum deja propre (Sword, HSword, Axe, HAxe, Dagger, Bow)
 
-#### Dettes soldees
-- ~~WeaponDataTest dans BP_PlatformingCharacter : variable debug a supprimer~~ FAIT
-- ~~UI_RadialMenu (ancien) present mais deconnecte -- a nettoyer J-A~~ FAIT
+---
 
-#### Dettes restantes (inchangees)
-- IMC_UI dedie a creer pour les inputs menus (J-C) -- toujours dans IMC_Prototype
-- DiscoveredWeapons : present dans PC (source verite) ET dans Character -- a unifier J-15/16/17
-- Logique combo/armes dans PC EventGraph : supprimee, sera refaite proprement en J-15/16/17
+### 14/05/2026 -- Session design -- Roadmap globale refondee
+
+#### Roadmap completement refaite (Docs/Roadmap_Gameplay.md)
+- Ancienne roadmap : ~20 jalons, centree gameplay technique
+- Nouvelle roadmap : ~50 jalons, 8 couches couvrant le projet complet
+- Ajouts majeurs : J-TestBed, J-Camera, J-EnemyArt/AI/Types, J-Boss1
+- J-MAP-1/2/3, J-Flammy, J-Transition (monde et navigation)
+- J-Dialogue, J-Tuto, J-Deites, J-Corruption, J-ChoixMoral (narratif)
+- J-Hub1/2/3, J-Compagnons1/2/3, J-Quetes, J-Lore, J-SoeurReveal
+- J-Forge1/2, J-Equipement, J-Talent (forge et progression)
+- J-SFX1/2/3, J-MUS-1/2/3, J-AudioMix (audio)
+- J-MenuPrincipal/Options/Pause, J-DeathScreen, J-LoadingScreen, J-HUD-Polish, J-Loc (UI/UX)
+- J-Debug, J-Acte1Test, J-Perf1/2, J-Crash, J-Build1/2 (qualite et build)
+
+#### Decisions design actees
+- Localisation : FR (principale) + EN des le debut -- StringTable obligatoire, pas de hardcode
+- Tutoriel : hints contextuels minimalistes, premiers instants uniquement, desactivables
+- Vibration : standard uniquement, pas de haptique DualSense avance
+- Distribution : non decidee (Steam / itch.io / perso)
+- Death screen : respawn sanctuaire (DS) ou checkpoint (Seiken/KH) -- point ouvert
+
+#### Ordre de dependances revise
+```
+J-lock (Lock-On complet + Strafe animations)
+  -> J-Camera
+    -> J-TestBed (zone + mob + SFX)
+      -> J-15/16/17...
+```
+Raison : le strafe et le lock sont la matiere necessaire avant de calibrer camera et mob de test
+
+#### Lecons apprises -- workflow agent UnrealClaude
+- Ligne contexte obligatoire : "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7..."
+- Agent UE = discovery/audit uniquement -- JAMAIS de creation d'assets AnimGraph via MCP
+- add_state MCP produit des shells incomplets dans les State Machines -> noeud corrompu garanti
+- Toute creation d'etat AnimGraph = manuelle dans l'editeur
+- Facturation : authentification via claude.ai Pro (forfait mensuel), pas d'API key separee
+- Le cout affiche ($x.xx) dans le panel = estimation indicative, pas une vraie facturation
+
+---
+
+### 14/05/2026 -- Preparation J-lock -- Audit animations
+
+#### Audit ABP_Unarmed (resultat)
+- `Strafe` (double) : calcule chaque frame via DotProduct(Normalize(Velocity), GetActorRightVector)
+- `Can Strafe` (bool) : NOT bOrientRotationToMovement -- toggle automatique correct
+- `BS_Unarmed_Strafe` : cree manuellement (Content/Characters/Mannequins/Anims/Unarmed/)
+  - Axes : Forward [-1,1] x Strafe [-1,1]
+  - Points : MM_Idle(0,0), Jog_Fwd(1,0), Jog_Bwd(-1,0), Jog_Right(0,1), Jog_Left(0,-1)
+- Etat `LockedOn_Strafe` cree dans State Machine Locomotion d'ABP_Unarmed
+  - ⚠️ Strafe non fonctionnel -- calcul Can Strafe au BeginPlay uniquement (pas Update Animation)
+  - ⚠️ A reprendre dans J-lock manuellement sans agent
+
+#### Ce qui manque pour J-lock (a faire manuellement)
+1. Calcul `Can Strafe` dans **Update Animation** (pas BeginPlay) -- critique
+2. `bOrientRotationToMovement = false` dans OnLockOnActivated (BP_PlatformingCharacter)
+3. `Use Controller Rotation Yaw = true` dans OnLockOnActivated
+4. Audit complet BP_CombatLockOnComponent avant de decider refonte ou conservation
+5. Fix detection nouvelles cibles, z-order indicateur, barres HP ennemis
+
+#### Lecon apprise -- PrintVar/PrintString
+- Ne jamais supprimer un PrintString sans verifier que les pins d'execution sont rebranches
+- Un lien d'execution coupe casse silencieusement toute la chaine sans erreur BP visible
 
 ---
 
