@@ -128,162 +128,99 @@ Suivi precis de toutes les evolutions majeures du projet.
 ### 14/05/2026 -- Session creative J-ART -- Hero PLACEHOLDER COMPLET
 
 #### Workflow etabli et teste
-- Dessin crayon (Nico)
-- Leonardo.ai (cel-shaded, prompt optimise, seed fixe)
-- Gemini (vues dos + profil + T-Pose mains ouvertes)
-- Meshy 5 (image-to-3D, single image T-Pose)
-- Texture Meshy (PBR depuis image reference Leonardo)
-- AccuRIG (rig humanoid, meilleur que Mixamo)
-- Export FBX T-Pose
-- Import UE5.7 (Content/Characters/Players/Hero_Test/)
-- IK Rig + RTG (Mannequin source -> Hero target)
+- Dessin crayon (Nico) -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5.7
+- IK Rig + RTG (Mannequin source -> Hero target) -- VALIDE PIE
 - M_Hero_Body (material PBR + HitFlash)
-- BP_PlatformingCharacter assigne -- VALIDE PIE
 
 #### Design hero valide -- palette finale ACTEE
-- Cheveux : brun fonce spiky asymetrique
-- Echarpe : rouge cramoisi
-- Armure : gris anthracite
-- Veste : bleu nuit
-- Pantalon : marron sombre
-- Bottes + gants : noir
-- Lanieres croisees en X : marron cuir
-- Medaillon Mana : centre poitrine
-- Pas d'arme sur le modele (switch armes = assets separes)
+- Cheveux brun fonce, echarpe rouge cramoisi, armure gris anthracite
+- Veste bleu nuit, pantalon marron sombre, bottes+gants noirs
+- Lanieres croisees en X marron cuir, Medaillon Mana centre poitrine
 
-#### Assets crees -- Content/Characters/Players/Hero_Test/
-- Skeletal Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
-- M_Hero_Body : material PBR propre (Diffuse + Normal + Roughness + Metallic + HitFlashAmount)
-- Material_001 : Material Instance parent M_Hero_Body
-- Textures : Material_001_Diffuse, Material_001_Normal + textures Meshy PBR
-- Physics Asset : genere automatiquement
-- Skeleton AccuRIG : IK propres (ik_foot, ik_hand, pelvis, spine x5)
-- IKRig_Hero_Test : chaines auto-generees (Root, Spine, Neck, Head, bras, jambes, doigts)
-- RTG_Hero_To_Mannequin : Mannequin source -> Hero AccuRIG target -- VALIDE
-
-#### Retargeting -- VALIDE PIE
-- Sens correct : Mannequin source, Hero target
-- Toutes animations existantes jouent sur le hero : AM_Dash, AM_Roll, AM_Death, AM_Light/Heavy_Sword...
-- Compatible Skeletons : hero compatible avec base_rigged_Skeleton
-- ABP_Manny reutilise directement sans export animations
-
-#### Sockets recrees sur skeleton hero
-- HandGrip_R sur os hand_r -- placement a affiner
-- HandGrip_L sur os hand_l -- placement a affiner
-
-#### Lecons apprises workflow
-- T-Pose mains ouvertes + bras ecartes OBLIGATOIRE
-- Meshy single image > composite multi-vues en plan gratuit
-- Meshy 5 : 6 doigts par main (artefact connu, a corriger en J-ART final)
-- AccuRIG > Mixamo pour rig stylise
-- RTG : toujours Mannequin SOURCE, hero TARGET (pas l'inverse !)
-- Auto Create Retarget Chains > creation manuelle
-- Compatible Skeletons = solution simple pour reutiliser ABP sans export animations
-- FBXLegacyPhongSurface = parent par defaut a remplacer par M_Hero_Body
-
-#### Dettes J-ART restantes (session dediee)
-- 6 doigts -> 5 dans Blender
-- Poly count : ~246K triangles LOD0 -> retopo (cible 10-15K)
-- LODs (LOD1 : ~50K, LOD2 : ~15K)
-- Placement sockets HandGrip_R/L a affiner
-- Armes comme assets separes (Sword_01, 2HSword_01 en priorite)
+#### Dettes J-ART restantes
+- 6 doigts -> 5 dans Blender, retopo (246K -> cible 10-15K), LODs
+- Sockets HandGrip_R/L a affiner, armes comme assets separes
 
 ---
 
 ### 14/05/2026 -- J-Nettoyage COMPLET
 
 #### Suppressions effectuees
-
-**BP_PlatformingCharacter**
-- Variable `WeaponDataTest` (FWeaponData) supprimee -- vestige debug prototypage J-13
-
-**BP_PlatformingPlayerController**
-- Variables `RadialMenuRef` (UI_RadialMenu_C), `SlotRowNames`, `SlotIcons` supprimees
-- Fonctions nettoyees : OpenRadialMenu, CloseRadialMenu, ToggleRadialMenu, ValidateSelectedWeapon
-  - Ancien wiring vers UI_RadialMenu retire
-  - Logique combo/armes dans EventGraph retiree (sera refaite en J-15/16/17)
-- Guard RadialMainRef (IsValid) desormais seul point d'entree radial
-
-**Assets supprimes**
-- `UI_RadialMenu` (Content/UI/Widgets/RadialMenu/) -- ancien widget radial remplace par UI_Radial_Main
-- `UI_RadialSlot_old` (Content/UI/Widgets/RadialMenu/Slots/) -- ancienne version du slot
-- `BP_PlatformingGameMode` -- remplace par BP_SoM_GameMode, aucune reference entrante
-- `BP_test_IA` -- vestige debug IA, aucune reference utile
-
-**Reorganisation dossier Enemies**
-- Creation : Content/Characters/Enemies/Animations/
-- Deplacement : AM_Enemy_Light_Sword_1, AN_Enemy_DisableCollision, AN_Enemy_EnableCollision -> Animations/
-- Deplacement : SKM_Enemy_Sword_01 + Skeleton -> Model/
-- Deplacement : BP_Enemy_Sword01 -> Blueprints/
-- BP_enemyTest conserve (reference par Lvl_ThirdPerson, sera repris en J-EnemyArt)
-
-**EWeaponType**
-- NewEnumerator6 absent -- enum deja propre (Sword, HSword, Axe, HAxe, Dagger, Bow)
+- BP_PlatformingCharacter : WeaponDataTest supprimee
+- BP_PlatformingPlayerController : RadialMenuRef, SlotRowNames, SlotIcons supprimes
+- Assets : UI_RadialMenu, UI_RadialSlot_old, BP_PlatformingGameMode, BP_test_IA
+- Reorganisation dossier Enemies (Animations/, Model/, Blueprints/)
 
 ---
 
 ### 14/05/2026 -- Session design -- Roadmap globale refondee
-
-#### Roadmap completement refaite (Docs/Roadmap_Gameplay.md)
-- Ancienne roadmap : ~20 jalons, centree gameplay technique
-- Nouvelle roadmap : ~50 jalons, 8 couches couvrant le projet complet
-- Ajouts majeurs : J-TestBed, J-Camera, J-EnemyArt/AI/Types, J-Boss1
-- J-MAP-1/2/3, J-Flammy, J-Transition (monde et navigation)
-- J-Dialogue, J-Tuto, J-Deites, J-Corruption, J-ChoixMoral (narratif)
-- J-Hub1/2/3, J-Compagnons1/2/3, J-Quetes, J-Lore, J-SoeurReveal
-- J-Forge1/2, J-Equipement, J-Talent (forge et progression)
-- J-SFX1/2/3, J-MUS-1/2/3, J-AudioMix (audio)
-- J-MenuPrincipal/Options/Pause, J-DeathScreen, J-LoadingScreen, J-HUD-Polish, J-Loc (UI/UX)
-- J-Debug, J-Acte1Test, J-Perf1/2, J-Crash, J-Build1/2 (qualite et build)
-
-#### Decisions design actees
-- Localisation : FR (principale) + EN des le debut -- StringTable obligatoire, pas de hardcode
-- Tutoriel : hints contextuels minimalistes, premiers instants uniquement, desactivables
-- Vibration : standard uniquement, pas de haptique DualSense avance
-- Distribution : non decidee (Steam / itch.io / perso)
-- Death screen : respawn sanctuaire (DS) ou checkpoint (Seiken/KH) -- point ouvert
-
-#### Ordre de dependances revise
-```
-J-lock (Lock-On complet + Strafe animations)
-  -> J-Camera
-    -> J-TestBed (zone + mob + SFX)
-      -> J-15/16/17...
-```
-Raison : le strafe et le lock sont la matiere necessaire avant de calibrer camera et mob de test
-
-#### Lecons apprises -- workflow agent UnrealClaude
-- Ligne contexte obligatoire : "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7..."
-- Agent UE = discovery/audit uniquement -- JAMAIS de creation d'assets AnimGraph via MCP
-- add_state MCP produit des shells incomplets dans les State Machines -> noeud corrompu garanti
-- Toute creation d'etat AnimGraph = manuelle dans l'editeur
-- Facturation : authentification via claude.ai Pro (forfait mensuel), pas d'API key separee
-- Le cout affiche ($x.xx) dans le panel = estimation indicative, pas une vraie facturation
+- ~50 jalons, 8 couches, projet complet de A a Z
+- Decisions : FR+EN des le debut, tuto minimaliste, vibration standard
+- Ordre revise : J-lock -> J-Camera -> J-TestBed -> J-15/16/17
 
 ---
 
-### 14/05/2026 -- Preparation J-lock -- Audit animations
+### 15/05/2026 -- J-lock PARTIEL -- Strafe fonctionnel
 
-#### Audit ABP_Unarmed (resultat)
-- `Strafe` (double) : calcule chaque frame via DotProduct(Normalize(Velocity), GetActorRightVector)
-- `Can Strafe` (bool) : NOT bOrientRotationToMovement -- toggle automatique correct
-- `BS_Unarmed_Strafe` : cree manuellement (Content/Characters/Mannequins/Anims/Unarmed/)
-  - Axes : Forward [-1,1] x Strafe [-1,1]
-  - Points : MM_Idle(0,0), Jog_Fwd(1,0), Jog_Bwd(-1,0), Jog_Right(0,1), Jog_Left(0,-1)
-- Etat `LockedOn_Strafe` cree dans State Machine Locomotion d'ABP_Unarmed
-  - ⚠️ Strafe non fonctionnel -- calcul Can Strafe au BeginPlay uniquement (pas Update Animation)
-  - ⚠️ A reprendre dans J-lock manuellement sans agent
+#### Corrections BP_CombatLockOnComponent
+- Fix `IsLockOnActive` : retourne desormais `bisLockOnActive` (etait vide)
+- Fix espace dans dispatcher : `OnLockOnDeactivated ` -> `OnLockOnDeactivated` (espace supprime)
+- Lecon : exporter en T3D pour audit complet -- revele les bugs invisibles en screenshot
 
-#### Ce qui manque pour J-lock (a faire manuellement)
-1. Calcul `Can Strafe` dans **Update Animation** (pas BeginPlay) -- critique
-2. `bOrientRotationToMovement = false` dans OnLockOnActivated (BP_PlatformingCharacter)
-3. `Use Controller Rotation Yaw = true` dans OnLockOnActivated
-4. Audit complet BP_CombatLockOnComponent avant de decider refonte ou conservation
-5. Fix detection nouvelles cibles, z-order indicateur, barres HP ennemis
+#### Corrections BP_PlatformingPlayerController
+- Fix `Bind Event to On Lock on Deactivated` : rebind apres correction du nom du dispatcher
+- Attention : utiliser "Bind Event to On Lock on Activated/Deactivated" (dispatchers custom)
+  et NON "Bind Event to On Component Activated/Deactivated" (events systeme generiques)
 
-#### Lecon apprise -- PrintVar/PrintString
-- Ne jamais supprimer un PrintString sans verifier que les pins d'execution sont rebranches
-- Un lien d'execution coupe casse silencieusement toute la chaine sans erreur BP visible
+#### Corrections BP_PlatformingCharacter
+- Ajout bindings OnLockOnActivated/Deactivated au BeginPlay :
+  - OnLockOnActivated_Handler : bOrientRotationToMovement=false + UseControllerRotationYaw=true
+  - OnLockOnDeactivated_Handler : bOrientRotationToMovement=true + UseControllerRotationYaw=false
+- Source du composant : BP_CombatLockOnComponent est sur le CHARACTER (pas le PC)
+
+#### Corrections ABP_Manny_Platforming (ABP du hero)
+- Ajout variables : `Strafe` (float) + `Can Strafe` (bool)
+- Event Update Animation -> nouveau Then : calcul DotProduct + NOT bOrientRotationToMovement
+  - Utilise directement `Character` et `MovementComponent` (references deja stockees dans l'ABP)
+- State Machine Locomotion : ajout etat `LockedOn_Strafe`
+  - Transitions : Idle/Walk <-> LockedOn_Strafe sur Can Strafe
+  - BS_Unarmed_Strafe assigne (Ground Speed -> Forward, Strafe -> Strafe)
+  - Animations placeholder : MF_Unarmed_Jog_Left pour les deux cotes (a affiner en J-B)
+
+#### BS_Unarmed_Strafe (cree manuellement)
+- Chemin : Content/Characters/Mannequins/Anims/Unarmed/
+- Axes : Forward [-1,1] x Strafe [-1,1]
+- Points : MM_Idle(0,0), Jog_Fwd(1,0), Jog_Bwd(-1,0), Jog_Left(-1,0 et +1,0 placeholder)
+- ⚠️ Animations strafe gauche/droite distinctes : a faire en J-B
+
+#### ABP_Unarmed -- nettoyage
+- Strafe/Can Strafe/LockedOn_Strafe ajoutes par erreur puis retires
+- ABP_Unarmed = ennemis sans arme (pas le hero) -- ne pas modifier pour le hero
+
+#### Caution UpdateLockOnRotation
+- SetControlRotation vers la cible est DEJA gere dans PC -> UpdateLockOnRotation
+- Ne pas doublon dans BP_CombatLockOnComponent Tick (conflit detecte et corrige)
+
+#### Dettes J-lock restantes
+- Fix z-order indicateur lock-on (UI_LockOnIndicator passe derriere le HUD)
+  - Fix : AddToViewport avec ZOrder=10 dans UpdateLockOnUIIndicator du PC
+  - Aussi : TargetActor a un espace dans son nom ("TargetActor ") -> a corriger
+- Unification cooldown switch : doublon entre PC (LockOnSwitchCooldown) et Component (SwitchCooldown)
+- Tests edge cases : mort ennemi, switch cible, delock
+
+#### Audit T3D complet effectue
+Fichiers analyses : BP_CombatLockOnComponent, BP_PlatformingPlayerController,
+BP_PlatformingCharacter, ABP_Manny_Platforming, ABP_Unarmed, BP_EnemyBase,
+UI_LockOnIndicator, BP_Weapon_Base, BP_Weapon_Sword, BP_ComboManagerComponent
+
+Points cles decouverts :
+- BP_ComboManagerComponent : architecture TMap solide, a conserver pour J-15/16/17
+  - RotateTowardLockTarget existe deja dans le ComboManager
+  - InitComboTree(WeaponID, WeaponLevel) : parfaitement aligne avec la future forge
+- BP_Weapon_Base : OnEquipped/OnUnequipped hooks overridables, TouchedActors anti-multi-hit
+- BP_Weapon_Sword : quasi-vide (CallParentFunction uniquement) -- bon pattern a continuer
+- BP_EnemyBase : WeaponClass hardcode sur BP_Enemy_Sword01 -> a rendre generique en J-EnemyArt
+- UI_LockOnIndicator : widget minimal (1 image LockOnCross), tous events desactives
 
 ---
 
@@ -293,4 +230,4 @@ Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 14/05/2026
+- Derniere mise a jour : 15/05/2026
