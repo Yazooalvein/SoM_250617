@@ -17,7 +17,7 @@ Systeme de menu radial unifie (Armes + Magie) :
 
 ### Ancienne architecture (conservee, deconnectee)
 L'ancienne logique basee sur UI_RadialMenu + UI_RadialSlot_OLD est toujours presente
-dans les fonctions OpenRadialMenu et CloseRadialMenu de BP_PlatformingPlayerController,
+dans les fonctions OpenRadialMenu et CloseRadialMenu de BP_SoM_PlayerController,
 mais elle est DECONNECTEE de l'exec chain depuis le 12/05/2026.
 Elle peut etre supprimee une fois la nouvelle architecture completement validee.
 - UI_RadialMenu : Content/UI/Widgets/RadialMenu/UI_RadialMenu (non utilise)
@@ -35,7 +35,7 @@ Elle peut etre supprimee une fois la nouvelle architecture completement validee.
 - `FSoM_RadialSlotData` (struct) : SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` (widget 80x80) : slot generique avec SetSelected + SetSlotData
 - `UI_Radial_Main` (widget principal) : generation Cos/Sin, navigation, categories
-- `BP_PlatformingPlayerController` : Open/Close + Time Dilation
+- `BP_SoM_PlayerController` : Open/Close + Time Dilation
 
 ---
 
@@ -134,7 +134,7 @@ ForEach SlotDataList :
 
 ---
 
-## BP_PlatformingPlayerController -- OpenRadialMenu
+## BP_SoM_PlayerController -- OpenRadialMenu
 
 ```
 Create UI_Radial_Main -> SET RadialMainRef
@@ -150,7 +150,7 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 - Set Game Paused = true
 ```
 
-## BP_PlatformingPlayerController -- CloseRadialMenu
+## BP_SoM_PlayerController -- CloseRadialMenu
 
 ```
 Remove from Parent (RadialMainRef)
@@ -212,4 +212,4 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 
 - Creation : 17/06/2025
 - Refonte complete J-13 : 12/05/2026
-- Derniere mise a jour : 12/05/2026
+- Nommage mis à jour : 15/05/2026 (J-Renommage)
