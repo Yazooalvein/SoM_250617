@@ -174,10 +174,39 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
+### 16/05/2026 -- J-Camera EN COURS
+
+#### Fixes permanents (gardes apres rollback)
+- `BP_SoM_PlayerController` On Possess : SET PlayerCharacterRef depuis Possessed Pawn (Cast to BP_SoM_HeroCharacter)
+  - Bug : PlayerCharacterRef etait None -> erreurs runtime au Tick
+- Tick PC : guard `NOT Is Dashing / NOT Is Rolling` ajoute dans le AND de condition UpdateLockOnRotation
+  - Empeche UpdateLockOnRotation d'ecraser la rotation pendant dash/roll
+
+#### SpringArm ajuste (BP_SoM_HeroCharacter)
+- Target Arm Length : 400 -> 350
+- Socket Offset Z : 0 -> 60
+- Camera Lag Speed : 16 -> 8
+- Camera Lag Max Distance : 0 -> 200
+- (valeurs a affiner au feeling en jeu)
+
+#### Dette J-LockMove -- reportee apres J-Camera
+- Probleme : en lock-on, dash et roll partent toujours vers l'ennemi
+- Cause identifiee : `AddMovementInput` dans Move() utilise GetForwardVector/GetRightVector
+  depuis Get Control Rotation -- qui pointe vers l'ennemi en lock-on.
+  Le Root Motion du montage pousse donc toujours dans cette direction.
+- Pistes a explorer en J-LockMove :
+  - Stocker la direction du stick en espace monde AVANT que le lock-on influence la Control Rotation
+  - Revoir la fonction Move() pour dissocier la direction de deplacement de la Control Rotation en lock-on
+  - Potentiellement : IMC dedie lock-on avec IA_Move_LockOn calculant Forward/Right depuis
+    une rotation camera "propre" (Yaw only, independante du lock)
+- Rollback effectue : aucune modification du flow dash/roll n'est conservee (sauf les deux fixes ci-dessus)
+
+---
+
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 15/05/2026
+- Derniere mise a jour : 16/05/2026
