@@ -174,44 +174,62 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
-### 17/05/2026 -- J-Camera EN COURS
+### 17/05/2026 -- J-Camera COMPLET -- VALIDE PIE
 
 #### Fixes permanents
 - `BP_SoM_PlayerController` On Possess : SET PlayerCharacterRef (Cast Possessed Pawn -> BP_SoM_HeroCharacter)
   - Bug : PlayerCharacterRef etait None -> erreurs runtime au Tick
 - Tick PC : guard NOT Is Dashing / NOT Is Rolling dans AND condition UpdateLockOnRotation
-  - Empeche UpdateLockOnRotation d'ecraser la rotation pendant dash/roll
 
 #### SpringArm ajuste (BP_SoM_HeroCharacter)
 - Target Arm Length : 400 -> 350
 - Socket Offset Z : 0 -> 60
 - Camera Lag Speed : 16 -> 8
 - Camera Lag Max Distance : 0 -> 200
-- (valeurs a affiner au feeling en jeu)
 
-#### Screen Shake -- assets en place, bloque par UpdateLockOnRotation
+#### Screen Shake -- VALIDE PIE (debloque par V2)
 - CS_HitReceived (Content/Systems/Camera/) : PerlinNoise, Pitch 1.5, Roll 1.0, Freq 20, Duration 0.3
 - CS_EnemyDeath (Content/Systems/Camera/) : PerlinNoise, Pitch 3.0, Yaw 0.5, Roll 2.0, Freq 15, Duration 0.4
 - BP_SoM_HeroCharacter ReceiveDamage : Client Start Camera Shake (CS_HitReceived) apres HitFlash
 - BP_Enemy_Base KillMeNow : Client Start Camera Shake (CS_EnemyDeath) avant Destroy
-- ⚠️ Shake visuellement inactif : SetControlRotation a Speed=30 chaque Tick ecrase le shake
-- Fix prevu : refactor UpdateLockOnRotation V2 (voir dette ci-dessous)
 
-#### Dette J-LockMove -- reportee apres J-Camera
-- Probleme : en lock-on, dash et roll partent toujours vers l'ennemi
-- Cause : AddMovementInput dans Move() utilise GetForwardVector/GetRightVector depuis
-  Get Control Rotation qui pointe vers l'ennemi en lock-on
+#### IA_Look deplace dans BP_SoM_PlayerController
+- Fonction `Aim` creee dans le PC (Axis X, Axis Y)
+  - SET bPlayerIsLooking = true + SET LookIdleTime = 0.0
+  - Get Controlled Pawn -> AddControllerYawInput (Axis X)
+  - Get Controlled Pawn -> AddControllerPitchInput (Axis Y)
+- IA_Look retire de BP_SoM_HeroCharacter
+- IA_Look Triggered -> Aim | IA_Look Completed -> SET bPlayerIsLooking = false
+- VALIDE PIE
+
+#### Nouvelles variables BP_SoM_PlayerController
+- `bPlayerIsLooking` (bool, false) : stick droit actif ce frame
+- `LookIdleTime` (float, 0.0) : temps ecoule depuis dernier input Look
+- `LookReturnDelay` (float, 1.5, expose) : delai avant retour camera vers ennemi
+- `LockOnReturnSpeed` (float, 3.0, expose) : vitesse RInterp retour vers ennemi
+
+#### UpdateLockOnRotation V2 -- VALIDE PIE
+- Logique conditionnelle remplace SetControlRotation systematique :
+  - Branch (bPlayerIsLooking) -> True : exit (joueur controle la camera)
+  - Branch (LookIdleTime >= LookReturnDelay) -> True : SetControlRotation, False : exit
+- RInterpTo InterpSpeed branche sur LockOnReturnSpeed (3.0) au lieu de hardcode 30
+- Data flow RInterpTo -> SetControlRotation intact
+
+#### Event Tick -- LookIdleTime
+- Apres UpdateLockOnUIIndicator : Branch (bisLockOnActive AND IsValid(Widget) AND NOT bPlayerIsLooking)
+  -> True : LookIdleTime += DeltaSeconds
+
+#### Checklist validation J-Camera
+- Hors lock-on : camera repond normalement ✅
+- Lock-on, stick droit au repos : camera revient vers ennemi apres ~1.5s ✅
+- Lock-on, joueur pivote stick droit : camera suit librement ✅
+- Screen shake visible (coups recus + mort ennemi) ✅
+- Dash/Roll : guard NOT Is Dashing/Rolling en place ✅
+
+#### Dette J-LockMove -- reportee
+- En lock-on, dash et roll partent vers l'ennemi
+- Cause : Move() utilise Get Control Rotation -> GetForwardVector/GetRightVector
 - Pistes : IMC dedie lock-on, ou dissocier direction deplacement de Control Rotation
-
-#### Dette UpdateLockOnRotation V2 -- priorite haute
-- Probleme actuel : SetControlRotation a Speed=30 chaque Tick bloque screen shake
-  ET empeche le joueur de pivoter la camera manuellement en lock-on
-- UpdateLockOnRotation actuel : FindLookAtRotation -> RInterpTo(Speed=30) -> SetControlRotation
-- Comportement cible (KH style) :
-  - Si joueur touche stick droit : camera libre, pas de SetControlRotation
-  - Si joueur lache stick droit : RInterp doux (Speed=3-5) vers l'ennemi apres delai configurable
-  - Screen shake fonctionnera naturellement une fois SetControlRotation non force
-- Implique aussi de resoudre J-LockMove (Move() utilise Control Rotation comme base de direction)
 
 ---
 
