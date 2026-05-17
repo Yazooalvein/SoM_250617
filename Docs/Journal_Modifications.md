@@ -174,12 +174,12 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
-### 16/05/2026 -- J-Camera EN COURS
+### 17/05/2026 -- J-Camera EN COURS
 
-#### Fixes permanents (gardes apres rollback)
-- `BP_SoM_PlayerController` On Possess : SET PlayerCharacterRef depuis Possessed Pawn (Cast to BP_SoM_HeroCharacter)
+#### Fixes permanents
+- `BP_SoM_PlayerController` On Possess : SET PlayerCharacterRef (Cast Possessed Pawn -> BP_SoM_HeroCharacter)
   - Bug : PlayerCharacterRef etait None -> erreurs runtime au Tick
-- Tick PC : guard `NOT Is Dashing / NOT Is Rolling` ajoute dans le AND de condition UpdateLockOnRotation
+- Tick PC : guard NOT Is Dashing / NOT Is Rolling dans AND condition UpdateLockOnRotation
   - Empeche UpdateLockOnRotation d'ecraser la rotation pendant dash/roll
 
 #### SpringArm ajuste (BP_SoM_HeroCharacter)
@@ -189,17 +189,29 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Camera Lag Max Distance : 0 -> 200
 - (valeurs a affiner au feeling en jeu)
 
+#### Screen Shake -- assets en place, bloque par UpdateLockOnRotation
+- CS_HitReceived (Content/Systems/Camera/) : PerlinNoise, Pitch 1.5, Roll 1.0, Freq 20, Duration 0.3
+- CS_EnemyDeath (Content/Systems/Camera/) : PerlinNoise, Pitch 3.0, Yaw 0.5, Roll 2.0, Freq 15, Duration 0.4
+- BP_SoM_HeroCharacter ReceiveDamage : Client Start Camera Shake (CS_HitReceived) apres HitFlash
+- BP_Enemy_Base KillMeNow : Client Start Camera Shake (CS_EnemyDeath) avant Destroy
+- ⚠️ Shake visuellement inactif : SetControlRotation a Speed=30 chaque Tick ecrase le shake
+- Fix prevu : refactor UpdateLockOnRotation V2 (voir dette ci-dessous)
+
 #### Dette J-LockMove -- reportee apres J-Camera
 - Probleme : en lock-on, dash et roll partent toujours vers l'ennemi
-- Cause identifiee : `AddMovementInput` dans Move() utilise GetForwardVector/GetRightVector
-  depuis Get Control Rotation -- qui pointe vers l'ennemi en lock-on.
-  Le Root Motion du montage pousse donc toujours dans cette direction.
-- Pistes a explorer en J-LockMove :
-  - Stocker la direction du stick en espace monde AVANT que le lock-on influence la Control Rotation
-  - Revoir la fonction Move() pour dissocier la direction de deplacement de la Control Rotation en lock-on
-  - Potentiellement : IMC dedie lock-on avec IA_Move_LockOn calculant Forward/Right depuis
-    une rotation camera "propre" (Yaw only, independante du lock)
-- Rollback effectue : aucune modification du flow dash/roll n'est conservee (sauf les deux fixes ci-dessus)
+- Cause : AddMovementInput dans Move() utilise GetForwardVector/GetRightVector depuis
+  Get Control Rotation qui pointe vers l'ennemi en lock-on
+- Pistes : IMC dedie lock-on, ou dissocier direction deplacement de Control Rotation
+
+#### Dette UpdateLockOnRotation V2 -- priorite haute
+- Probleme actuel : SetControlRotation a Speed=30 chaque Tick bloque screen shake
+  ET empeche le joueur de pivoter la camera manuellement en lock-on
+- UpdateLockOnRotation actuel : FindLookAtRotation -> RInterpTo(Speed=30) -> SetControlRotation
+- Comportement cible (KH style) :
+  - Si joueur touche stick droit : camera libre, pas de SetControlRotation
+  - Si joueur lache stick droit : RInterp doux (Speed=3-5) vers l'ennemi apres delai configurable
+  - Screen shake fonctionnera naturellement une fois SetControlRotation non force
+- Implique aussi de resoudre J-LockMove (Move() utilise Control Rotation comme base de direction)
 
 ---
 
@@ -209,4 +221,4 @@ Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 16/05/2026
+- Derniere mise a jour : 17/05/2026
