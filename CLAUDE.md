@@ -96,16 +96,39 @@ Format dans Docs/Session_UnrealClaude.md :
 - ⚠️ 246K triangles LOD0 -> retopo (cible 10-15K) -- J-ART final
 - ⚠️ 6 doigts par main (artefact Meshy) -- J-ART final
 
+### Camera -- J-Camera COMPLET VALIDE PIE (17/05/2026)
+
+#### SpringArm (BP_SoM_HeroCharacter)
+- Target Arm Length : 350, Socket Offset Z : 60
+- Camera Lag Speed : 8, Camera Lag Max Distance : 200
+
+#### Screen Shake
+- CS_HitReceived + CS_EnemyDeath dans Content/Systems/Camera/
+- Appeles depuis ReceiveDamage (HeroCharacter) et KillMeNow (Enemy_Base)
+
+#### IA_Look dans BP_SoM_PlayerController
+- Fonction `Aim(Axis X, Axis Y)` dans le PC :
+  - SET bPlayerIsLooking = true + SET LookIdleTime = 0.0
+  - Get Controlled Pawn -> AddControllerYawInput / AddControllerPitchInput
+- IA_Look Triggered -> Aim | IA_Look Completed -> SET bPlayerIsLooking = false
+- IA_Look RETIRE de BP_SoM_HeroCharacter
+
+#### UpdateLockOnRotation V2
+- Variables PC : bPlayerIsLooking (bool), LookIdleTime (float), LookReturnDelay (float, 1.5), LockOnReturnSpeed (float, 3.0)
+- Flow : DynamicCast -> Branch(bPlayerIsLooking) -> False -> Branch(LookIdleTime >= LookReturnDelay) -> True -> SetControlRotation
+- RInterpTo InterpSpeed = LockOnReturnSpeed (3.0) -- plus de hardcode 30
+- Event Tick : apres UpdateLockOnUIIndicator -> Branch(bisLockOnActive AND IsValid(Widget) AND NOT bPlayerIsLooking) -> LookIdleTime += DeltaSeconds
+
 ### Lock-On -- J-lock COMPLET VALIDE PIE (15/05/2026)
 - `BP_CombatLockOnComponent` : sur le Character, architecture propre
   - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
   - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom -- pas les events systeme)
   - DetectAvailableTargets (SphereOverlap + filtres IsDead/IsValid/Distance)
   - SelectInitialTarget (tri par distance), SwitchLockOnTarget (cooldown + angle DotProduct)
-  - HandleTargetDeath (auto-switch ou delock), UpdateLockOnRotation (dans PC, RInterp vers cible)
+  - HandleTargetDeath (auto-switch ou delock)
   - ⚠️ TargetActor dans UI_LockOnIndicator a un espace dans son nom ("TargetActor ")
-- `BP_SoM_PlayerController` (ex BP_PlatformingPlayerController) :
-  - UpdateLockOnRotation : Find Look At Rotation + RInterp To + Set Control Rotation (Speed=30)
+- `BP_SoM_PlayerController` :
+  - UpdateLockOnRotation V2 (voir section Camera)
   - UpdateLockOnUIIndicator : gestion widget indicateur
   - LockOnPitchMin/Max : contraintes pitch camera configurable
   - ⚠️ Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
@@ -117,10 +140,13 @@ Format dans Docs/Session_UnrealClaude.md :
   - State Machine : etat LockedOn_Strafe avec BS_Unarmed_Strafe
   - BS_Unarmed_Strafe : Content/Characters/Mannequins/Anims/Unarmed/ (Forward x Strafe [-1,1])
   - Animations placeholder : MF_Unarmed_Jog_Left pour gauche ET droite -- a affiner en J-B
-- Dettes reportees J-Camera :
-  - Switch cible : comportement a revoir en profondeur (KH style)
-  - Fix z-order indicateur (AddToViewport ZOrder=10 dans UpdateLockOnUIIndicator)
-  - Unification cooldown switch PC/Component
+
+### Dette J-LockMove -- PROCHAIN JALON
+- **Probleme** : en lock-on, dash et roll partent vers l'ennemi au lieu de suivre le stick gauche
+- **Cause** : Move() dans BP_SoM_HeroCharacter utilise Get Control Rotation -> GetForwardVector/GetRightVector
+  En lock-on, Control Rotation pointe vers l'ennemi donc tout mouvement part vers lui
+- **Pistes** : IMC dedie lock-on, ou dissocier direction de deplacement de Control Rotation dans Move()
+- **Fichiers concernes** : BP_SoM_HeroCharacter (fonction Move), BP_SoM_PlayerController
 
 ### Ennemis
 - `BP_Enemy_Base` (ex BP_EnemyBase) : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
@@ -132,9 +158,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BB_Enemy_Base` (ex BB_enemy) : Blackboard ennemi
 - `BT_Enemy_Base` (ex BT_Enemy) : Behavior Tree ennemi
 - `BP_Enemy_Test` (ex BP_enemyTest) : ennemi de test
-- `BP_Enemy_Knight` : essai conserve de cote
 - ABP_Unarmed : pour les ENNEMIS SANS ARME (pas le hero)
-  - Strafe calcule via DotProduct -- ne pas modifier pour le hero
 
 ### Combat
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
@@ -149,20 +173,18 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_Weapon_Base` : WeaponData (FWeaponData, ExposeOnSpawn), OwnerCharacter, bIsEquipped
   - bCanDealDamage, TouchedActors (anti-multi-hit), WeaponCollisionBox
   - OnEquipped/OnUnequipped (hooks overridables), EnableWeaponCollision, DisableWeaponCollision
-  - TryDealDamage sur BeginOverlap
-- `BP_Weapon_Sword` : herite BP_Weapon_Base, quasi-vide (CallParentFunction) -- bon pattern
+- `BP_Weapon_Sword` : herite BP_Weapon_Base -- bon pattern
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
-- `EquipWeapon(RowName)` dans BP_SoM_HeroCharacter
-- ⚠️ Refonte armes prevue J-15/16/17 (BP_WeaponType_Base par TYPE)
-- ⚠️ DiscoveredWeapons dans PC ET Character -- a unifier J-15/16/17
+- ⚠️ Refonte armes prevue J-15/16/17
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
-- `BP_SoM_PlayerController` (ex BP_PlatformingPlayerController) :
-  - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation, UpdateLockOnUIIndicator
+- `BP_SoM_PlayerController` :
+  - PlayerCharacterRef : SET au OnPossess (Cast Possessed Pawn -> BP_SoM_HeroCharacter)
+  - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
+  - Aim(Axis X, Axis Y) : gestion camera (ex IA_Look du HeroCharacter)
   - Radial Menu : Open/CloseRadial, Handle_Rotate, Handle_ChangeCat, ToggleRadial
   - Quickslots : QuickslotUp/Left/Right (FName)
-  - PlayerCharacterRef, RadialMainRef, LockOnIndicatorWidgetRef
   - IsValid(RadialMainRef) guard OBLIGATOIRE avant tout appel radial
 
 ### Radial Menu -- J-13 COMPLET
@@ -177,16 +199,13 @@ Format dans Docs/Session_UnrealClaude.md :
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
-- `UI_LockOnIndicator` : 1 image LockOnCross, tous events desactives -- widget statique positionne par PC
+- `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC
   - ⚠️ TargetActor a un espace dans son nom
   - ⚠️ Z-order : ajouter ZOrder=10 sur AddToViewport dans UpdateLockOnUIIndicator
 
 ### Data / Structs
-- `DT_Combo_Base` (ex Datatable_FCombo) : DataTable combo de base
-- `DT_Combo_Sword` / `DT_Combo_2HSword` : combos par arme
-- `DT_StatList` (ex Datatable_StatList) : liste des stats
-- `FComboStep`, `EAttackInputType` : structs/enums combo
-- `EStatType`, `EElementType`, `StatStruct` : structs/enums stats
+- `DT_Combo_Base` (ex Datatable_FCombo), `DT_StatList` (ex Datatable_StatList)
+- `FComboStep`, `EAttackInputType`, `EStatType`, `EElementType`, `StatStruct`
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -215,12 +234,13 @@ Options=Menu Global  Touchpad=TBD
 - [x] J-MUS (exploration) : Workflow etabli, prompt theme sombre acte
 - [x] J-lock COMPLET : Strafe VALIDE PIE, fix IsLockOnActive, fix dispatcher, edge cases valides
 - [x] J-Renommage : Convention de nommage unifiee sur tous les assets cles
+- [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC
 
 ## Prochains jalons (ordre de dependances)
 
-1. **J-Camera** : camera 3/4, collision, lock-on smooth (KH style), screen shake, hitstop
+1. **J-LockMove** : corriger dash/roll en lock-on (partent vers l'ennemi) -- PRIORITE IMMEDIATE
 2. **J-TestBed** : mini zone BSP + BP_Enemy_TestBed + SFX placeholder
-3. **J-SFX1** : sons de base (remonte en C1)
+3. **J-SFX1** : sons de base
 4. **J-15/16/17** : refonte armes + combo + unification DiscoveredWeapons
 5. **J-C** : IMC_UI dedie
 6. **J-F** : SaveGame
@@ -255,7 +275,7 @@ Prompt : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolat
 
 - SetStatValue = unique point de modification stats
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed qui est pour les ennemis)
-- UpdateLockOnRotation dans PC = suivi camera vers cible (ne pas doublon dans Component Tick)
+- UpdateLockOnRotation dans PC = suivi camera vers cible V2 (conditionnel, pas force chaque Tick)
 - Bind "On Lock on Activated/Deactivated" = dispatchers CUSTOM du Component
   (pas "On Component Activated/Deactivated" qui sont les events systeme UE)
 - T3D export (clic droit -> Asset Actions -> Export) = meilleur outil d'audit
@@ -265,6 +285,8 @@ Prompt : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolat
 - Time Dilation 0.2 ouverture radial, 1.0 fermeture
 - Radial drift fix : RadialContainer Size = 0.01x0.01
 - RTG retargeting : toujours Mannequin SOURCE, hero TARGET
+- IA_Look est dans le PC (pas dans HeroCharacter) depuis J-Camera
+- AddControllerYawInput/PitchInput dans PC : utiliser Get Controlled Pawn (pas GetPlayerPawn)
 
 ---
 
@@ -272,8 +294,8 @@ Prompt : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolat
 
 ### Session claude.ai
 1. Nico dit : "on travaille sur SoM, lis le CLAUDE.md et le journal"
-2. Claude.ai lit CLAUDE.md + Journal_Modifications.md + Session_UnrealClaude.md
-3. Claude.ai fait un resume et propose la suite
+2. Claude.ai lit CLAUDE.md + Journal_Modifications.md via GitHub MCP
+3. Claude.ai fait un resume de l'etat actuel et propose la suite
 
 ### Session UnrealClaude (editeur)
 1. Ouvrir Tools -> Claude Assistant -> NOUVELLE session
@@ -283,4 +305,4 @@ Prompt : dark orchestral, 60 BPM, D minor, cello lead, no brass, sparse, desolat
 
 ---
 
-*Derniere mise a jour : 15/05/2026*
+*Derniere mise a jour : 17/05/2026*
