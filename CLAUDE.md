@@ -82,7 +82,8 @@ Format dans Docs/Session_UnrealClaude.md :
 - `bIsDead` (private) + `IsDead()` (public pure)
 - `bIsInvincible` (iframes dash/roll, pilote par AnimNotify)
 - `OnPlayerDeath` dispatcher, `OnStatChanged` dispatcher
-- `DiscoveredWeapons` (Array<FName>) : source de verite dans PC
+- `DiscoveredWeapons` (Array<FName>) : source de verite Radial, alimente par EquipWeapon
+- `ChoosenWeapon` (FName) : arme courante, sette par EquipWeapon, lu par les inputs attaque
 - `BP_CombatLockOnComponent` : sur le CHARACTER (pas le PC)
 - `MagicComponent` : BP_MagicComponent sur le Character
 - `BP_ComboManagerComponent` : sur le Character
@@ -170,16 +171,23 @@ Format dans Docs/Session_UnrealClaude.md :
   - Hit joueur recu, attaque ennemi, roll hero
   - Branchement direct Play Sound at Location (pas de SoundCue)
 
-### Combat
+### Combat -- J-15 Fix attaque VALIDE PIE (18/05/2026)
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
+  - `CurrentWeaponID` (Name) + `CurrentWeaponLevel` (int) : source de verite combo
+  - `InitComboTree(WeaponID, WeaponLevel)` : charge ComboStepMap depuis DT_Combo de l'arme
+  - `HandleAttack(AttackType)` : plus de parametre ChoosenWeapon (lit CurrentWeaponID en interne)
+  - `CanAttack` (bool) : gere uniquement par le ComboManager
 - `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
-- DETTE : Attaque hero cassee depuis remaniement Radial Menu -- a investiguer en J-15/16/17
+- Flow equipement : EquipWeapon -> SET ChoosenWeapon -> AddUnique(DiscoveredWeapons) -> InitComboTree
+- Flow attaque : IA_Attack -> Branch(CanAttack) -> HandleAttack(AttackType) -> PlayAttackMontage
 
 ### Armes
 - `BP_Weapon_Base` : WeaponData, OwnerCharacter, bIsEquipped, bCanDealDamage, TouchedActors
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
-- Refonte armes prevue J-15/16/17
+  - FWeaponData contient : Name, Type, Level, Mesh, Stats, Socket, BP_Weapon, icons, DT_Combo, IdleAnim
+- `DT_Combo` par arme : rows avec StepID, InputType, AnimMontage, NextSteps, WeaponID, LevelMin=0
+- `LevelMin = 0` sur toutes les rows DT_Combo (niveau de base)
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
@@ -191,6 +199,8 @@ Format dans Docs/Session_UnrealClaude.md :
 ### Radial Menu -- J-13 COMPLET
 - UI_Radial_Main : GenerateSlots, UpdateCenterInfo, UpdateSelection, PopulateWeaponSlots,
   SwitchCategory, ValidateSelectedWeapon -- VALIDE PIE
+- PopulateWeaponSlots : lit DiscoveredWeapons depuis HeroCharacter -> lookup DT_Weapons -> FSoM_RadialSlotData
+- ValidateSelectedWeapon : appelle EquipWeapon(SlotID) sur HeroCharacter -> CloseRadial
 
 ### Magie
 - `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
@@ -225,12 +235,12 @@ Options=Menu Global
 - [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC
 - [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
+- [x] J-15 Fix attaque hero COMPLET : ChoosenWeapon, InitComboTree, LevelMin DT_Combo (18/05/2026)
 
 ## Dettes techniques
 
 - **J-LockMove2** : roll en lock-on part vers l'ennemi (Root Motion World Space + UseControllerRotationYaw)
   -> Solution : LaunchCharacter + anim visuelle, a traiter en J-B
-- **Attaque hero** : cassee depuis remaniement Radial Menu, a investiguer en J-15/16/17
 - Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
 - TargetActor espace dans UI_LockOnIndicator ("TargetActor ")
 - Z-order indicateur lock-on : ajouter ZOrder=10 sur AddToViewport
@@ -239,14 +249,14 @@ Options=Menu Global
 - WeaponClass hardcode BP_Enemy_Sword01 : J-EnemyArt
 - Retopo hero 246K -> 10-15K : J-ART final
 - rename ABP_Manny_Platforming -> ABP_Hero : J-B
+- BT_TestBed + BB_TestBed crees puis abandonnes : a supprimer
 
 ## Prochains jalons (ordre)
 
 1. **J-SFX1** : sons de base complets (footsteps, ambiance, UI)
-2. **J-15/16/17** : refonte armes + combo + fix attaque hero + unification DiscoveredWeapons
-3. **J-C** : IMC_UI dedie
-4. **J-F** : SaveGame
-5. **J-B/E** : Animations + Hit Flash ennemis (+ J-LockMove2)
+2. **J-C** : IMC_UI dedie
+3. **J-F** : SaveGame
+4. **J-B/E** : Animations + Hit Flash ennemis (+ J-LockMove2)
 
 ---
 
@@ -262,6 +272,9 @@ Options=Menu Global
 - Move() en lock-on : utilise GetPlayerCameraManager -> GetCameraRotation (pas GetControlRotation)
 - LastAxisX/LastAxisY : variables double sur HeroCharacter, SET au Triggered de IA_Move
 - BP_Enemy_TestBed : pas de BT dedie, utilise BT_Enemy_Base via BP_AIController_Enemy_Base
+- InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
+- LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
+- HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
 
 ---
 
