@@ -243,6 +243,40 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
+### 18/05/2026 -- J-15 Fix attaque hero -- VALIDE PIE
+
+#### Diagnostic
+- Cause racine : `ChoosenWeapon` jamais sette dans `EquipWeapon` apres refonte Radial Menu
+- `ComboStepMap` vide car `InitComboTree` non appele a l'equipement
+- `HandleAttack` tombait systematiquement dans ResetCombo (Map_Find retournait false)
+- `LevelMin = 1` dans DT_Combo alors que `WeaponLevel = 0` -> filtre bloquant toutes les rows
+
+#### Fixes BP_SoM_HeroCharacter -- EquipWeapon
+- SET `ChoosenWeapon = RowName` apres SET CurrentWeapon
+- `AddUnique(DiscoveredWeapons, RowName)` -- alimente la source de verite Radial
+- Appel `BP_ComboManagerComponent.InitComboTree(WeaponID=RowName, WeaponLevel=0)`
+- Ordre : SET CurrentWeapon -> SET ChoosenWeapon -> AddUnique -> InitComboTree -> AttachToComponent
+
+#### Fixes BP_ComboManagerComponent -- HandleAttack
+- Suppression du parametre `ChoosenWeapon` de la signature (inutile, le manager lit `CurrentWeaponID` en interne)
+
+#### Fixes DT_Combo (Sword_01, 2HSword_01)
+- `LevelMin` passe de 1 a 0 sur toutes les rows -- niveau de base = 0
+
+#### Resultat VALIDE PIE
+- Radial -> equipe arme -> InitComboTree charge ComboStepMap correctement
+- Combo Light1 -> Light2 enchaine
+- Heavy1 fonctionnel
+- Degats appliques via AnimNotify EnableCollision/DisableCollision
+
+#### Architecture validee (a conserver)
+- `InitComboTree(WeaponID, WeaponLevel)` = unique point de chargement du ComboStepMap
+- `CurrentWeaponID` + `CurrentWeaponLevel` sur ComboManager = source de verite combo
+- `DiscoveredWeapons` sur HeroCharacter alimente par EquipWeapon = source de verite Radial
+- `ChoosenWeapon` sur HeroCharacter = ID arme courante pour les inputs attaque
+
+---
+
 ## Rappel
 pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
