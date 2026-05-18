@@ -95,8 +95,8 @@ Format dans Docs/Session_UnrealClaude.md :
   ShouldMove, IsFalling, WeaponType, Strafe, Can Strafe, Double/Wall Jump...
 - Rotation Rate Z = -1 (pivot instantane hors lock-on)
 - Variables LastAxisX, LastAxisY (double) : stockees au Triggered de IA_Move
-- ⚠️ 246K triangles LOD0 -> retopo (cible 10-15K) -- J-ART final
-- ⚠️ 6 doigts par main (artefact Meshy) -- J-ART final
+- 246K triangles LOD0 -> retopo (cible 10-15K) -- J-ART final
+- 6 doigts par main (artefact Meshy) -- J-ART final
 
 ### Camera -- J-Camera COMPLET VALIDE PIE (17/05/2026)
 
@@ -125,10 +125,10 @@ Format dans Docs/Session_UnrealClaude.md :
   - Lock-on actif : GetPlayerCameraManager -> GetCameraRotation -> Yaw -> MakeRotator(0,Yaw,0) -> GetForward/RightVector
   - Hors lock-on : comportement original (GetControlRotation)
 - ScaleValues : branches sur LastAxisX/LastAxisY (stockees au Triggered de IA_Move)
-- Deplacement en lock-on VALIDE PIE ✅
+- Deplacement en lock-on VALIDE PIE
 
 #### Fix rotation de base
-- CharacterMovement -> Rotation Rate Z = -1 -> pivot instantane hors lock-on ✅
+- CharacterMovement -> Rotation Rate Z = -1 -> pivot instantane hors lock-on
 
 #### Roll en lock-on -- DETTE J-LockMove2
 - Probleme : roll en lock-on part toujours vers l'ennemi
@@ -136,7 +136,7 @@ Format dans Docs/Session_UnrealClaude.md :
   le character a regarder l'ennemi chaque frame, annulant SetActorRotation
 - Solution propre : LaunchCharacter dans direction stick+camera + animation visuelle sans Root Motion
   (architecture DS/KH) -- A traiter en J-B lors du chantier animations
-- En attendant : roll hors lock-on fonctionne correctement ✅
+- En attendant : roll hors lock-on fonctionne correctement
 
 ### Lock-On -- J-lock COMPLET VALIDE PIE (15/05/2026)
 - `BP_CombatLockOnComponent` : sur le Character
@@ -151,18 +151,35 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_Enemy_Base` : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
   - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser J-EnemyArt)
   - Implements BPI_TakeDamage
+  - Variables stats : MaxHealth, CurrentHealth, AttackRadius
+- `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
+  - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
+  - Utilise BP_AIController_Enemy_Base + BT_Enemy_Base (pas de BT dedie)
+  - Place dans Lvl_TestBed pour tests
 - `BP_AIController_Enemy_Base` : Behavior Tree + PawnSensing
 - ABP_Unarmed : pour les ENNEMIS SANS ARME (pas le hero)
+
+### TestBed -- J-TestBed COMPLET VALIDE PIE (18/05/2026)
+- Map : `Content/Maps/Lvl_TestBed`
+  - Sol BSP checker 4000x4000, obstacles BSP + cubes StaticMesh, plateforme sureleve
+  - NavMeshBoundsVolume couvrant toute la zone
+  - Lighting Movable (DirectionalLight + SkyLight + SkyAtmosphere) -- zero bake
+  - GameMode Override : BP_SoM_GameMode
+- `BP_Enemy_TestBed` : stats configurables en map sans ouvrir le BP
+- SFX placeholder dans Content/Audio/SFX/Combat/ :
+  - Hit joueur recu, attaque ennemi, roll hero
+  - Branchement direct Play Sound at Location (pas de SoundCue)
 
 ### Combat
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
 - `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
 - ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
+- DETTE : Attaque hero cassee depuis remaniement Radial Menu -- a investiguer en J-15/16/17
 
 ### Armes
 - `BP_Weapon_Base` : WeaponData, OwnerCharacter, bIsEquipped, bCanDealDamage, TouchedActors
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
-- ⚠️ Refonte armes prevue J-15/16/17
+- Refonte armes prevue J-15/16/17
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
@@ -207,28 +224,29 @@ Options=Menu Global
 - [x] J-Renommage : Convention de nommage unifiee
 - [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC
 - [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y
+- [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
 
 ## Dettes techniques
 
 - **J-LockMove2** : roll en lock-on part vers l'ennemi (Root Motion World Space + UseControllerRotationYaw)
   -> Solution : LaunchCharacter + anim visuelle, a traiter en J-B
-- ⚠️ Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
-- ⚠️ TargetActor espace dans UI_LockOnIndicator ("TargetActor ")
-- ⚠️ Z-order indicateur lock-on : ajouter ZOrder=10 sur AddToViewport
-- ⚠️ IMC_UI dedie pour inputs menus : J-C
-- ⚠️ Animations strafe gauche/droite distinctes : J-B
-- ⚠️ WeaponClass hardcode BP_Enemy_Sword01 : J-EnemyArt
-- ⚠️ Retopo hero 246K -> 10-15K : J-ART final
-- ⚠️ rename ABP_Manny_Platforming -> ABP_Hero : J-B
+- **Attaque hero** : cassee depuis remaniement Radial Menu, a investiguer en J-15/16/17
+- Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
+- TargetActor espace dans UI_LockOnIndicator ("TargetActor ")
+- Z-order indicateur lock-on : ajouter ZOrder=10 sur AddToViewport
+- IMC_UI dedie pour inputs menus : J-C
+- Animations strafe gauche/droite distinctes : J-B
+- WeaponClass hardcode BP_Enemy_Sword01 : J-EnemyArt
+- Retopo hero 246K -> 10-15K : J-ART final
+- rename ABP_Manny_Platforming -> ABP_Hero : J-B
 
 ## Prochains jalons (ordre)
 
-1. **J-TestBed** : mini zone BSP + BP_Enemy_TestBed + SFX placeholder -- PRIORITE IMMEDIATE
-2. **J-SFX1** : sons de base
-3. **J-15/16/17** : refonte armes + combo + unification DiscoveredWeapons
-4. **J-C** : IMC_UI dedie
-5. **J-F** : SaveGame
-6. **J-B/E** : Animations + Hit Flash ennemis (+ J-LockMove2)
+1. **J-SFX1** : sons de base complets (footsteps, ambiance, UI)
+2. **J-15/16/17** : refonte armes + combo + fix attaque hero + unification DiscoveredWeapons
+3. **J-C** : IMC_UI dedie
+4. **J-F** : SaveGame
+5. **J-B/E** : Animations + Hit Flash ennemis (+ J-LockMove2)
 
 ---
 
@@ -243,6 +261,7 @@ Options=Menu Global
 - IA_Look est dans le PC (pas dans HeroCharacter) depuis J-Camera
 - Move() en lock-on : utilise GetPlayerCameraManager -> GetCameraRotation (pas GetControlRotation)
 - LastAxisX/LastAxisY : variables double sur HeroCharacter, SET au Triggered de IA_Move
+- BP_Enemy_TestBed : pas de BT dedie, utilise BT_Enemy_Base via BP_AIController_Enemy_Base
 
 ---
 
