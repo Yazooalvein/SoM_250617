@@ -235,7 +235,7 @@ Options=Menu Global
 - [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC
 - [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
-- [x] J-15 Fix attaque hero COMPLET : ChoosenWeapon, InitComboTree, LevelMin DT_Combo (18/05/2026)
+- [x] J-15/16/17 Fix attaque hero COMPLET : ChoosenWeapon, InitComboTree, LevelMin DT_Combo (18/05/2026)
 
 ## Dettes techniques
 
@@ -244,19 +244,20 @@ Options=Menu Global
 - Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
 - TargetActor espace dans UI_LockOnIndicator ("TargetActor ")
 - Z-order indicateur lock-on : ajouter ZOrder=10 sur AddToViewport
-- IMC_UI dedie pour inputs menus : J-C
 - Animations strafe gauche/droite distinctes : J-B
 - WeaponClass hardcode BP_Enemy_Sword01 : J-EnemyArt
 - Retopo hero 246K -> 10-15K : J-ART final
 - rename ABP_Manny_Platforming -> ABP_Hero : J-B
 - BT_TestBed + BB_TestBed crees puis abandonnes : a supprimer
 
-## Prochains jalons (ordre)
+## Prochains jalons (ordre revise le 18/05/2026)
 
-1. **J-SFX1** : sons de base complets (footsteps, ambiance, UI)
-2. **J-C** : IMC_UI dedie
-3. **J-F** : SaveGame
-4. **J-B/E** : Animations + Hit Flash ennemis (+ J-LockMove2)
+1. **J-C** : IMC_UI dedie (inputs menus separes des inputs gameplay)
+2. **J-F** : SaveGame (critique avant chantier animations -- preserve progression entre sessions)
+3. **J-B/E** : Animations + Hit Flash ennemis + J-LockMove2
+4. **J-EnemyArt** : Generalisation WeaponClass ennemi
+5. **J-SFX1** : Sons de base complets (footsteps, ambiance, UI) -- polish, non bloquant
+6. **J-ART final** : Retopo hero 246K -> 10-15K, LODs, sockets
 
 ---
 
