@@ -111,174 +111,112 @@ Suivi precis de toutes les evolutions majeures du projet.
 ### 15/05/2026 -- J-lock COMPLET -- VALIDE PIE
 
 #### Fixes BP_CombatLockOnComponent
-- Fix `IsLockOnActive` : retourne desormais `bisLockOnActive` (etait vide)
-- Fix espace dans dispatcher : `OnLockOnDeactivated ` -> `OnLockOnDeactivated`
+- Fix IsLockOnActive : retourne desormais bisLockOnActive (etait vide)
+- Fix espace dans dispatcher : OnLockOnDeactivated(espace) -> OnLockOnDeactivated
 
 #### Fixes BP_SoM_PlayerController
-- Fix bind dispatcher : "On Lock on Activated/Deactivated" (custom) et non "On Component Activated"
+- Fix bind dispatcher custom OnLockOnActivated/Deactivated
 - UpdateLockOnUIIndicator : SetVisibility selon Project World to Screen bool
-- Socket indicateur lock-on deplace au-dessus de la tete (nouveau socket sur skeleton Mannequin)
+- Socket indicateur lock-on deplace au-dessus de la tete
 
 #### Fixes BP_SoM_HeroCharacter
-- Bindings OnLockOnActivated/Deactivated au BeginPlay :
-  - Activated : bOrientRotationToMovement=false + UseControllerRotationYaw=true
-  - Deactivated : bOrientRotationToMovement=true + UseControllerRotationYaw=false
-
-#### ABP_Manny_Platforming -- Strafe VALIDE PIE
-- Variables : Strafe (float via DotProduct), Can Strafe (bool NOT bOrientRTM)
-- State Machine : etat LockedOn_Strafe + transitions Idle/Walk <-> LockedOn_Strafe
-- BS_Unarmed_Strafe : Content/Characters/Mannequins/Anims/Unarmed/ (Forward x Strafe [-1,1])
-- Animations placeholder : MF_Unarmed_Jog_Left pour gauche ET droite -- a affiner en J-B
+- Bindings OnLockOnActivated/Deactivated au BeginPlay
+- ABP_Manny_Platforming -- Strafe VALIDE PIE
 
 #### Tests edge cases VALIDES PIE
-- Mort ennemi : delock/switch automatique
-- Switch cible (stick droit) : fonctionnel
-- Delock manuel (R3) : retour locomotion normale
-- Delock hors range
-- Indicateur positionne au-dessus de la tete
-- Indicateur masque si hors frustum
+- Mort ennemi, switch cible, delock manuel, delock hors range
 
 ---
 
 ### 15/05/2026 -- J-Renommage COMPLET
-
-#### Convention de nommage unifiee
-- `BP_PlatformingCharacter` -> `BP_SoM_HeroCharacter`
-- `BP_PlatformingPlayerController` -> `BP_SoM_PlayerController`
-- `BP_EnemyBase` -> `BP_Enemy_Base`
-- `BB_enemy` -> `BB_Enemy_Base`
-- `BT_Enemy` -> `BT_Enemy_Base`
-- `BP_enemyTest` -> `BP_Enemy_Test`
-- `Datatable_FCombo` -> `DT_Combo_Base`
-- `Datatable_StatList` -> `DT_StatList`
-- Renames effectues via UE Rename + Fix Up Redirectors, VALIDE PIE
-- `ABP_Manny_Platforming` -> rename prevu en `ABP_Hero` lors de J-B (chantier animations)
+- Convention nommage unifiee : BP_SoM_HeroCharacter, BP_SoM_PlayerController, etc.
+- Renames via UE Rename + Fix Up Redirectors, VALIDE PIE
 
 ---
 
 ### 17/05/2026 -- J-Camera COMPLET -- VALIDE PIE
-
-#### Fixes permanents
-- `BP_SoM_PlayerController` On Possess : SET PlayerCharacterRef (Cast Possessed Pawn -> BP_SoM_HeroCharacter)
-  - Bug : PlayerCharacterRef etait None -> erreurs runtime au Tick
-- Tick PC : guard NOT Is Dashing / NOT Is Rolling dans AND condition UpdateLockOnRotation
-
-#### SpringArm ajuste (BP_SoM_HeroCharacter)
-- Target Arm Length : 400 -> 350
-- Socket Offset Z : 0 -> 60
-- Camera Lag Speed : 16 -> 8
-- Camera Lag Max Distance : 0 -> 200
-
-#### Screen Shake -- VALIDE PIE (debloque par V2)
-- CS_HitReceived (Content/Systems/Camera/) : PerlinNoise, Pitch 1.5, Roll 1.0, Freq 20, Duration 0.3
-- CS_EnemyDeath (Content/Systems/Camera/) : PerlinNoise, Pitch 3.0, Yaw 0.5, Roll 2.0, Freq 15, Duration 0.4
-- BP_SoM_HeroCharacter ReceiveDamage : Client Start Camera Shake (CS_HitReceived) apres HitFlash
-- BP_Enemy_Base KillMeNow : Client Start Camera Shake (CS_EnemyDeath) avant Destroy
-
-#### IA_Look deplace dans BP_SoM_PlayerController
-- Fonction `Aim` creee dans le PC (Axis X, Axis Y)
-- IA_Look retire de BP_SoM_HeroCharacter
-- VALIDE PIE
-
-#### UpdateLockOnRotation V2 -- VALIDE PIE
-- Logique conditionnelle remplace SetControlRotation systematique
-- RInterpTo InterpSpeed branche sur LockOnReturnSpeed (3.0)
+- SpringArm : Arm 350, OffsetZ 60, Lag 8, MaxDist 200
+- IA_Look deplace dans BP_SoM_PlayerController (fonction Aim)
+- UpdateLockOnRotation V2 : conditionnel, bPlayerIsLooking, LookReturnDelay
+- Screen Shake : CS_HitReceived + CS_EnemyDeath VALIDES PIE
+- Fix PlayerCharacterRef SET au OnPossess
 
 ---
 
-### 18/05/2026 -- J-LockMove COMPLET (partiel) -- VALIDE PIE
-
-#### Fixes BP_SoM_HeroCharacter -- fonction Move()
-- Probleme : En lock-on, dash et roll partaient vers l'ennemi au lieu de suivre le stick
-- Cause : Move() utilisait GetControlRotation -> GetForwardVector/GetRightVector
-  En lock-on, Control Rotation pointe vers l'ennemi
-- Solution : Branch(bisLockOnActive) dans Move() :
-  - Lock-on actif : GetPlayerCameraManager -> GetCameraRotation -> Yaw seulement -> MakeRotator(0,yaw,0) -> GetForward/RightVector
-  - Hors lock-on : comportement original (GetControlRotation)
-- Variables additionnelles : LastAxisX, LastAxisY (stockees au Triggered de IA_Move)
-- Deplacement en lock-on VALIDE PIE (direction stick correcte)
-- Camera retient vers l'ennemi apres delai VALIDE PIE
-- Rotation Rate -1 dans CharacterMovement : pivot instantane hors lock-on
-
-#### Dette J-LockMove2 -- reportee
-- Probleme : En lock-on, le roll part toujours vers l'ennemi
-- Cause racine : Root Motion en World Space -- elle suit l'orientation du character
-  au moment du lancement du montage, et UseControllerRotationYaw=true
-  force le character a regarder l'ennemi chaque frame
-- Piste : Passer le Roll en approche sans Root Motion :
-  LaunchCharacter dans la direction stick camera + animation visuelle seulement
-  (architecture DS/KH propre)
-- A traiter en J-B lors du chantier animations
+### 18/05/2026 -- J-LockMove COMPLET -- VALIDE PIE
+- Move() en lock-on : GetPlayerCameraManager -> GetCameraRotation -> Yaw
+- LastAxisX / LastAxisY stockes au Triggered de IA_Move
+- Rotation Rate Z = -1 (pivot instantane hors lock-on)
+- Dette roll en lock-on -> reporte C1-AnimationsPass1
 
 ---
 
 ### 18/05/2026 -- J-TestBed COMPLET -- VALIDE PIE
-
-#### Map Lvl_TestBed (Content/Maps/)
-- Sol BSP checker 4000x4000, mur BSP, plateforme sureleve
-- Cubes StaticMesh x4 pour obstacles pathfinding IA
-- NavMeshBoundsVolume couvrant toute la zone (P -> vert valide)
-- Lighting Movable : DirectionalLight + SkyLight + SkyAtmosphere (zero bake)
-- GameMode Override : BP_SoM_GameMode
-- PlayerStart positionne au centre
-
-#### BP_Enemy_TestBed (Content/Characters/Enemies/Blueprints/)
-- Enfant de BP_Enemy_Base
-- MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable + categorie Default
-- Pas de BT dedie : utilise BP_AIController_Enemy_Base + BT_Enemy_Base par heritage
-- Stats tweakables directement dans le Details panel de la map
-- Lecon : pas de SetStatValue cote ennemi (contrairement au hero) -- expose les variables natives
-
-#### SFX placeholder (Content/Audio/SFX/Combat/)
-- Hit joueur recu : branche sur ReceiveDamage (BP_SoM_HeroCharacter)
-- Attaque ennemi : branche sur logique attaque (BP_Enemy_Base)
-- Roll hero : branche sur AnimNotify iframes existante
-- Branchement direct Play Sound at Location -- pas de SoundCue a ce stade
-- Source packs : Free Realistic Sword SFX (Epic Forums) + 50 Free Game Sounds (Fab)
-
-#### Points d'attention
-- BT_TestBed et BB_TestBed crees puis abandonnes : inutiles, supprimer du projet
-- BP_Enemy_Base n'a pas de SetStatValue : stats directement en variables Float
-- OnSeePawn dans BP_Enemy_Base ecrit dans BB_Enemy_Base (pas un BB dedie TestBed)
+- Lvl_TestBed : BSP 4000x4000, NavMesh, lighting Movable, GameMode Override
+- BP_Enemy_TestBed : stats Instance Editable, herite BP_Enemy_Base
+- SFX placeholder : hit joueur, attaque ennemi, roll hero
 
 ---
 
-### 18/05/2026 -- J-15 Fix attaque hero -- VALIDE PIE
+### 18/05/2026 -- J-ComboFix COMPLET -- VALIDE PIE
+- SET ChoosenWeapon dans EquipWeapon
+- InitComboTree appele a l'equipement
+- HandleAttack : suppression parametre ChoosenWeapon
+- LevelMin = 0 sur toutes les rows DT_Combo
 
-#### Diagnostic
-- Cause racine : `ChoosenWeapon` jamais sette dans `EquipWeapon` apres refonte Radial Menu
-- `ComboStepMap` vide car `InitComboTree` non appele a l'equipement
-- `HandleAttack` tombait systematiquement dans ResetCombo (Map_Find retournait false)
-- `LevelMin = 1` dans DT_Combo alors que `WeaponLevel = 0` -> filtre bloquant toutes les rows
+---
 
-#### Fixes BP_SoM_HeroCharacter -- EquipWeapon
-- SET `ChoosenWeapon = RowName` apres SET CurrentWeapon
-- `AddUnique(DiscoveredWeapons, RowName)` -- alimente la source de verite Radial
-- Appel `BP_ComboManagerComponent.InitComboTree(WeaponID=RowName, WeaponLevel=0)`
-- Ordre : SET CurrentWeapon -> SET ChoosenWeapon -> AddUnique -> InitComboTree -> AttachToComponent
+### 18/05/2026 -- Resynchro documentation complete
+- Roadmap_Gameplay.md et CLAUDE.md : jalons completes coches, convention C1/C2/...
+- Nouveaux jalons : C1-CollisionFix, C1-HitFlashEnemies, C1-HitFeel,
+  C1-CleanupDettes, C1-WeaponArchitecture, C1-SaveDesign, C2-SaveGame
 
-#### Fixes BP_ComboManagerComponent -- HandleAttack
-- Suppression du parametre `ChoosenWeapon` de la signature (inutile, le manager lit `CurrentWeaponID` en interne)
+---
 
-#### Fixes DT_Combo (Sword_01, 2HSword_01)
-- `LevelMin` passe de 1 a 0 sur toutes les rows -- niveau de base = 0
+### 18/05/2026 -- C1-CollisionFix COMPLET -- VALIDE PIE
 
-#### Resultat VALIDE PIE
-- Radial -> equipe arme -> InitComboTree charge ComboStepMap correctement
-- Combo Light1 -> Light2 enchaine
-- Heavy1 fonctionnel
-- Degats appliques via AnimNotify EnableCollision/DisableCollision
+#### Capsules qui se traversent
+- Fix : BP_SoM_HeroCharacter + BP_Enemy_Base -> CapsuleComponent -> Pawn = Block
+- Resultat : pawns se poussent correctement, feeling combat ameliore
 
-#### Architecture validee (a conserver)
-- `InitComboTree(WeaponID, WeaponLevel)` = unique point de chargement du ComboStepMap
-- `CurrentWeaponID` + `CurrentWeaponLevel` sur ComboManager = source de verite combo
-- `DiscoveredWeapons` sur HeroCharacter alimente par EquipWeapon = source de verite Radial
-- `ChoosenWeapon` sur HeroCharacter = ID arme courante pour les inputs attaque
+#### Weapon Collision
+- Audit BP_Weapon_Base : presets coherents, guard OwnerCharacter verifie
+- Clear Array dans DisableWeaponCollision confirme
+
+---
+
+### 18/05/2026 -- C1-HitFeel COMPLET (partiel) -- VALIDE PIE
+
+#### Screen Shake -- 3 bugs corriges
+1. ClientStartCameraShake inutilisable depuis Character en Single Player PIE
+   -> Fix : GetPlayerController(0) -> GetPlayerCameraManager -> StartCameraShake
+2. PlaySpace = World rendait le shake invisible
+   -> Fix : PlaySpace -> CameraLocal
+3. Rotation Amplitude Multiplier = 0.0 annulait toutes les rotations
+   -> Fix : Rotation Amplitude Multiplier -> 1.0
+
+#### Valeurs CS_HitReceived (a affiner)
+- Rotation Amplitude Multiplier 1.0, Pitch 3.0 / Yaw 1.0 / Roll 2.0 / Freq 20.0
+- Duration 0.3, Blend In 0.05, Blend Out 0.1
+
+#### Valeurs CS_EnemyDeath (a affiner)
+- Rotation Amplitude Multiplier 1.0, Pitch 5.0 / Yaw 2.0 / Roll 3.0 / Freq 15.0
+- Duration 0.5, Blend In 0.05, Blend Out 0.2
+
+#### Knockback ennemi -- VALIDE PIE
+- BP_Enemy_Base -> ReceiveDamage : GetActorLocation(Ennemi) - GetActorLocation(Hero)
+- Normalize -> * 400.0 -> LaunchCharacter(bXYOverride=true, bZOverride=false)
+- 400.0 a tuner selon feeling
+
+#### Hitstop -- REPORTE
+- Necessite animations hit reaction + vrais SFX pour evaluer l'interet
+- Reference : Dark Souls feedback via son + animation stagger, pas de hitstop global
+- A reevaluer apres C2-EnemyMesh + C1-SFXCombat
 
 ---
 
 ## Rappel
-pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
+Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
