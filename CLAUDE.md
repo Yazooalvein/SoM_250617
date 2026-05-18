@@ -96,8 +96,8 @@ Format dans Docs/Session_UnrealClaude.md :
   ShouldMove, IsFalling, WeaponType, Strafe, Can Strafe, Double/Wall Jump...
 - Rotation Rate Z = -1 (pivot instantane hors lock-on)
 - Variables LastAxisX, LastAxisY (double) : stockees au Triggered de IA_Move
-- 246K triangles LOD0 -> retopo (cible 10-15K) -- J-ART final
-- 6 doigts par main (artefact Meshy) -- J-ART final
+- 246K triangles LOD0 -> retopo (cible 10-15K) -- ART-Hero
+- 6 doigts par main (artefact Meshy) -- ART-Hero
 
 ### Camera -- J-Camera COMPLET VALIDE PIE (17/05/2026)
 
@@ -118,7 +118,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - Guard supplementaire : Branch(Is Rolling) avant SetControlRotation -> si rolling, exit sans modifier
 - Flow : DynamicCast -> Branch(IsRolling) -> Branch(bPlayerIsLooking) -> Branch(LookIdleTime >= LookReturnDelay) -> SetControlRotation
 
-### J-LockMove COMPLET VALIDE PIE (18/05/2026)
+### LockMove COMPLET VALIDE PIE (18/05/2026)
 
 #### Fix Move() en lock-on
 - Probleme : en lock-on, deplacement partait vers l'ennemi (Control Rotation = direction ennemi)
@@ -131,15 +131,15 @@ Format dans Docs/Session_UnrealClaude.md :
 #### Fix rotation de base
 - CharacterMovement -> Rotation Rate Z = -1 -> pivot instantane hors lock-on
 
-#### Roll en lock-on -- DETTE J-LockMove2
+#### Roll en lock-on -- DETTE -> C1-AnimationsPass1
 - Probleme : roll en lock-on part toujours vers l'ennemi
 - Cause racine : Root Motion en World Space + UseControllerRotationYaw=true force
   le character a regarder l'ennemi chaque frame, annulant SetActorRotation
 - Solution propre : LaunchCharacter dans direction stick+camera + animation visuelle sans Root Motion
-  (architecture DS/KH) -- A traiter en J-B lors du chantier animations
+  (architecture DS/KH) -- A traiter en C1-AnimationsPass1
 - En attendant : roll hors lock-on fonctionne correctement
 
-### Lock-On -- J-lock COMPLET VALIDE PIE (15/05/2026)
+### Lock-On -- COMPLET VALIDE PIE (15/05/2026)
 - `BP_CombatLockOnComponent` : sur le Character
   - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
   - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom)
@@ -150,7 +150,7 @@ Format dans Docs/Session_UnrealClaude.md :
 
 ### Ennemis
 - `BP_Enemy_Base` : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
-  - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser J-EnemyArt)
+  - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
   - Implements BPI_TakeDamage
   - Variables stats : MaxHealth, CurrentHealth, AttackRadius
 - `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
@@ -160,7 +160,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_AIController_Enemy_Base` : Behavior Tree + PawnSensing
 - ABP_Unarmed : pour les ENNEMIS SANS ARME (pas le hero)
 
-### TestBed -- J-TestBed COMPLET VALIDE PIE (18/05/2026)
+### TestBed -- COMPLET VALIDE PIE (18/05/2026)
 - Map : `Content/Maps/Lvl_TestBed`
   - Sol BSP checker 4000x4000, obstacles BSP + cubes StaticMesh, plateforme sureleve
   - NavMeshBoundsVolume couvrant toute la zone
@@ -171,7 +171,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - Hit joueur recu, attaque ennemi, roll hero
   - Branchement direct Play Sound at Location (pas de SoundCue)
 
-### Combat -- J-15 Fix attaque VALIDE PIE (18/05/2026)
+### Combat -- ComboFix VALIDE PIE (18/05/2026)
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
   - `CurrentWeaponID` (Name) + `CurrentWeaponLevel` (int) : source de verite combo
   - `InitComboTree(WeaponID, WeaponLevel)` : charge ComboStepMap depuis DT_Combo de l'arme
@@ -196,7 +196,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
   - Aim(Axis X, Axis Y) : gestion camera
 
-### Radial Menu -- J-13 COMPLET
+### Radial Menu -- COMPLET VALIDE PIE
 - UI_Radial_Main : GenerateSlots, UpdateCenterInfo, UpdateSelection, PopulateWeaponSlots,
   SwitchCategory, ValidateSelectedWeapon -- VALIDE PIE
 - PopulateWeaponSlots : lit DiscoveredWeapons depuis HeroCharacter -> lookup DT_Weapons -> FSoM_RadialSlotData
@@ -223,41 +223,48 @@ Options=Menu Global
 
 ## Jalons completes
 
-- [x] #1 a #9 : MCP, mort, stats, inputs, iframes, UI, hit flash, migration UE5.7, audit
+- [x] #1 a #9 : MCP, mort, stats, inputs, iframes, UI, hit flash joueur, migration UE5.7, audit
 - [x] J-10 a J-14 : BP_MagicComponent + 4 sorts Lumina valides PIE
 - [x] J-15 : UI_HUD_Main finalise
-- [x] J-13 : Radial Menu complet + Quickslot POC VALIDE PIE
-- [x] J-Nettoyage : Suppression assets obsoletes
-- [x] J-ART (partiel) : Hero placeholder PIE, workflow etabli
-- [x] J-MUS (exploration) : Workflow etabli
-- [x] J-lock COMPLET : Strafe VALIDE PIE, fix IsLockOnActive, edge cases valides
-- [x] J-Renommage : Convention de nommage unifiee
-- [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC
-- [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y
+- [x] J-RadialMenu : Radial Menu complet + Quickslot POC VALIDE PIE
+- [x] J-Cleanup : Suppression assets obsoletes
+- [x] ART-Hero (partiel) : Hero placeholder PIE, workflow etabli
+- [x] MUS-Workflow (exploration) : Workflow Suno etabli
+- [x] J-LockOn COMPLET : Strafe VALIDE PIE, fix IsLockOnActive, edge cases valides (15/05/2026)
+- [x] J-Renommage : Convention de nommage unifiee (15/05/2026)
+- [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC (17/05/2026)
+- [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y (18/05/2026)
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
-- [x] J-15/16/17 Fix attaque hero COMPLET : ChoosenWeapon, InitComboTree, LevelMin DT_Combo (18/05/2026)
+- [x] J-ComboFix COMPLET : ChoosenWeapon, InitComboTree, LevelMin=0 DT_Combo (18/05/2026)
 
 ## Dettes techniques
 
-- **J-LockMove2** : roll en lock-on part vers l'ennemi (Root Motion World Space + UseControllerRotationYaw)
-  -> Solution : LaunchCharacter + anim visuelle, a traiter en J-B
-- Doublon cooldown switch : LockOnSwitchCooldown (PC) + SwitchCooldown (Component) -- a unifier
-- TargetActor espace dans UI_LockOnIndicator ("TargetActor ")
-- Z-order indicateur lock-on : ajouter ZOrder=10 sur AddToViewport
-- Animations strafe gauche/droite distinctes : J-B
-- WeaponClass hardcode BP_Enemy_Sword01 : J-EnemyArt
-- Retopo hero 246K -> 10-15K : J-ART final
-- rename ABP_Manny_Platforming -> ABP_Hero : J-B
-- BT_TestBed + BB_TestBed crees puis abandonnes : a supprimer
+- **Roll en lock-on** (C1-AnimationsPass1) : root motion world space force orientation vers ennemi
+  -> Solution : LaunchCharacter + anim visuelle sans Root Motion -- a traiter en C1-AnimationsPass1
+- **Collisions capsule** (C1-CollisionFix) : pawns se traversent, BLOQUANT pour tests combat
+- **Doublon cooldown switch** (C1-CleanupDettes) : LockOnSwitchCooldown (PC) + SwitchCooldown (Component)
+- **TargetActor espace** (C1-CleanupDettes) : "TargetActor " dans UI_LockOnIndicator
+- **Z-order indicateur lock-on** (C1-CleanupDettes) : ajouter ZOrder=10 sur AddToViewport
+- **BT_TestBed + BB_TestBed** (C1-CleanupDettes) : crees puis abandonnes, a supprimer
+- **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
+- **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
+- **Retopo hero 246K -> 10-15K** (ART-Hero)
 
 ## Prochains jalons (ordre revise le 18/05/2026)
 
-1. **J-C** : IMC_UI dedie (inputs menus separes des inputs gameplay)
-2. **J-F** : SaveGame (critique avant chantier animations -- preserve progression entre sessions)
-3. **J-B/E** : Animations + Hit Flash ennemis + J-LockMove2
-4. **J-EnemyArt** : Generalisation WeaponClass ennemi
-5. **J-SFX1** : Sons de base complets (footsteps, ambiance, UI) -- polish, non bloquant
-6. **J-ART final** : Retopo hero 246K -> 10-15K, LODs, sockets
+1. **C1-CollisionFix** : fix capsules/pawns qui se traversent (BLOQUANT pour tests combat)
+2. **C1-HitFlashEnemies** : DMI + material ennemi (quickwin)
+3. **C1-HitFeel** : knockback + hitstop + screen shake polish + vibration gamepad
+4. **C1-CleanupDettes** : nettoyage dettes mineures (~1h)
+5. **C1-InputsUI** : IMC dedie menus
+6. **C1-WeaponArchitecture** : audit data armes pour forge/talents
+7. **C1-SwordMoveset** : moveset epee complet
+8. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
+9. **C1-BowPOC** : arc
+10. **C1-WeaponSwitching** : switching armes en combat
+11. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
+12. **C1-SFXCombat** : sons combat de base (peut demarrer apres C1-CollisionFix)
+13. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
 
 ---
 
