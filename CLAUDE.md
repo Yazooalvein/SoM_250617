@@ -69,7 +69,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `SetStatValue(StatName, Value)` = UNIQUE point de modification des stats
 - `OnStatChanged` = dispatcher de notification
 - `BP_SoM_GameMode` : Player Controller Class = BP_SoM_PlayerController
-- Hit Flash ennemi : DMI au BeginPlay, pas Set Scalar on Materials
+- Hit Flash ennemi : DMI Array au BeginPlay (GetMaterial -> CreateDMI -> ADD), TriggerHitFlash(Value) dans EventGraph
 - Inputs : source unique Content/Input/InputActions/
 
 ---
@@ -153,6 +153,8 @@ Format dans Docs/Session_UnrealClaude.md :
   - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
   - Implements BPI_TakeDamage
   - Variables stats : MaxHealth, CurrentHealth, AttackRadius
+  - `HitFlashDMIs` : Array<Material Instance Dynamic> -- rempli au BeginPlay via GetMaterial -> CreateDMI
+  - `TriggerHitFlash(ScalarValue)` : fonction BP, ForEach HitFlashDMIs -> SetScalarParameterValue("HitFlashAmount")
 - `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
   - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
   - Utilise BP_AIController_Enemy_Base + BT_Enemy_Base (pas de BT dedie)
@@ -178,7 +180,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - `HandleAttack(AttackType)` : plus de parametre ChoosenWeapon (lit CurrentWeaponID en interne)
   - `CanAttack` (bool) : gere uniquement par le ComboManager
 - `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
-- ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> HitFlash -> mort?
+- ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> TriggerHitFlash(1.0) -> Delay -> TriggerHitFlash(0.0) -> mort?
 - Flow equipement : EquipWeapon -> SET ChoosenWeapon -> AddUnique(DiscoveredWeapons) -> InitComboTree
 - Flow attaque : IA_Attack -> Branch(CanAttack) -> HandleAttack(AttackType) -> PlayAttackMontage
 
@@ -236,12 +238,13 @@ Options=Menu Global
 - [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y (18/05/2026)
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
 - [x] J-ComboFix COMPLET : ChoosenWeapon, InitComboTree, LevelMin=0 DT_Combo (18/05/2026)
+- [x] C1-CollisionFix COMPLET : capsules Block, weapon collision audit (18/05/2026)
+- [x] C1-HitFlashEnemies : architecture DMI Array complete (19/05/2026) -- flash visuel bloque par M_Mannequin Engine (dette)
 
 ## Dettes techniques
 
 - **Roll en lock-on** (C1-AnimationsPass1) : root motion world space force orientation vers ennemi
   -> Solution : LaunchCharacter + anim visuelle sans Root Motion -- a traiter en C1-AnimationsPass1
-- **Collisions capsule** (C1-CollisionFix) : pawns se traversent, BLOQUANT pour tests combat
 - **Doublon cooldown switch** (C1-CleanupDettes) : LockOnSwitchCooldown (PC) + SwitchCooldown (Component)
 - **TargetActor espace** (C1-CleanupDettes) : "TargetActor " dans UI_LockOnIndicator
 - **Z-order indicateur lock-on** (C1-CleanupDettes) : ajouter ZOrder=10 sur AddToViewport
@@ -249,22 +252,21 @@ Options=Menu Global
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
+- **HitFlash visuel ennemi** (C1-HitFlashEnemies) : dupliquer M_Mannequin -> M_Enemy_Base (Content/Characters/Enemies/Materials/) et l'assigner au mesh ennemi
 
-## Prochains jalons (ordre revise le 18/05/2026)
+## Prochains jalons (ordre revise le 19/05/2026)
 
-1. **C1-CollisionFix** : fix capsules/pawns qui se traversent (BLOQUANT pour tests combat)
-2. **C1-HitFlashEnemies** : DMI + material ennemi (quickwin)
-3. **C1-HitFeel** : knockback + hitstop + screen shake polish + vibration gamepad
-4. **C1-CleanupDettes** : nettoyage dettes mineures (~1h)
-5. **C1-InputsUI** : IMC dedie menus
-6. **C1-WeaponArchitecture** : audit data armes pour forge/talents
-7. **C1-SwordMoveset** : moveset epee complet
-8. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
-9. **C1-BowPOC** : arc
-10. **C1-WeaponSwitching** : switching armes en combat
-11. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
-12. **C1-SFXCombat** : sons combat de base (peut demarrer apres C1-CollisionFix)
-13. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
+1. **C1-HitFeel** : knockback + hitstop + screen shake polish + vibration gamepad
+2. **C1-CleanupDettes** : nettoyage dettes mineures (~1h)
+3. **C1-InputsUI** : IMC dedie menus
+4. **C1-WeaponArchitecture** : audit data armes pour forge/talents
+5. **C1-SwordMoveset** : moveset epee complet
+6. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
+7. **C1-BowPOC** : arc
+8. **C1-WeaponSwitching** : switching armes en combat
+9. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
+10. **C1-SFXCombat** : sons combat de base
+11. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
 
 ---
 
@@ -283,6 +285,9 @@ Options=Menu Global
 - InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
+- HitFlashDMIs : Array DMI sur BP_Enemy_Base, rempli au BeginPlay via GetMaterial -> CreateDMI
+- TriggerHitFlash(Value) : fonction BP (pas de Delay), appele depuis EventGraph ReceiveDamage
+- M_Mannequin Engine = read-only en runtime -> dupliquer en M_Enemy_Base pour debloquer HitFlash visuel
 
 ---
 
@@ -300,4 +305,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 18/05/2026*
+*Derniere mise a jour : 19/05/2026*

@@ -215,10 +215,33 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
+### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE (flash visuel en attente)
+
+#### Architecture DMI BP_Enemy_Base
+- Variable `HitFlashDMIs` : Array<Material Instance Dynamic>, private
+- BeginPlay : ForLoop sur GetNumMaterials -> GetMaterial(Index) -> CreateDMI -> ADD to HitFlashDMIs
+  -> Architecture generique, fonctionne avec n'importe quel mesh/material sans modification
+- Fonction `TriggerHitFlash(ScalarValue : float)` : ForEach HitFlashDMIs -> SetScalarParameterValue("HitFlashAmount", Value)
+- ReceiveDamage : TriggerHitFlash(1.0) -> Delay 0.12s -> TriggerHitFlash(0.0)
+- Anciens noeuds SetScalarParameterValueOnMaterials (ErrorType=1) supprimes et remplaces
+
+#### Material M_Mannequin
+- ScalarParameter `HitFlashAmount` confirme present dans M_Mannequin (Emissive : HitFlashAmount * (50,50,50))
+- Flash visuel non visible en PIE : M_Mannequin est un material Engine partage (read-only en runtime)
+- DETTE : dupliquer M_Mannequin -> Content/Characters/Enemies/Materials/M_Enemy_Base
+  et l'assigner au mesh ennemi pour debloquer le flash visuel
+
+#### Notes architecture
+- TriggerHitFlash est une fonction BP (pas de Delay dedans -- Delay reste dans EventGraph)
+- GetMaterial au lieu de hardcoder Source Material -> prod-ready, zero modif par ennemi
+- SKM_Manny_Simple utilise pour POC (2 slots : M_HeadLegs + M_Torso, les deux M_Mannequin)
+
+---
+
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 18/05/2026
+- Derniere mise a jour : 19/05/2026
