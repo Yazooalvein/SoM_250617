@@ -167,7 +167,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 ---
 
 ### 18/05/2026 -- Resynchro documentation complete
-- Roadmap_Gameplay.md et CLAUDE.md : jalons completes coches, convention C1/C2/...
+- Roadmap_Gameplay.md et CLAUDE.md : jalons completes coches, convention C1/C2/..
 - Nouveaux jalons : C1-CollisionFix, C1-HitFlashEnemies, C1-HitFeel,
   C1-CleanupDettes, C1-WeaponArchitecture, C1-SaveDesign, C2-SaveGame
 
@@ -185,7 +185,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ---
 
-### 18/05/2026 -- C1-HitFeel COMPLET (partiel) -- VALIDE PIE
+### 18/05/2026 -- C1-HitFeel PARTIEL -- VALIDE PIE
 
 #### Screen Shake -- 3 bugs corriges
 1. ClientStartCameraShake inutilisable depuis Character en Single Player PIE
@@ -195,53 +195,71 @@ Suivi precis de toutes les evolutions majeures du projet.
 3. Rotation Amplitude Multiplier = 0.0 annulait toutes les rotations
    -> Fix : Rotation Amplitude Multiplier -> 1.0
 
-#### Valeurs CS_HitReceived (a affiner)
-- Rotation Amplitude Multiplier 1.0, Pitch 3.0 / Yaw 1.0 / Roll 2.0 / Freq 20.0
-- Duration 0.3, Blend In 0.05, Blend Out 0.1
-
-#### Valeurs CS_EnemyDeath (a affiner)
-- Rotation Amplitude Multiplier 1.0, Pitch 5.0 / Yaw 2.0 / Roll 3.0 / Freq 15.0
-- Duration 0.5, Blend In 0.05, Blend Out 0.2
-
 #### Knockback ennemi -- VALIDE PIE
 - BP_Enemy_Base -> ReceiveDamage : GetActorLocation(Ennemi) - GetActorLocation(Hero)
 - Normalize -> * 400.0 -> LaunchCharacter(bXYOverride=true, bZOverride=false)
-- 400.0 a tuner selon feeling
 
 #### Hitstop -- REPORTE
-- Necessite animations hit reaction + vrais SFX pour evaluer l'interet
-- Reference : Dark Souls feedback via son + animation stagger, pas de hitstop global
+- Necessite animations hit reaction + vrais SFX pour evaluer
 - A reevaluer apres C2-EnemyMesh + C1-SFXCombat
+
+#### Vibration gamepad -- A FAIRE
+- Reste a implementer dans C1-HitFeel
 
 ---
 
-### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE (flash visuel en attente)
+### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE
 
 #### Architecture DMI BP_Enemy_Base
-- Variable `HitFlashDMIs` : Array<Material Instance Dynamic>, private
-- BeginPlay : ForLoop sur GetNumMaterials -> GetMaterial(Index) -> CreateDMI -> ADD to HitFlashDMIs
-  -> Architecture generique, fonctionne avec n'importe quel mesh/material sans modification
-- Fonction `TriggerHitFlash(ScalarValue : float)` : ForEach HitFlashDMIs -> SetScalarParameterValue("HitFlashAmount", Value)
+- Variable HitFlashDMIs : Array<Material Instance Dynamic>
+- BeginPlay : GetMaterial -> CreateDMI -> ADD
+- TriggerHitFlash(ScalarValue) : SetScalarParameterValue("HitFlashAmount")
 - ReceiveDamage : TriggerHitFlash(1.0) -> Delay 0.12s -> TriggerHitFlash(0.0)
-- Anciens noeuds SetScalarParameterValueOnMaterials (ErrorType=1) supprimes et remplaces
 
-#### Material M_Mannequin
-- ScalarParameter `HitFlashAmount` confirme present dans M_Mannequin (Emissive : HitFlashAmount * (50,50,50))
-- Flash visuel non visible en PIE : M_Mannequin est un material Engine partage (read-only en runtime)
-- DETTE : dupliquer M_Mannequin -> Content/Characters/Enemies/Materials/M_Enemy_Base
-  et l'assigner au mesh ennemi pour debloquer le flash visuel
+#### Blocage M_Mannequin
+- M_Mannequin = material Engine partage, read-only en runtime -> flash invisible
+- Solution identifiee : dupliquer en M_Enemy_Base
 
-#### Notes architecture
-- TriggerHitFlash est une fonction BP (pas de Delay dedans -- Delay reste dans EventGraph)
-- GetMaterial au lieu de hardcoder Source Material -> prod-ready, zero modif par ennemi
-- SKM_Manny_Simple utilise pour POC (2 slots : M_HeadLegs + M_Torso, les deux M_Mannequin)
+---
+
+### 21/05/2026 -- Session design & documentation
+
+#### C1-HitFlashEnemies ABANDONNE
+- Decision : le flash visuel n'est pas necessaire
+- CS_EnemyDeath (screen shake) + animation dediee suffisent pour le feedback
+- Architecture DMI conservee dans le code mais non utilisee
+
+#### C1-CleanupDettes -- 3 points sur 4 resolus
+- TargetActor espace dans UI_LockOnIndicator : CORRIGE
+- ZOrder=10 sur AddToViewport indicateur lock-on : CORRIGE
+- BT_TestBed + BB_TestBed : SUPPRIMES
+- Reste : supprimer LockOnSwitchCooldown du PC (redondant avec SwitchCooldown du Component)
+  Decision : source de verite = SwitchCooldown dans BP_CombatLockOnComponent
+
+#### C1-InputsUI -- PRIORITAIRE
+- IMC_Prototype trop chargee : inputs gameplay actifs pendant le radial
+- Decision : creer IMC_UI dedie, migrer IA_UI_Radial_Cancel / IA_validate_radial_selection / IA_UI_RadialMenu_ChangeCat
+- Prioritaire avant C1-RadialMagie (le radial doit switcher d'IMC proprement)
+
+#### Nouveau jalon : C1-RadialMagie
+- Architecture 3 niveaux :
+  - Armes : 1 radial (existant, fix retour arme equipee)
+  - Magie N1 : ecoles (Ondine, Ombre, Athanor, Lumina...) -- PopulateMagicSchools a creer
+  - Magie N2 : sorts de l'ecole selectionnee -- PopulateMagicSpells(SchoolID) a creer
+- SwitchCategory : branche Weapons valide PIE, branche Magic = stub PrintVar a implementer
+- Fix SelectedIndex : retour sur arme equipee (lookup ChoosenWeapon dans DiscoveredWeapons) au lieu de 0 hardcode
+- Audit T3D SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons")
+  Apres VariableSet_1 (Weapons) : PopulateWeaponSlots -> SelectedIndex=0 -> TargetRotation=0 -> CurrentRotation=0
+  Apres VariableSet_0 (Magic) : stub MacroInstance PrintVar "PASSAGE EN MAGIC" (then deconnecte)
 
 ---
 
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
+Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
+Pour les inputs : voir Docs/Architecture/Input_Architecture.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 19/05/2026
+- Derniere mise a jour : 21/05/2026
