@@ -69,8 +69,9 @@ Format dans Docs/Session_UnrealClaude.md :
 - `SetStatValue(StatName, Value)` = UNIQUE point de modification des stats
 - `OnStatChanged` = dispatcher de notification
 - `BP_SoM_GameMode` : Player Controller Class = BP_SoM_PlayerController
-- Hit Flash ennemi : DMI Array au BeginPlay (GetMaterial -> CreateDMI -> ADD), TriggerHitFlash(Value) dans EventGraph
+- Hit Flash ennemi : ABANDONNE (C1-HitFlashEnemies dropped) -- screen shake + animation dedies suffisent
 - Inputs : source unique Content/Input/InputActions/
+- IMC_Prototype = inputs gameplay uniquement (IMC_UI en cours de creation -- C1-InputsUI)
 
 ---
 
@@ -143,6 +144,8 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_CombatLockOnComponent` : sur le Character
   - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
   - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom)
+  - **SwitchCooldown** : source de verite UNIQUE pour le cooldown de switch cible
+    (LockOnSwitchCooldown du PC est redondant -> a supprimer dans C1-CleanupDettes)
 - `BP_SoM_HeroCharacter` bindings (au BeginPlay) :
   - OnLockOnActivated_Handler : bOrientRotationToMovement=false + UseControllerRotationYaw=true
   - OnLockOnDeactivated_Handler : bOrientRotationToMovement=true + UseControllerRotationYaw=false
@@ -153,8 +156,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
   - Implements BPI_TakeDamage
   - Variables stats : MaxHealth, CurrentHealth, AttackRadius
-  - `HitFlashDMIs` : Array<Material Instance Dynamic> -- rempli au BeginPlay via GetMaterial -> CreateDMI
-  - `TriggerHitFlash(ScalarValue)` : fonction BP, ForEach HitFlashDMIs -> SetScalarParameterValue("HitFlashAmount")
+  - Hit Flash ennemi : ABANDONNE -- screen shake (CS_EnemyDeath) suffit pour le feedback
 - `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
   - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
   - Utilise BP_AIController_Enemy_Base + BT_Enemy_Base (pas de BT dedie)
@@ -180,7 +182,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - `HandleAttack(AttackType)` : plus de parametre ChoosenWeapon (lit CurrentWeaponID en interne)
   - `CanAttack` (bool) : gere uniquement par le ComboManager
 - `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
-- ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> TriggerHitFlash(1.0) -> Delay -> TriggerHitFlash(0.0) -> mort?
+- ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> screen shake -> mort?
 - Flow equipement : EquipWeapon -> SET ChoosenWeapon -> AddUnique(DiscoveredWeapons) -> InitComboTree
 - Flow attaque : IA_Attack -> Branch(CanAttack) -> HandleAttack(AttackType) -> PlayAttackMontage
 
@@ -198,10 +200,18 @@ Format dans Docs/Session_UnrealClaude.md :
   - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
   - Aim(Axis X, Axis Y) : gestion camera
 
-### Radial Menu -- COMPLET VALIDE PIE
-- UI_Radial_Main : GenerateSlots, UpdateCenterInfo, UpdateSelection, PopulateWeaponSlots,
-  SwitchCategory, ValidateSelectedWeapon -- VALIDE PIE
-- PopulateWeaponSlots : lit DiscoveredWeapons depuis HeroCharacter -> lookup DT_Weapons -> FSoM_RadialSlotData
+### Radial Menu -- COMPLET VALIDE PIE (armes), Magie EN COURS (C1-RadialMagie)
+- `ERadialMode` (enum) : Weapons / Magic (NewEnumerator0 / NewEnumerator1)
+- `CurrentCategory` (ERadialMode) dans UI_Radial_Main : categorie active
+- `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots, reset SelectedIndex/TargetRotation/CurrentRotation
+  - Branche Weapons : PopulateWeaponSlots -> valide PIE
+  - Branche Magic : stub PrintVar "PASSAGE EN MAGIC" -> a implementer (C1-RadialMagie)
+
+#### Architecture Radial Magie (cible C1-RadialMagie)
+- Armes : 1 radial (existant), retour sur arme equipee (SelectedIndex = index de ChoosenWeapon dans DiscoveredWeapons)
+- Magie niveau 1 : ecoles (Ondine, Ombre, Athanor, Lumina...) -- PopulateMagicSchools a creer
+- Magie niveau 2 : sorts de l'ecole selectionnee -- PopulateMagicSpells(SchoolID) a creer
+- Validation : CastSpell ou assignation quickslot selon contexte
 - ValidateSelectedWeapon : appelle EquipWeapon(SlotID) sur HeroCharacter -> CloseRadial
 
 ### Magie
@@ -210,7 +220,13 @@ Format dans Docs/Session_UnrealClaude.md :
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
-- `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC
+- `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC, ZOrder=10
+
+### Inputs -- etat actuel
+- `IMC_Prototype` : inputs gameplay (Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialMenu)
+- `IMC_UI` : A CREER (C1-InputsUI) -- inputs menus separes du gameplay
+  - Inputs a migrer depuis IMC_Prototype : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat
+  - Probleme actuel : inputs gameplay restent actifs pendant le radial
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -239,26 +255,28 @@ Options=Menu Global
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
 - [x] J-ComboFix COMPLET : ChoosenWeapon, InitComboTree, LevelMin=0 DT_Combo (18/05/2026)
 - [x] C1-CollisionFix COMPLET : capsules Block, weapon collision audit (18/05/2026)
-- [x] C1-HitFlashEnemies : architecture DMI Array complete (19/05/2026) -- flash visuel bloque par M_Mannequin Engine (dette)
+- [x] C1-HitFeel PARTIEL : knockback VALIDE PIE, screen shake VALIDE PIE, hitstop reporte, gamepad manque (18/05/2026)
+- [x] C1-HitFlashEnemies ABANDONNE : architecture DMI faite mais flash bloque M_Mannequin engine read-only -- Decision : screen shake + animation suffisent (21/05/2026)
+- [x] C1-CleanupDettes PARTIEL : TargetActor espace corrige, ZOrder=10 LockOnIndicator, BT/BB_TestBed supprimes (21/05/2026)
+  - Reste : supprimer LockOnSwitchCooldown du PC (redondant avec SwitchCooldown du Component)
 
 ## Dettes techniques
 
 - **Roll en lock-on** (C1-AnimationsPass1) : root motion world space force orientation vers ennemi
   -> Solution : LaunchCharacter + anim visuelle sans Root Motion -- a traiter en C1-AnimationsPass1
-- **Doublon cooldown switch** (C1-CleanupDettes) : LockOnSwitchCooldown (PC) + SwitchCooldown (Component)
-- **TargetActor espace** (C1-CleanupDettes) : "TargetActor " dans UI_LockOnIndicator
-- **Z-order indicateur lock-on** (C1-CleanupDettes) : ajouter ZOrder=10 sur AddToViewport
-- **BT_TestBed + BB_TestBed** (C1-CleanupDettes) : crees puis abandonnes, a supprimer
+- **Doublon cooldown switch** (C1-CleanupDettes) : supprimer LockOnSwitchCooldown du PC
+  -> Source de verite = SwitchCooldown dans BP_CombatLockOnComponent (logique : le Component gere son propre etat)
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **HitFlash visuel ennemi** (C1-HitFlashEnemies) : dupliquer M_Mannequin -> M_Enemy_Base (Content/Characters/Enemies/Materials/) et l'assigner au mesh ennemi
+- **Radial Armes : retour sur arme equipee** (C1-RadialMagie) : SelectedIndex remis a 0 a chaque ouverture -> doit pointer sur ChoosenWeapon dans DiscoveredWeapons
+- **IMC_Prototype trop charge** (C1-InputsUI) : inputs menus non isoles, gameplay actif pendant radial
 
-## Prochains jalons (ordre revise le 19/05/2026)
+## Prochains jalons (ordre revise le 21/05/2026)
 
-1. **C1-HitFeel** : knockback + hitstop + screen shake polish + vibration gamepad
-2. **C1-CleanupDettes** : nettoyage dettes mineures (~1h)
-3. **C1-InputsUI** : IMC dedie menus
+1. **C1-InputsUI** : IMC dedie menus -- PRIORITAIRE (gameplay actif pendant radial, IMC_Prototype surchargee)
+2. **C1-RadialMagie** : Radial magie 2 niveaux (ecoles -> sorts) + fix retour arme equipee
+3. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC (derniere dette mineure)
 4. **C1-WeaponArchitecture** : audit data armes pour forge/talents
 5. **C1-SwordMoveset** : moveset epee complet
 6. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
@@ -276,6 +294,7 @@ Options=Menu Global
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
 - UpdateLockOnRotation dans PC = suivi camera vers cible V2 (conditionnel)
 - Bind "On Lock on Activated/Deactivated" = dispatchers CUSTOM du Component
+- SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT (pas dans PC)
 - T3D export (clic droit -> Asset Actions -> Export) = meilleur outil d'audit
 - add_state MCP dans AnimGraph = shell corrompu garanti -> toujours creer manuellement
 - IA_Look est dans le PC (pas dans HeroCharacter) depuis J-Camera
@@ -285,9 +304,8 @@ Options=Menu Global
 - InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
-- HitFlashDMIs : Array DMI sur BP_Enemy_Base, rempli au BeginPlay via GetMaterial -> CreateDMI
-- TriggerHitFlash(Value) : fonction BP (pas de Delay), appele depuis EventGraph ReceiveDamage
-- M_Mannequin Engine = read-only en runtime -> dupliquer en M_Enemy_Base pour debloquer HitFlash visuel
+- SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons") -- branche Magic = stub a implementer
+- Hit Flash ennemi ABANDONNE : CS_EnemyDeath (screen shake) assure le feedback visuel
 
 ---
 
@@ -305,4 +323,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 19/05/2026*
+*Derniere mise a jour : 21/05/2026*
