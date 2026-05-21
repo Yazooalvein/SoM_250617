@@ -7,31 +7,35 @@
 Systeme de menu radial unifie (Armes + Magie) :
 - Navigation circulaire dynamique, plateau tournant, curseur fixe a 12h
 - Slow-mo a l'ouverture (Time Dilation 0.2)
-- 2 niveaux pour la magie : Divinite -> Sort
+- Armes : 1 radial
+- Magie : 2 niveaux (Ecole -> Sort)
 - Data-driven via FSoM_RadialSlotData (generique, non lie a DT_Weapons)
 - Support gamepad (stick G/D = rotation, stick H/B = categorie, A = confirmer, B = retour)
 
 ---
 
-## ETAT ACTUEL (12/05/2026)
+## ETAT ACTUEL (21/05/2026)
 
-### Ancienne architecture (conservee, deconnectee)
-L'ancienne logique basee sur UI_RadialMenu + UI_RadialSlot_OLD est toujours presente
-dans les fonctions OpenRadialMenu et CloseRadialMenu de BP_SoM_PlayerController,
-mais elle est DECONNECTEE de l'exec chain depuis le 12/05/2026.
-Elle peut etre supprimee une fois la nouvelle architecture completement validee.
-- UI_RadialMenu : Content/UI/Widgets/RadialMenu/UI_RadialMenu (non utilise)
-- UI_RadialSlot_OLD : Content/UI/Widgets/RadialMenu/UI_RadialSlot_OLD (non utilise)
+### Radial Armes -- VALIDE PIE
+- PopulateWeaponSlots : lit DiscoveredWeapons -> lookup DT_Weapons -> FSoM_RadialSlotData
+- SwitchCategory branche Weapons : valide PIE
+- ValidateSelectedWeapon : EquipWeapon(SlotID) -> CloseRadial
+- Bug connu : SelectedIndex remis a 0 a chaque ouverture -> doit retourner sur ChoosenWeapon (C1-RadialMagie)
 
-### Nouvelle architecture (WIP J-13)
-- UI_Radial_Main : VALIDE PIE (4 slots en cercle, slow-mo)
-- Navigation, categories, confirmation : EN COURS
+### Radial Magie -- EN COURS (C1-RadialMagie)
+- SwitchCategory branche Magic : stub PrintVar "PASSAGE EN MAGIC" (then deconnecte)
+- Architecture 2 niveaux a implementer : ecoles N1 -> sorts N2
+- Dependance : C1-InputsUI (IMC_UI dedie) doit etre fait avant
+
+### Ancienne architecture -- DECONNECTEE
+- UI_RadialMenu + UI_RadialSlot_OLD : presents mais deconnectes depuis 12/05/2026
+- Peuvent etre supprimes une fois C1-RadialMagie valide
 
 ---
 
 ## Composants principaux
 
-- `ERadialMode` (enum) : Weapons / Magic
+- `ERadialMode` (enum) : Weapons / Magic (NewEnumerator0 / NewEnumerator1)
 - `FSoM_RadialSlotData` (struct) : SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` (widget 80x80) : slot generique avec SetSelected + SetSlotData
 - `UI_Radial_Main` (widget principal) : generation Cos/Sin, navigation, categories
@@ -45,10 +49,74 @@ Elle peut etre supprimee une fois la nouvelle architecture completement validee.
 Content/UI/Widgets/RadialMenu/
 ├── ERadialMode.uasset
 ├── FSoM_RadialSlotData.uasset
-├── UI_RadialSlot.uasset         <- nouveau slot generique
-├── UI_RadialSlot_OLD.uasset     <- ancien slot (conserve, non utilise)
-├── UI_RadialMenu.uasset         <- ancien radial (conserve, non utilise)
-└── UI_Radial_Main.uasset        <- nouveau radial principal
+├── UI_RadialSlot.uasset         <- slot generique
+├── UI_RadialSlot_OLD.uasset     <- ancien slot (deconnecte, a supprimer apres C1-RadialMagie)
+├── UI_RadialMenu.uasset         <- ancien radial (deconnecte, a supprimer apres C1-RadialMagie)
+└── UI_Radial_Main.uasset        <- radial principal actif
+```
+
+---
+
+## SwitchCategory -- analyse T3D (21/05/2026)
+
+Flow complet de la fonction SwitchCategory(Direction: int) :
+
+```
+Entry
+  |
+  v
+Branch (CurrentCategory == "Weapons" via Conv_ByteToString + EqualEqual_StriStri)
+  |
+  |-- TRUE (on est en Weapons, on passe en Magic)
+  |     SET CurrentCategory = NewEnumerator1 (Magic)
+  |     --> stub MacroInstance PrintVar "PASSAGE EN MAGIC" (then deconnecte -- a implementer)
+  |
+  |-- FALSE (on est en Magic, on passe en Weapons)
+        SET CurrentCategory = NewEnumerator0 (Weapons)
+        PopulateWeaponSlots
+        SET SelectedIndex = 0  <- a corriger : doit etre index de ChoosenWeapon
+        SET TargetRotation = 0
+        SET CurrentRotation = 0
+
+  Puis 2e Branch (CurrentCategory == "Weapons" apres le set)
+    TRUE  -> appel PopulateWeaponSlots + reset SelectedIndex/Rotations
+    FALSE -> stub PrintVar (Magic)
+```
+
+Note : la comparaison passe par Conv_ByteToString car ERadialMode est un UserDefinedEnum stocke en byte.
+
+---
+
+## Architecture Radial Magie (cible C1-RadialMagie)
+
+```
+Triangle (ouvre/ferme)
+  |
+  v
+UI_Radial_Main
+  |
+  |-- SwitchCategory -> Weapons : PopulateWeaponSlots (existant)
+  |                               SelectedIndex = index de ChoosenWeapon (a corriger)
+  |
+  └-- SwitchCategory -> Magic
+        |
+        v
+      PopulateMagicSchools (a creer)
+        Lit UnlockedSpells depuis BP_MagicComponent
+        Groupe par ecole (Lumina, Ondine, Ombre, Athanor, Sylphide, Gnome, Salamandre...)
+        Genere slots N1 (une case = une ecole)
+        |
+        v (selection d'une ecole + confirmer A)
+      PopulateMagicSpells(SchoolID) (a creer)
+        Lit sorts de l'ecole selectionnee
+        Genere slots N2 (Attack, Buff, Debuff, Soin pour cette ecole)
+        |
+        v (selection d'un sort + confirmer A)
+      ValidateSelectedSpell
+        -> CastSpell (si acces rapide)
+        -> Ou assignation quickslot (si mode assignation)
+
+Retour B : N2 -> N1, N1 -> fermer
 ```
 
 ---
@@ -66,15 +134,8 @@ SizeBox (80x80)
 ```
 
 ### Fonctions
-- `SetSelected(bool bSelected)` :
-  - True : SelectionBorder = Visible, Grayout = Hidden
-  - False : SelectionBorder = Hidden, Grayout = Visible
-- `SetSlotData(FSoM_RadialSlotData)` :
-  - SET SlotData (variable locale)
-  - Make Brush from Texture (Icon) -> Set Brush (Image_Icon)
-
-### Variables
-- `SlotData` (FSoM_RadialSlotData) : donnees du slot stockees
+- `SetSelected(bool bSelected)` : SelectionBorder + Grayout
+- `SetSlotData(FSoM_RadialSlotData)` : SET SlotData + Make Brush from Texture -> Image_Icon
 
 ---
 
@@ -84,85 +145,47 @@ SizeBox (80x80)
 ```
 Canvas Panel
 └── Overlay (fullscreen)
-    ├── Image_Background (noir A=0.6, Fill)
-    └── SizeBox (400x400, Center/Center)
-        └── Canvas_Radial (Fill/Fill)
-            ├── Text_Category   (haut, label "ARMES" / "MAGIE")
-            ├── RadialContainer (Is Variable, ancre 0.5/0.5, 10x10, point d'ancrage slots)
+    ├── Image_Background (noir A=0.6)
+    └── SizeBox (400x400)
+        └── Canvas_Radial
+            ├── Text_Category   (haut : "ARMES" / "MAGIE")
+            ├── RadialContainer (Is Variable, 10x10, point d'ancrage slots)
             ├── Image_Cursor    (12h, indicateur fixe)
-            └── VBox_Center     (centre, nom + description item selectionne)
+            └── VBox_Center
                 ├── Text_ItemName
                 └── Text_Description
 ```
 
-### Variables
-- `CurrentCategory` (ERadialMode) : categorie active
+### Variables cles
+- `CurrentCategory` (ERadialMode)
 - `SelectedIndex` (Integer) : index slot selectionne
-- `SlotWidgets` (Array<UI_RadialSlot>) : refs aux slots crees
-- `SlotDataList` (Array<FSoM_RadialSlotData>) : donnees des slots
-- `RadialRadius` (Float, default 150) : rayon du cercle
-- `RadialContainer` (Is Variable) : canvas panel point d'ancrage
-
-### GenerateSlots()
-```
-Clear Children (RadialContainer)
-Clear (SlotWidgets)
-ForEach SlotDataList :
-  Create UI_RadialSlot Widget
-  SET NewSlot = Return Value
-  SetSlotData(Array Element)
-  AngleDeg = Index * 360 / Length(SlotDataList)
-  AdjustedAngle = AngleDeg - 90  <- index 0 a 12h
-  AngleRad = DegreesToRadians(AdjustedAngle)
-  PosX = Cos(AngleRad) * RadialRadius
-  PosY = Sin(AngleRad) * RadialRadius
-  Add Child to Canvas (RadialContainer, NewSlot)
-    -> Set Position (PosX, PosY)
-    -> Set Alignment (0.5, 0.5)
-  ADD SlotWidgets (NewSlot)
-```
-
-### Event Construct (test)
-- 4 slots hardcodes (Sword, 2hSword, Axe, 2hAxe) -> SET SlotDataList -> GenerateSlots
-
-### A implementer (J-13 suite)
-- UpdateSelection(int delta) : SelectedIndex +/- 1, SetSelected sur tous les slots
-- UpdateCenterInfo() : Text_ItemName + Text_Description depuis SlotData[SelectedIndex]
-- Changement categorie (stick Haut/Bas) : CurrentCategory toggle + regenerer SlotDataList
-- Confirmation (bouton A) : niveau 1 magie = entrer divinite, niveau 2 = caster
-- Retour (bouton B) : niveau 2 -> niveau 1, ou fermer
+- `SlotWidgets` (Array<UI_RadialSlot>)
+- `SlotDataList` (Array<FSoM_RadialSlotData>)
+- `RadialRadius` (Float, 150)
+- `CurrentMagicSchool` (FName) : ecole selectionnee en N1, vide si N1 pas encore valide
 
 ---
 
-## BP_SoM_PlayerController -- OpenRadialMenu
+## BP_SoM_PlayerController -- Open/Close
 
+### OpenRadialMenu
 ```
 Create UI_Radial_Main -> SET RadialMainRef
 Add to Viewport (ZOrder 99)
 Set Global Time Dilation (0.2)
-Set Input Mode Game And UI (focus = RadialMainRef, PlayerController = Self)
+Set Input Mode Game And UI
 SET Show Mouse Cursor = true
-
-ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
-- Clear SlotRowNames + RadialNumberObject
-- ForEach DiscoveredWeapons -> GetDataTableRow DT_Weapons -> Build SlotRowNames/SlotIcons
-- Create UI_RadialMenu -> SET RadialMenuRef -> InitializeRadialMenu
-- Set Game Paused = true
+[A faire C1-InputsUI] : Remove IMC_Prototype, Add IMC_UI
 ```
 
-## BP_SoM_PlayerController -- CloseRadialMenu
-
+### CloseRadialMenu
 ```
 Remove from Parent (RadialMainRef)
 Set Global Time Dilation (1.0)
-Set Input Mode Game Only (Self)
+Set Input Mode Game Only
 SET Show Mouse Cursor = false
 SET RadialMainRef = null
-
-ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
-- ValidateSelectedWeapon -> GetDataTableRow DT_Weapons -> EquipWeapon
-- RemoveFromParent (RadialMenuRef)
-- Set Game Paused = false
+[A faire C1-InputsUI] : Remove IMC_UI, Add IMC_Prototype
 ```
 
 ---
@@ -175,8 +198,8 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 | Stick G/D | Rotation plateau (selection) |
 | Stick Haut | Categorie precedente |
 | Stick Bas | Categorie suivante |
-| Bouton A/X | Confirmer (entrer divinite niv1 / caster niv2) |
-| Bouton B/Circle | Retour / fermer |
+| Bouton A/X | Confirmer (entrer ecole N1 / caster ou assigner N2) |
+| Bouton B/Circle | Retour (N2->N1) / fermer (N1) |
 | Release IA_RadialMenu | Ferme + restore Time Dilation |
 
 ---
@@ -184,10 +207,11 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 ## Design decisions actees
 
 - Curseur fixe a 12h, le plateau tourne (pas le curseur)
-- Slow-mo 0.2 (pas de pause complete) : pression maintenue en combat
-- QuickslotBar 3 slots (Haut/Gauche/Droite gamepad) : assignation depuis menu general uniquement
-- Slots non selectionnes : opacity 60%, selectionne : animation respiration + bordure or
-- Label categorie en haut, info item au centre (nom + description + StatA/B/C)
+- Slow-mo 0.2 (pas de pause complete)
+- Armes : 1 radial
+- Magie : 2 radiales imbriquees (ecoles -> sorts)
+- SelectedIndex doit retourner sur l'arme equipee a l'ouverture (pas 0)
+- Feedback visuel : pas de hit flash ennemi (abandonne) -- screen shake suffit
 - StatA/B/C generiques : Degats/Portee/Vitesse pour armes, ManaCost/Cooldown/Puissance pour magie
 
 ---
@@ -197,14 +221,17 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 - [x] ERadialMode + FSoM_RadialSlotData
 - [x] UI_RadialSlot (SetSelected + SetSlotData)
 - [x] UI_Radial_Main GenerateSlots (Cos/Sin, VALIDE PIE)
-- [x] OpenRadialMenu slow-mo + CloseRadialMenu Time Dilation restore
-- [ ] Navigation stick G/D (UpdateSelection + rotation plateau lerp)
-- [ ] UpdateCenterInfo (Text_ItemName + Text_Description)
-- [ ] Changement categorie stick Haut/Bas + animation transition
-- [ ] Confirmation A / Retour B
-- [ ] Alimentation depuis DT_Weapons (Armes) et BP_MagicComponent (Magie)
-- [ ] UI_QuickslotBar (3 slots HUD)
-- [ ] Supprimer ancienne logique UI_RadialMenu une fois validation complete
+- [x] OpenRadialMenu slow-mo + CloseRadialMenu restore
+- [x] Navigation stick G/D (UpdateSelection + rotation plateau lerp)
+- [x] UpdateCenterInfo (Text_ItemName + Text_Description)
+- [x] SwitchCategory structure (toggle ERadialMode)
+- [x] PopulateWeaponSlots valide PIE
+- [x] ValidateSelectedWeapon valide PIE
+- [ ] C1-InputsUI : switch IMC a l'open/close (prerequis)
+- [ ] C1-RadialMagie : PopulateMagicSchools + PopulateMagicSpells + ValidateSelectedSpell
+- [ ] C1-RadialMagie : fix SelectedIndex = index ChoosenWeapon dans DiscoveredWeapons
+- [ ] C1-RadialMagie : navigation retour B (N2->N1)
+- [ ] Supprimer ancienne logique UI_RadialMenu une fois C1-RadialMagie valide
 
 ---
 
@@ -212,4 +239,5 @@ ANCIENNE LOGIQUE DECONNECTEE (toujours presente dans la fonction) :
 
 - Creation : 17/06/2025
 - Refonte complete J-13 : 12/05/2026
-- Nommage mis à jour : 15/05/2026 (J-Renommage)
+- Nommage mis a jour : 15/05/2026 (J-Renommage)
+- MAJ architecture Magie + analyse SwitchCategory T3D : 21/05/2026

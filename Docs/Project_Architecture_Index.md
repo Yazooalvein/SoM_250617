@@ -1,82 +1,88 @@
-# 📑 Index d’Architecture Technique — Shadow of Mana (ARPG / UE5.6+)
+# Index d'Architecture Technique -- Shadow of Mana (ARPG / UE5.7)
 
 ---
 
-## 📋 Objectif
+## Objectif
 
-Documenter la liste exhaustive de tous les systèmes, modules et documents d’architecture du projet.  
-Ce fichier sert de **table des matières centrale** pour la documentation technique, et doit être mis à jour à chaque création ou modification de document.
-
----
-
-## 📁 Documents principaux
-
-| Système / Module           | Document dédié (fichier)                | Statut           |
-|----------------------------|-----------------------------------------|------------------|
-| Présentation générale      | Présentation_Générale_du_Projet.md      | ✅ À jour        |
-| Index architecture (ce doc)| Project_Architecture_Index.md           | ✅ À jour        |
-| Journal des modifications  | Journal_Modifications_ARPG.md           | ✅ À jour        |
-| Structure Content/         | Structure_Dossier_Content.md            | ✅ À jour        |
+Table des matieres centrale de toute la documentation technique.
+A mettre a jour a chaque creation ou modification de document.
 
 ---
 
-## 📂 Architecture par module (dossier `/Architecture`)
+## Documents principaux
 
-| Module / Système           | Fichier                                 | Statut               |
-|----------------------------|-----------------------------------------|----------------------|
-| UI / Interface             | UI_Architecture.md                      | 🕒 À faire / En cours|
-| Stat System                | Stats_Architecture.md                   | 🕒 À faire / En cours|
-| Combat System              | Combat_Architecture.md                  | 🕒 À jour            |
-| Audio                      | Audio_Architecture.md                   | 🕒 À faire / En cours|
-| Save System                | SaveSystem_Architecture.md              | 🕒 À faire / En cours|
-| Inventory                  | Inventory_Architecture.md               | 🕒 À faire / En cours|
-| Quêtes                     | Quest_Architecture.md                   | 🕒 À faire / En cours|
-| Dialogue                   | Dialogue_Architecture.md                | 🕒 À faire / En cours|
-| Lore                       | Lore_Architecture.md                    | 🕒 À faire / En cours|
-| Radial Menu                | RadialMenu_Architecture.md              | ✅ À jour            |
-| HUD Principal              | HUD_Architecture.md                     | 🕒 À faire / En cours|
-| Input & Controls           | Input_Architecture.md                   | ✅ À jour            |
-| Weapons System             | Weapons_System_Architecture.md          | ✅ À jour            |
-| Combo System               | Combo_System_Architecture.md            | ✅ À jour            |
-| Damage System              | Damage_System_Architecture.md           | ✅ À jour            |
-| IA (globale)               | AI_Architecture.md                      | ✅ À jour            |
-| IA Ennemis                 | Enemy_AI_Behavior.md                    | ✅ À jour            |
-| Animation Weapon           | Animation_WeaponIntegration.md          | ✅ À jour            |
-| ... (à compléter selon besoin) | ...                                 | ...                  |
+| Systeme / Module | Document | Statut |
+|---|---|---|
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour |
+| Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour |
+| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour |
+| Lore | Docs/Lore_ShadowOfMana.md | Stable |
+| Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
 
 ---
 
-## 📦 Règles de mise à jour
+## Architecture par module (dossier Docs/Architecture/)
 
-- **Tout ajout, modification ou suppression de fichier de documentation doit être répercuté ici.**
-- **Le statut de chaque doc** doit refléter l’état réel (À jour / À faire / En cours / Obsolète…)
-- **Le nom du fichier** doit être cohérent avec la convention du projet.
-- **Lien croisé** possible vers chaque doc via [lien relatif] pour navigation rapide.
+| Module / Systeme | Fichier | Statut |
+|---|---|---|
+| Index inputs & controles | Input_Architecture.md | Mis a jour 21/05 |
+| Radial Menu | RadialMenu_Architecture.md | Mis a jour 21/05 |
+| Magic System | Magic_System.md | POC valide |
+| Weapons System | Weapons_System_Architecture.md | Stable |
+| Combo System | Combo_System_Architecture.md | Stable |
+| Stats System | Stats_Architecture.md | Stable |
+| Combat System | Combat_Architecture.md | Stable |
+| Damage & Collision | Damage_Collision_Architecture.md | Stable |
+| Lock-On | LockOn_Architecture.md | Stable |
+| HUD | HUD_Architecture.md | Stable |
+| UI globale | UI_Architecture.md | A mettre a jour |
+| Menus globaux | UI_GlobalMenu.md | A mettre a jour |
+| IA globale | AI_Architecture.md | Stable |
+| IA ennemis | Enemy_AI_Behavior.md | Stable |
+| Ennemi melee | Enemy_MeleeAttack_Architecture.md | Stable |
+| Ennemi health bar | Enemy_HealthBar_Architecture.md | Stable |
+| Ennemi weapon collision | Enemy_WeaponCollision_And_Damage.md | Stable |
+| Animation weapon | Animation_WeaponIntegration.md | Stable |
+| Gameplay de base | BasicGameplay_Architecture.md | Stable |
+| SaveGame | (a creer -- C1-SaveDesign) | Pas commence |
+| Audio | (a creer -- C1-SFXCombat) | Pas commence |
+| Quetes | (a creer -- C4-QuestSystem) | Pas commence |
+| Dialogue | (a creer -- C4-DialogueSystem) | Pas commence |
+
+---
+
+## Jalons Cycle 1 -- etat synthetique
+
+| Jalon | Statut |
+|---|---|
+| J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | Complets |
+| C1-CollisionFix | Complet |
+| C1-HitFeel | Partiel (knockback + shake ok, gamepad manque, hitstop reporte) |
+| C1-HitFlashEnemies | Abandonne (21/05/2026) |
+| C1-CleanupDettes | Partiel (3/4 faits, reste LockOnSwitchCooldown PC) |
+| C1-InputsUI | A faire -- PRIORITAIRE |
+| C1-RadialMagie | A faire (apres InputsUI) |
+| C1-WeaponArchitecture | A faire |
+| C1-SwordMoveset | A faire |
+| C1-SaveDesign | A faire |
+| C1-BowPOC | A faire |
+| C1-WeaponSwitching | A faire |
+| C1-SFXCombat | A faire |
+| C1-AnimationsPass1 | A faire (fin C1) |
 
 ---
 
-## 🧭 Historique / changelog
+## Regles de mise a jour
 
-- **Création : 17/06/2025**
-- Dernière mise à jour : 27/06/2025
-
----
-
-- 20/06/2025 : Début refactorisation majeure systèmes Combo/LockOn/RadialMenu.
-- 21/06/2025 : Migration Combo en Map, pipeline centralisé, debug en cours. Voir Combo System Architecture.
-- 21/06/2025 : Refactorisation majeure du système de combos (modularité, fenêtre dynamique, base multi-armes prête).  
-- Validation du menu radial dynamique (UI), lock-on stable.
-- 24/06/2025 : Ajout Weapons_System_Architecture.md, MAJ lourde Combo_System_Architecture.md, RadialMenu_Architecture.md, journal, validation pipeline data-driven armes/menu/combo.
-- 26/06/2025 : Ajout de `Damage_System_Architecture.md` : architecture complète du système de dégâts par collision, interface et dispatcher de mort.
-- 27/06/2025 : Ajout de `AI_Architecture.md` (structure générale IA du projet)  
-               et `Enemy_AI_Behavior.md` (logique de base IA ennemis : poursuite, aggro, retour).
-- 20/07/2025 : Ajout Animation_WeaponIntegration.md (groupe d'animation en fonction de l'arme équipé)
+- Tout ajout de doc = ajouter ici
+- Statut = reflete l'etat reel
+- Nommage coherent avec les conventions du projet
 
 ---
 
-## 📌 Note
+## Historique
 
-Ce fichier est la **porte d’entrée** de toute la documentation technique.  
-En cas de doute ou de réorganisation, il fait foi.
-
----
+- Creation : 17/06/2025
+- MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
