@@ -41,6 +41,39 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 
 ---
 
+## Documentation du projet -- structure et maintenance
+
+### Fichiers a lire en debut de session
+- `CLAUDE.md` (ce fichier) : contexte global, architecture cle, jalons, notes techniques
+- `Docs/Journal_Modifications.md` : historique des sessions, derniers changements
+
+### Fichiers a maintenir apres chaque session
+Claude.ai est responsable de la coherence de toute la documentation.
+Apres chaque decision, implementation ou changement de cap, mettre a jour :
+
+| Fichier | Quand le mettre a jour |
+|---|---|
+| `CLAUDE.md` | A chaque session : jalons, dettes, notes techniques, ordre jalons |
+| `Docs/Journal_Modifications.md` | A chaque session : entree datee avec ce qui a ete fait |
+| `Docs/Roadmap_Gameplay.md` | Quand un jalon change de statut ou qu'un nouveau jalon est cree |
+| `Docs/Architecture/Decisions.md` | A chaque decision importante (abandon, choix archi, gotcha) |
+| `Docs/Architecture/[Systeme].md` | Quand l'architecture d'un systeme change |
+| `Docs/Architecture/Input_Architecture.md` | Quand les inputs ou IMC changent |
+| `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial menu evolue |
+| `Docs/Project_Architecture_Index.md` | Quand un nouveau fichier doc est cree |
+
+### Fichier decisions -- IMPORTANT
+`Docs/Architecture/Decisions.md` centralise toutes les decisions architecturales importantes :
+abandon de features, choix de source de verite, changements d'approche, gotchas identifes.
+Objectif : retrouver en 30 secondes POURQUOI une chose a ete faite, sans fouiller le journal.
+Toute decision non triviale doit y etre loguee avec : contexte, decision, raison, consequences.
+
+### Regle generale
+La documentation doit rester coherente avec le code. Si quelque chose change dans le projet,
+la doc change dans la meme session. Une doc perimee est pire qu'une doc inexistante.
+
+---
+
 ## Instructions pour l'agent UnrealClaude
 
 ### Ligne de contexte OBLIGATOIRE dans chaque prompt
@@ -69,7 +102,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `SetStatValue(StatName, Value)` = UNIQUE point de modification des stats
 - `OnStatChanged` = dispatcher de notification
 - `BP_SoM_GameMode` : Player Controller Class = BP_SoM_PlayerController
-- Hit Flash ennemi : ABANDONNE (C1-HitFlashEnemies dropped) -- screen shake + animation dedies suffisent
+- Hit Flash ennemi : ABANDONNE -- screen shake + animation suffisent (voir Decisions.md)
 - Inputs : source unique Content/Input/InputActions/
 - IMC_Prototype = inputs gameplay uniquement (IMC_UI en cours de creation -- C1-InputsUI)
 
@@ -156,7 +189,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
   - Implements BPI_TakeDamage
   - Variables stats : MaxHealth, CurrentHealth, AttackRadius
-  - Hit Flash ennemi : ABANDONNE -- screen shake (CS_EnemyDeath) suffit pour le feedback
+  - Hit Flash ennemi : ABANDONNE (voir Decisions.md)
 - `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
   - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
   - Utilise BP_AIController_Enemy_Base + BT_Enemy_Base (pas de BT dedie)
@@ -212,7 +245,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - Magie niveau 1 : ecoles (Ondine, Ombre, Athanor, Lumina...) -- PopulateMagicSchools a creer
 - Magie niveau 2 : sorts de l'ecole selectionnee -- PopulateMagicSpells(SchoolID) a creer
 - Validation : CastSpell ou assignation quickslot selon contexte
-- ValidateSelectedWeapon : appelle EquipWeapon(SlotID) sur HeroCharacter -> CloseRadial
+- Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
 ### Magie
 - `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
@@ -225,8 +258,9 @@ Format dans Docs/Session_UnrealClaude.md :
 ### Inputs -- etat actuel
 - `IMC_Prototype` : inputs gameplay (Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialMenu)
 - `IMC_UI` : A CREER (C1-InputsUI) -- inputs menus separes du gameplay
-  - Inputs a migrer depuis IMC_Prototype : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat
+  - Inputs a migrer : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat
   - Probleme actuel : inputs gameplay restent actifs pendant le radial
+- Voir Docs/Architecture/Input_Architecture.md pour details et plan C1-InputsUI
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -255,28 +289,25 @@ Options=Menu Global
 - [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
 - [x] J-ComboFix COMPLET : ChoosenWeapon, InitComboTree, LevelMin=0 DT_Combo (18/05/2026)
 - [x] C1-CollisionFix COMPLET : capsules Block, weapon collision audit (18/05/2026)
-- [x] C1-HitFeel PARTIEL : knockback VALIDE PIE, screen shake VALIDE PIE, hitstop reporte, gamepad manque (18/05/2026)
-- [x] C1-HitFlashEnemies ABANDONNE : architecture DMI faite mais flash bloque M_Mannequin engine read-only -- Decision : screen shake + animation suffisent (21/05/2026)
-- [x] C1-CleanupDettes PARTIEL : TargetActor espace corrige, ZOrder=10 LockOnIndicator, BT/BB_TestBed supprimes (21/05/2026)
-  - Reste : supprimer LockOnSwitchCooldown du PC (redondant avec SwitchCooldown du Component)
+- [x] C1-HitFeel PARTIEL : knockback + screen shake VALIDES PIE, hitstop reporte, gamepad manque (18/05/2026)
+- [x] C1-HitFlashEnemies ABANDONNE : Decision 21/05 -- voir Decisions.md
+- [x] C1-CleanupDettes PARTIEL : 3/4 faits (21/05/2026) -- reste LockOnSwitchCooldown PC
 
 ## Dettes techniques
 
-- **Roll en lock-on** (C1-AnimationsPass1) : root motion world space force orientation vers ennemi
-  -> Solution : LaunchCharacter + anim visuelle sans Root Motion -- a traiter en C1-AnimationsPass1
-- **Doublon cooldown switch** (C1-CleanupDettes) : supprimer LockOnSwitchCooldown du PC
-  -> Source de verite = SwitchCooldown dans BP_CombatLockOnComponent (logique : le Component gere son propre etat)
+- **Roll en lock-on** (C1-AnimationsPass1) -- voir Decisions.md
+- **LockOnSwitchCooldown PC** (C1-CleanupDettes) : supprimer, pointer sur Component->SwitchCooldown
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **Radial Armes : retour sur arme equipee** (C1-RadialMagie) : SelectedIndex remis a 0 a chaque ouverture -> doit pointer sur ChoosenWeapon dans DiscoveredWeapons
-- **IMC_Prototype trop charge** (C1-InputsUI) : inputs menus non isoles, gameplay actif pendant radial
+- **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
+- **IMC_Prototype trop charge** (C1-InputsUI) -- voir Decisions.md
 
 ## Prochains jalons (ordre revise le 21/05/2026)
 
-1. **C1-InputsUI** : IMC dedie menus -- PRIORITAIRE (gameplay actif pendant radial, IMC_Prototype surchargee)
+1. **C1-InputsUI** : IMC dedie menus -- PRIORITAIRE
 2. **C1-RadialMagie** : Radial magie 2 niveaux (ecoles -> sorts) + fix retour arme equipee
-3. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC (derniere dette mineure)
+3. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC
 4. **C1-WeaponArchitecture** : audit data armes pour forge/talents
 5. **C1-SwordMoveset** : moveset epee complet
 6. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
@@ -304,8 +335,8 @@ Options=Menu Global
 - InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
-- SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons") -- branche Magic = stub a implementer
-- Hit Flash ennemi ABANDONNE : CS_EnemyDeath (screen shake) assure le feedback visuel
+- SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons")
+- Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 
 ---
 
