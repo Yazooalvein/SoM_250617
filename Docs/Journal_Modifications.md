@@ -109,156 +109,91 @@ Suivi precis de toutes les evolutions majeures du projet.
 ---
 
 ### 15/05/2026 -- J-lock COMPLET -- VALIDE PIE
-
-#### Fixes BP_CombatLockOnComponent
-- Fix IsLockOnActive : retourne desormais bisLockOnActive (etait vide)
-- Fix espace dans dispatcher : OnLockOnDeactivated(espace) -> OnLockOnDeactivated
-
-#### Fixes BP_SoM_PlayerController
-- Fix bind dispatcher custom OnLockOnActivated/Deactivated
-- UpdateLockOnUIIndicator : SetVisibility selon Project World to Screen bool
-- Socket indicateur lock-on deplace au-dessus de la tete
-
-#### Fixes BP_SoM_HeroCharacter
-- Bindings OnLockOnActivated/Deactivated au BeginPlay
-- ABP_Manny_Platforming -- Strafe VALIDE PIE
-
-#### Tests edge cases VALIDES PIE
-- Mort ennemi, switch cible, delock manuel, delock hors range
+- Fix IsLockOnActive, fix dispatcher espace, fix bind PC, UpdateLockOnUIIndicator
+- ABP_Manny_Platforming Strafe VALIDE PIE, edge cases valides
 
 ---
 
 ### 15/05/2026 -- J-Renommage COMPLET
-- Convention nommage unifiee : BP_SoM_HeroCharacter, BP_SoM_PlayerController, etc.
-- Renames via UE Rename + Fix Up Redirectors, VALIDE PIE
+- Convention nommage unifiee, Fix Up Redirectors, VALIDE PIE
 
 ---
 
 ### 17/05/2026 -- J-Camera COMPLET -- VALIDE PIE
-- SpringArm : Arm 350, OffsetZ 60, Lag 8, MaxDist 200
-- IA_Look deplace dans BP_SoM_PlayerController (fonction Aim)
-- UpdateLockOnRotation V2 : conditionnel, bPlayerIsLooking, LookReturnDelay
-- Screen Shake : CS_HitReceived + CS_EnemyDeath VALIDES PIE
-- Fix PlayerCharacterRef SET au OnPossess
+- SpringArm regle, IA_Look dans PC, UpdateLockOnRotation V2, Screen Shake valide
 
 ---
 
 ### 18/05/2026 -- J-LockMove COMPLET -- VALIDE PIE
-- Move() en lock-on : GetPlayerCameraManager -> GetCameraRotation -> Yaw
-- LastAxisX / LastAxisY stockes au Triggered de IA_Move
-- Rotation Rate Z = -1 (pivot instantane hors lock-on)
-- Dette roll en lock-on -> reporte C1-AnimationsPass1
+- Move() en lock-on via CameraRotation, Rotation Rate -1, LastAxisX/Y
 
 ---
 
 ### 18/05/2026 -- J-TestBed COMPLET -- VALIDE PIE
-- Lvl_TestBed : BSP 4000x4000, NavMesh, lighting Movable, GameMode Override
-- BP_Enemy_TestBed : stats Instance Editable, herite BP_Enemy_Base
-- SFX placeholder : hit joueur, attaque ennemi, roll hero
+- Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder
 
 ---
 
 ### 18/05/2026 -- J-ComboFix COMPLET -- VALIDE PIE
-- SET ChoosenWeapon dans EquipWeapon
-- InitComboTree appele a l'equipement
-- HandleAttack : suppression parametre ChoosenWeapon
-- LevelMin = 0 sur toutes les rows DT_Combo
-
----
-
-### 18/05/2026 -- Resynchro documentation complete
-- Roadmap_Gameplay.md et CLAUDE.md : jalons completes coches, convention C1/C2/..
-- Nouveaux jalons : C1-CollisionFix, C1-HitFlashEnemies, C1-HitFeel,
-  C1-CleanupDettes, C1-WeaponArchitecture, C1-SaveDesign, C2-SaveGame
+- ChoosenWeapon, InitComboTree, HandleAttack sans parametre, LevelMin=0
 
 ---
 
 ### 18/05/2026 -- C1-CollisionFix COMPLET -- VALIDE PIE
-
-#### Capsules qui se traversent
-- Fix : BP_SoM_HeroCharacter + BP_Enemy_Base -> CapsuleComponent -> Pawn = Block
-- Resultat : pawns se poussent correctement, feeling combat ameliore
-
-#### Weapon Collision
-- Audit BP_Weapon_Base : presets coherents, guard OwnerCharacter verifie
-- Clear Array dans DisableWeaponCollision confirme
+- CapsuleComponent Pawn=Block, weapon collision audit
 
 ---
 
 ### 18/05/2026 -- C1-HitFeel PARTIEL -- VALIDE PIE
-
-#### Screen Shake -- 3 bugs corriges
-1. ClientStartCameraShake inutilisable depuis Character en Single Player PIE
-   -> Fix : GetPlayerController(0) -> GetPlayerCameraManager -> StartCameraShake
-2. PlaySpace = World rendait le shake invisible
-   -> Fix : PlaySpace -> CameraLocal
-3. Rotation Amplitude Multiplier = 0.0 annulait toutes les rotations
-   -> Fix : Rotation Amplitude Multiplier -> 1.0
-
-#### Knockback ennemi -- VALIDE PIE
-- BP_Enemy_Base -> ReceiveDamage : GetActorLocation(Ennemi) - GetActorLocation(Hero)
-- Normalize -> * 400.0 -> LaunchCharacter(bXYOverride=true, bZOverride=false)
-
-#### Hitstop -- REPORTE
-- Necessite animations hit reaction + vrais SFX pour evaluer
-- A reevaluer apres C2-EnemyMesh + C1-SFXCombat
-
-#### Vibration gamepad -- A FAIRE
-- Reste a implementer dans C1-HitFeel
+- Knockback + screen shake valides, hitstop reporte, vibration gamepad manque
 
 ---
 
 ### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE
-- Architecture DMI BP_Enemy_Base (HitFlashDMIs, TriggerHitFlash)
-- Blocage M_Mannequin (material Engine read-only runtime)
+- Architecture DMI faite, blocage M_Mannequin identifie
 
 ---
 
 ### 21/05/2026 -- Session design & documentation
-- C1-HitFlashEnemies ABANDONNE (screen shake suffit)
-- C1-CleanupDettes : 3/4 resolus, reste LockOnSwitchCooldown PC
-- C1-InputsUI declare PRIORITAIRE
-- Nouveau jalon C1-RadialMagie formalise
-- Decisions.md cree (centralisation des decisions archi)
-- CLAUDE.md : references docs + regles de maintenance
+- C1-HitFlashEnemies ABANDONNE, C1-CleanupDettes 3/4, C1-InputsUI PRIORITAIRE
+- Nouveau jalon C1-RadialMagie, Decisions.md cree, regles maintenance doc
 
 ---
 
 ### 23/05/2026 -- Session design -- Architecture IMC complete
+- 5 IMC decides (Gameplay/Radial/Menu/Dialogue/Cutscene)
+- IMC_Dialogue = SEUL cumulatif, personnage mobile pendant dialogues
+- Cinematiques = Level Sequence -> IMC_Cutscene pertinent
+- Corrections noms IA (audit T3D), IA_UI_Radial_Rotate identifiee
 
-#### Contexte
-Refonte architecture inputs avant implementation C1-InputsUI.
-Question posee : 2 IMC generiques ou IMC par contexte metier ?
+---
 
-#### Decision : 5 IMC distincts (voir Decisions.md + Input_Architecture.md)
-- `IMC_Gameplay` : tout le gameplay, exclusif, base permanente
-- `IMC_Radial` : 4 IA navigation radial, exclusif (remplace Gameplay)
-- `IMC_Menu` : Navigate/Confirm/Back, exclusif (pause, mort, main menu) -- stub
-- `IMC_Dialogue` : Confirm/Avance/Choix, CUMULATIF avec Gameplay -- stub
-- `IMC_Cutscene` : IA_Skip, exclusif, Level Sequence -- stub
+### 23/05/2026 -- C1-InputsUI COMPLET -- VALIDE PIE
 
-#### Decisions cles
-- IMC_Dialogue = SEUL IMC cumulatif : personnage mobile pendant dialogues quetes annexes
-  Distance check Blueprint si trop loin (seuil defini en C4-DialogueSystem)
-- Cinematiques = Level Sequence uniquement (pas de video precalculee)
-  -> IMC_Cutscene reste pertinent (IA_Skip -> SequencePlayer->Stop)
-- Pas d'IMC_Combat, pas d'IMC_Swimming/Climbing (inutiles)
-- IMC_Forge et IMC_Map : points ouverts (C5/C3)
+#### IMC crees
+- IMC_Gameplay (ex IMC_Prototype renomme) : charge au ReceivePossessed dans BP_SoM_HeroCharacter
+- IMC_Radial : 4 IA navigation radial
+- IMC_Menu, IMC_Dialogue, IMC_Cutscene : stubs vides
 
-#### Corrections noms IA (audit T3D PC)
-- IA_UI_RadialMenu_ChangeCat -> reel : IA_UI_Radial_ChangeCat
-- IA_RadialMenu -> reel : IA_UI_Radial_Open
-- Nouvelle IA identifiee : IA_UI_Radial_Rotate (absente de la doc)
-- Total IA a migrer vers IMC_Radial : 4 (pas 3)
+#### Swap IMC cable dans BP_SoM_PlayerController
+- OpenRadial (apres SET bShowMouseCursor=true) :
+  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Gameplay) -> AddMappingContext(IMC_Radial, Priority=1)
+- CloseRadial (avant RemoveFromParent) :
+  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Radial) -> AddMappingContext(IMC_Gameplay, Priority=0)
 
-#### Audit ToggleRadial T3D
-- IsValid(RadialMainRef) ? TRUE -> CloseRadial : FALSE -> OpenRadial
-- OpenRadial a ErrorType=1 (a verifier en editeur avant implementation)
-- Swap IMC ira dans OpenRadial et CloseRadial
+#### Fix rotation radial
+- Bug : rotations multiples et sens incorrect au premier test
+- Cause : axe analogique continu sans threshold -> declenchements en rafale
+- Fix 1 : ajout trigger Pressed avec threshold 0.5 sur IA_UI_Radial_Rotate
+- Fix 2 : ajout Modifier Negate X sur le binding direction gauche (Q / Stick G X-)
+  Sans Negate, les deux directions envoient la meme valeur positive -> meme sens
 
-#### Docs mises a jour
-- Decisions.md : decisions IMC + dialogues mobiles + corrections noms IA
-- Input_Architecture.md : refonte complete, 5 IMC, plan implementation final
+#### Tests valides PIE
+- Triangle -> inputs gameplay morts, radial naviguable
+- Rotation gauche/droite correcte avec 3 armes
+- Rond -> fermeture, inputs gameplay reviennent
+- Attaque pendant radial ouvert -> rien
+- IA_UI_Radial_Open toujours fonctionnel depuis le gameplay
 
 ---
 

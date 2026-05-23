@@ -11,29 +11,32 @@ Centraliser la gestion des entrees :
 
 ---
 
-## ETAT ACTUEL (23/05/2026)
+## ETAT ACTUEL (23/05/2026) -- C1-InputsUI VALIDE PIE
 
-### IMC existants
-- `IMC_Prototype` : inputs gameplay -- actif, A RENOMMER en IMC_Gameplay (C1-InputsUI)
+### IMC actifs
+- `IMC_Gameplay` : inputs gameplay -- ACTIF (charge au ReceivePossessed dans BP_SoM_HeroCharacter)
+- `IMC_Radial` : navigation radial -- ACTIF, swap dans OpenRadial/CloseRadial
+- `IMC_Menu` : stub vide -- cable en C7
+- `IMC_Dialogue` : stub vide -- cable en C4
+- `IMC_Cutscene` : stub vide -- cable en C3
 
-### Probleme identifie
-- IMC_Prototype trop chargee : inputs radial et gameplay cohabitent
-- Inputs gameplay restent actifs pendant l'ouverture du radial
-- Solution : architecture 5 IMC (voir ci-dessous)
+### Charge initiale
+- `BP_SoM_HeroCharacter` -> `ReceivePossessed` -> IsPlayerController -> Cast -> GetSubsystemFromPC -> AddMappingContext(IMC_Gameplay, Priority=0)
+- Chemin asset : `/Game/Input/InputMappings/IMC_Gameplay`
 
 ---
 
-## Architecture IMC cible (decidee le 23/05/2026)
+## Architecture IMC (decidee le 23/05/2026)
 
 ### Vue d'ensemble
 
-| IMC | Contenu | Mode d'activation | Jalon |
+| IMC | Contenu | Mode d'activation | Statut |
 |---|---|---|---|
-| `IMC_Gameplay` | Tout le gameplay (voir liste) | Exclusif -- base permanente | C1-InputsUI |
-| `IMC_Radial` | Navigation radial (4 IA) | Exclusif -- remplace Gameplay | C1-InputsUI |
-| `IMC_Menu` | Navigate, Confirm, Back | Exclusif -- menus uniquement | Stub C1 / cable C7 |
-| `IMC_Dialogue` | Confirm/Avance, Choix | **CUMULATIF** avec Gameplay | Stub C1 / cable C4 |
-| `IMC_Cutscene` | IA_Skip | Exclusif | Stub C1 / cable C3 |
+| `IMC_Gameplay` | Tout le gameplay (voir liste) | Exclusif -- base permanente | VALIDE PIE |
+| `IMC_Radial` | Navigation radial (4 IA) | Exclusif -- remplace Gameplay | VALIDE PIE |
+| `IMC_Menu` | Navigate, Confirm, Back | Exclusif -- menus uniquement | Stub / cable C7 |
+| `IMC_Dialogue` | Confirm/Avance, Choix | **CUMULATIF** avec Gameplay | Stub / cable C4 |
+| `IMC_Cutscene` | IA_Skip | Exclusif | Stub / cable C3 |
 
 **IMC_Forge** et **IMC_Map** : points ouverts, decision reportee a C5/C3.
 
@@ -67,18 +70,24 @@ Note : `IA_UI_Radial_Open` reste dans IMC_Gameplay (doit etre actif en jeu pour 
 
 ---
 
-## IMC_Radial -- contenu complet
+## IMC_Radial -- contenu complet (VALIDE PIE)
 
-| InputAction | Bouton PS5 | Usage |
-|---|---|---|
-| IA_UI_Radial_Rotate | Stick G (X) | Rotation plateau / selection |
-| IA_validate_radial_selection | X / Croix | Valider selection |
-| IA_UI_Radial_Cancel | Rond / B | Annuler / retour / fermer |
-| IA_UI_Radial_ChangeCat | Stick D (Y) | Changer categorie (Armes<->Magie) |
+| InputAction | Bouton PS5 / Clavier | Trigger | Modifiers | Usage |
+|---|---|---|---|---|
+| IA_UI_Radial_Rotate | Stick G X+ / D | Pressed, threshold 0.5 | Aucun | Rotation droite |
+| IA_UI_Radial_Rotate | Stick G X- / Q | Pressed, threshold 0.5 | Negate X | Rotation gauche |
+| IA_UI_Radial_Validate | Croix / C | Pressed | - | Valider selection |
+| IA_UI_Radial_Cancel | Rond / B | Pressed | - | Annuler / fermer |
+| IA_UI_Radial_ChangeCat | Stick G Y / Z+S | Pressed, threshold 0.5 | - | Changer categorie |
+
+**Fix rotation** : le Negate X sur le binding gauche est OBLIGATOIRE.
+Sans lui, Q et D envoient la meme valeur positive -> meme direction de rotation.
 
 Swap dans BP_SoM_PlayerController :
-- `OpenRadial` : Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
-- `CloseRadial` : Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
+- `OpenRadial` (apres SET bShowMouseCursor=true) :
+  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Gameplay) -> AddMappingContext(IMC_Radial, Priority=1)
+- `CloseRadial` (avant RemoveFromParent) :
+  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Radial) -> AddMappingContext(IMC_Gameplay, Priority=0)
 
 ---
 
@@ -90,8 +99,7 @@ Swap dans BP_SoM_PlayerController :
 | IA_UI_Confirm | X / Croix | Confirmer |
 | IA_UI_Back | Rond / B | Retour / fermer |
 
-Utilise par : Pause Menu, Ecran de mort, Main Menu.
-Cable en C7. Stub a creer maintenant (IMC vide).
+Utilise par : Pause Menu, Ecran de mort, Main Menu. Cable en C7.
 
 ---
 
@@ -104,9 +112,8 @@ Cable en C7. Stub a creer maintenant (IMC vide).
 
 Mode CUMULATIF : s'ajoute par-dessus IMC_Gameplay (priority 1).
 Le personnage continue a se deplacer pendant le dialogue.
-Si le joueur s'eloigne trop du PNJ -> dialogue interrompu (distance check Blueprint, pas input).
-Seuil de distance et relance : definis en C4-DialogueSystem.
-Cable en C4. Stub a creer maintenant (IMC vide).
+Distance check Blueprint si trop loin du PNJ (seuil defini en C4-DialogueSystem).
+Cable en C4.
 
 ---
 
@@ -114,16 +121,16 @@ Cable en C4. Stub a creer maintenant (IMC vide).
 
 | InputAction | Bouton PS5 | Usage |
 |---|---|---|
-| IA_Skip | N'importe quel bouton (TBD) | Passer la cinematique |
+| IA_Skip | TBD | Passer le Level Sequence |
 
-Cable en C3. Stub a creer maintenant (IMC vide).
+IA_Skip -> SequencePlayer->Stop() -> restore IMC_Gameplay. Cable en C3.
 
 ---
 
 ## Mapping Gamepad PS5 complet (ACTE)
 
 ```
-X        = Saut / Confirmer (menus)
+X        = Saut / Confirmer (menus) / Valider radial
 Carre    = Esquive / Roll
 Rond     = Blocage / Retour (menus) / Cancel (radial)
 Triangle = Ouvre Radial (hold)
@@ -134,27 +141,9 @@ R3       = Lock-On (appui) / Switch cible (axis)
 Fl. Haut / Gauche / Droite = Quickslots 1/2/3
 Fl. Bas  = Switch page quickslot (point ouvert)
 Options  = Menu Global
-Stick G  = Deplacement / Rotation plateau radial / Navigation menus
+Stick G  = Deplacement / Rotation plateau radial (+ Negate gauche) / Navigation menus
 Stick D  = Camera / Axe switch cible lock-on / Changement categorie radial
 ```
-
----
-
-## C1-InputsUI -- plan d'implementation
-
-1. Renommer `IMC_Prototype` -> `IMC_Gameplay` (Fix Up Redirectors)
-2. Creer `IMC_Radial` avec les 4 IA (voir tableau IMC_Radial)
-3. Retirer ces 4 IA de `IMC_Gameplay`
-4. Creer stubs vides : `IMC_Menu`, `IMC_Dialogue`, `IMC_Cutscene`
-5. Ajouter variable `IMC_Gameplay` + `IMC_Radial` dans BP_SoM_PlayerController
-6. Verifier/creer fonction `OpenRadial` (ErrorType=1 detecte dans ToggleRadial T3D)
-7. Dans `OpenRadial` : Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
-8. Dans `CloseRadial` : Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
-9. PIE test :
-   - Triangle -> inputs gameplay morts, radial naviguable
-   - Rond -> fermeture, inputs gameplay reviennent
-   - Attaque pendant radial ouvert -> rien
-   - IA_UI_Radial_Open toujours fonctionnel depuis le gameplay
 
 ---
 
@@ -162,10 +151,13 @@ Stick D  = Camera / Axe switch cible lock-on / Changement categorie radial
 
 - IA_Look est dans le PC depuis J-Camera (pas dans HeroCharacter)
 - Source unique : Content/Input/InputActions/ -- ne jamais creer d'IA ailleurs
+- IMC charge au ReceivePossessed (HeroCharacter), pas au BeginPlay PC (pas de BeginPlay dans le PC)
 - IMC_Dialogue est le SEUL IMC cumulatif du projet (voir Decisions.md)
+- IA_UI_Radial_Rotate : OBLIGATOIRE Negate X sur le binding direction gauche
 - Ne pas creer IMC_Combat, IMC_Swimming, IMC_Climbing (inutiles -- voir Decisions.md)
 - Points ouverts : IMC_Forge (C5), IMC_Map (C3), seuil distance dialogue (C4)
 - Point ouvert : Fl. Bas Quickslot = press utiliser ou hold changer page ?
+- CloseRadial a un ErrorType=1 sur RemoveFromParent (reconnexion pin Target depuis RadialMainRef)
 
 ---
 
@@ -174,8 +166,9 @@ Stick D  = Camera / Axe switch cible lock-on / Changement categorie radial
 - [x] Unification inputs (suppression vestiges ThirdPerson)
 - [x] Source unique Content/Input/InputActions/
 - [x] IA_Look deplace dans PC (J-Camera)
-- [ ] C1-InputsUI : renommer IMC_Prototype, creer IMC_Radial, stubs IMC_Menu/Dialogue/Cutscene
-- [ ] C1-InputsUI : swap IMC dans OpenRadial / CloseRadial
+- [x] C1-InputsUI : IMC_Gameplay (ex IMC_Prototype), IMC_Radial cree et cable VALIDE PIE
+- [x] C1-InputsUI : stubs IMC_Menu, IMC_Dialogue, IMC_Cutscene crees
+- [x] C1-InputsUI : swap IMC dans OpenRadial / CloseRadial VALIDE PIE
 - [ ] C4-DialogueSystem : cable IMC_Dialogue (cumulatif)
 - [ ] C7 : cable IMC_Menu (pause, mort, main menu)
 - [ ] C3 : cable IMC_Cutscene
@@ -194,4 +187,5 @@ Stick D  = Camera / Axe switch cible lock-on / Changement categorie radial
 
 - Creation : 17/06/2025
 - MAJ 21/05/2026 : plan C1-InputsUI initial
-- MAJ 23/05/2026 : architecture IMC complete (5 IMC), IMC_Dialogue cumulatif, correction noms IA, plan implementation final
+- MAJ 23/05/2026 : architecture IMC complete (5 IMC), IMC_Dialogue cumulatif, correction noms IA
+- MAJ 23/05/2026 : C1-InputsUI VALIDE PIE -- fix Negate X rotation, swap IMC OpenRadial/CloseRadial
