@@ -82,13 +82,63 @@ automatiquement sur la cible apres un delai d'inactivite.
 
 ## INPUTS
 
-### [21/05/2026] IMC_UI -- separation inputs gameplay/menus
-**Contexte** : IMC_Prototype contient tous les inputs, y compris ceux du radial.
-Les inputs gameplay restent actifs pendant l'ouverture du radial.
-**Decision** : Creer IMC_UI dedie. Switcher au OpenRadialMenu / CloseRadialMenu.
-IA a migrer : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat.
-**Raison** : Isolation des contextes = comportement predictable + scalabilite (menus futurs).
-**Consequences** : C1-InputsUI prioritaire avant C1-RadialMagie. IMC_Prototype = gameplay uniquement apres.
+### [23/05/2026] Architecture IMC -- liste definitive et modes d'activation
+**Contexte** : IMC_Prototype trop chargee (gameplay + radial melange). Refonte complete de l'architecture IMC.
+Question posee : faut-il 2 IMC generiques (Gameplay + UI) ou des IMC par contexte metier ?
+**Decision** : 5 IMC distincts, chacun a une responsabilite unique :
+
+| IMC | Contenu | Mode |
+|---|---|---|
+| IMC_Gameplay | Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialOpen, Quickslots | Exclusif (base permanente) |
+| IMC_Radial | Rotate, Validate, Cancel, ChangeCat | Exclusif (remplace Gameplay pendant radial) |
+| IMC_Menu | Navigate, Confirm, Back | Exclusif (pause, mort, main menu) |
+| IMC_Dialogue | Confirm/Avance, Choix | CUMULATIF avec IMC_Gameplay |
+| IMC_Cutscene | IA_Skip | Exclusif |
+
+IMC_Forge et IMC_Map : points ouverts, decision reportee a C5/C3 selon besoins reels.
+
+**Raison pour rejeter 2 IMC generiques** : IMC_Radial et IMC_Menu utilisent tous deux le stick
+mais avec des comportements differents (rotation plateau vs navigation liste). Un fourre-tout
+necessiterait des branches dans le code pour distinguer les contextes -- exactement ce qu'on evite.
+
+**Raison cle pour IMC_Dialogue CUMULATIF** : le personnage peut bouger pendant les dialogues
+(dialogues de quetes annexes). IMC_Dialogue s'ajoute par-dessus IMC_Gameplay (priority 1)
+plutot que de le remplacer. Le systeme de distance (dialogue s'arrete si trop loin) est gere
+cote Blueprint (distance check), pas par les inputs.
+
+**Raison pour rejeter IMC_Combat** : le combat est une sous-couche du gameplay, pas un contexte
+d'input distinct. Lock-on, attaques, tout est dans IMC_Gameplay.
+
+**Raison pour rejeter IMC_Swimming/IMC_Climbing** : UE5 gere via CharacterMovement.
+Les inputs restent les memes (IA_Move, IA_Jump), seul le mouvement change en interne.
+
+**Consequences** :
+- IMC_Prototype renomme IMC_Gameplay dans C1-InputsUI
+- OpenRadial : Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
+- CloseRadial : Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
+- IMC_Menu, IMC_Dialogue, IMC_Cutscene : stubs crees maintenant, cables en C4/C7
+- IA_UI_Radial_Open reste dans IMC_Gameplay (doit etre actif en jeu pour ouvrir le radial)
+- IA_UI_Radial_Rotate migre dans IMC_Radial (etait oublie dans la liste initiale)
+
+### [23/05/2026] IA Radial -- audit noms reels (correction doc)
+**Contexte** : Les noms des IA dans CLAUDE.md et Input_Architecture.md etaient incorrects.
+Audit T3D du PC a revele les vrais noms.
+**Correction** :
+- `IA_UI_RadialMenu_ChangeCat` -> reel : `IA_UI_Radial_ChangeCat`
+- `IA_RadialMenu` -> reel : `IA_UI_Radial_Open`
+- Nouvelle IA identifiee : `IA_UI_Radial_Rotate` (rotation stick, etait absente de la doc)
+**Consequences** : Tous les fichiers doc corriges dans cette session.
+
+### [23/05/2026] ToggleRadial -- architecture open/close separee
+**Contexte** : Audit T3D de ToggleRadial revele :
+- IsValid(RadialMainRef) ? TRUE -> CloseRadial() : FALSE -> OpenRadial()
+- OpenRadial a ErrorType=1 (fonction manquante ou mal nommee -- a verifier en editeur)
+**Decision** : Le swap IMC va dans OpenRadial et CloseRadial, pas dans ToggleRadial.
+**Raison** : Responsabilites claires. ToggleRadial = routeur. Open/Close = logique metier.
+**Consequences** : Verifier/creer OpenRadial avant d'implémenter le swap IMC.
+
+### [21/05/2026] IMC separation initiale -- SUPERSEDE par decision 23/05/2026
+**Note** : La decision initiale d'un IMC_UI generique est remplacee par l'architecture 5 IMC ci-dessus.
 
 ### [07/05/2026] Source unique InputActions
 **Decision** : Toutes les IA dans Content/Input/InputActions/ uniquement.
@@ -119,6 +169,21 @@ Point ouvert : validation N2 = CastSpell ou assignation quickslot ?
 **Decision** : Time Dilation 0.2 a l'ouverture du radial (pas de pause complete).
 **Raison** : Maintenir la pression du combat. Le joueur prend une decision rapide, pas dans un menu hors-temps.
 **Consequences** : CloseRadialMenu doit toujours restaurer Time Dilation a 1.0.
+
+---
+
+## GAMEPLAY & NARRATION
+
+### [23/05/2026] Dialogues quetes annexes -- personnage mobile
+**Contexte** : Reflexion sur le systeme de dialogue. Distinction entre cinematiques (personnage immobile)
+et dialogues de quetes annexes (PNJ dans le monde).
+**Decision** : Le personnage peut se deplacer pendant les dialogues de quetes annexes.
+Comportement envisage (non definitif) : si le joueur s'eloigne trop du PNJ, le dialogue s'interrompt
+et peut etre relance. Implementation via distance check Blueprint, pas via inputs.
+**Raison** : Liberte de mouvement = moins de friction. Coherent avec le style ARPG ouvert.
+**Consequences** : IMC_Dialogue = cumulatif avec IMC_Gameplay (pas de remplacement).
+Distance check a definir lors de C4-DialogueSystem.
+Point ouvert : seuil de distance exact, relance automatique ou manuelle ?
 
 ---
 
@@ -160,4 +225,4 @@ OnStatChanged = dispatcher de notification.
 ## Historique
 
 - Creation : 21/05/2026
-- Derniere mise a jour : 21/05/2026
+- Derniere mise a jour : 23/05/2026 -- architecture IMC complete, dialogues mobiles, correction noms IA
