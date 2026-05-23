@@ -58,15 +58,16 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
   └─> C1-CollisionFix ✅
         └─> C1-HitFeel (partiel : knockback ✅, shake ✅, gamepad ❌, hitstop reporté)
               └─> C1-InputsUI ✅ VALIDE PIE
-                    └─> C1-RadialMagie (radial magie 2 niveaux + fix retour arme équipée)  ← PROCHAIN
-                          └─> C1-CleanupDettes (supprimer LockOnSwitchCooldown PC)
-                                └─> C1-WeaponArchitecture (audit data armes)
-                                      └─> C1-SwordMoveset
-                                            └─> C1-SaveDesign (spec)
-                                                  └─> C1-BowPOC
-                                                        └─> C1-WeaponSwitching
-                                                              └─> C2-SaveGame
-                                                                    └─> C1-AnimationsPass1 (fin C1)
+                    └─> C1-RadialMagie (radial magie 2 niveaux)  ← PROCHAIN
+                          └─> C1-MagicProgressionDesign (spec design : montée de niveau sorts)
+                                └─> C1-CleanupDettes (LockOnSwitchCooldown PC + SelectedIndex radial)
+                                      └─> C1-WeaponArchitecture
+                                            └─> C1-SwordMoveset
+                                                  └─> C1-SaveDesign (spec)
+                                                        └─> C1-BowPOC
+                                                              └─> C1-WeaponSwitching
+                                                                    └─> C2-SaveGame
+                                                                          └─> C1-AnimationsPass1 (fin C1)
 
 C1-SFXCombat : peut démarrer dès maintenant
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
@@ -105,21 +106,35 @@ C2-EnemyMesh
 - [x] Fix rotation : trigger Pressed threshold 0.5 + Modifier Negate X direction gauche
 - [x] Tests PIE : gameplay bloqué pendant radial, repris après fermeture
 
-### C1-RadialMagie — Radial magie 2 niveaux + fix arme équipée ← PROCHAIN
-- [ ] Fix SelectedIndex : retourner sur ChoosenWeapon (lookup DiscoveredWeapons) au lieu de 0
-- [ ] PopulateMagicSchools : lit écoles depuis BP_MagicComponent
+### C1-RadialMagie — Radial magie 2 niveaux ← PROCHAIN
+**Décisions actées (23/05/2026) :**
+- Validation N2 = CastSpell direct (assignation quickslot = menu général hors combat)
+- Source écoles = filtrage UnlockedSpells par Category (pas de variable UnlockedSchools)
+- SelectedIndex arme au retour = reporté en C1-CleanupDettes
+
+**Tâches :**
+- [ ] PopulateMagicSchools : loop UnlockedSpells -> extract Category -> dedup -> slots N1
 - [ ] Câbler branche Magic de SwitchCategory (remplacer stub PrintVar)
-- [ ] Sélection école → PopulateMagicSpells(SchoolID) → slots N2
-- [ ] ValidateSelectedSpell : CastSpell ou assignation quickslot
-- [ ] Navigation retour (B) : N2 → N1, N1 → fermer
-- [ ] Voir Docs/Architecture/RadialMenu_Architecture.md
+- [ ] Sélection école + confirmer A -> PopulateMagicSpells(SchoolID) -> slots N2
+- [ ] ValidateSelectedSpell : CastSpell(SpellID) via MagicComponent -> CloseRadial
+- [ ] Navigation retour B : N2 -> N1, N1 -> fermer
+- [ ] Variable CurrentMagicSchool (FName) dans UI_Radial_Main : ecole selectionnee en N1
+- [ ] Text_Category : afficher "MAGIE - [NomEcole]" en N2, "MAGIE" en N1
 - ⚠️ Nécessite C1-InputsUI ✅
+
+### C1-MagicProgressionDesign — Session design progression des sorts
+- [ ] Trancher : montée de niveau linéaire (puissance/durée) vs arbre de talent par sort
+- [ ] Cohérence avec progression armes (forge + talents)
+- [ ] Décider si les ennemis magiques partagent DT_Spells du hero ou sous-ensemble dédié
+- [ ] Livrable : spec MagicProgression.md
+- ⚠️ Aucune implémentation avant cette session
 
 ### C1-CleanupDettes — Nettoyage dettes mineures (presque fini)
 - [x] Fix TargetActor espace dans UI_LockOnIndicator
 - [x] ZOrder=10 sur AddToViewport indicateur lock-on
 - [x] Supprimer BT_TestBed et BB_TestBed
 - [ ] Supprimer LockOnSwitchCooldown du PC (redondant avec Component->SwitchCooldown)
+- [ ] SelectedIndex radial : retourner sur ChoosenWeapon à l'ouverture (FindIndex dans DiscoveredWeapons)
 
 ### C1-WeaponArchitecture — Audit & décision structure data armes
 - [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData
@@ -159,6 +174,9 @@ C2-EnemyMesh
 ## COUCHE 2 — Combat & Ennemis
 
 ### C2-SaveGame / C2-EnemyMesh / C2-EnemyAI / C2-EnemyTypes / C2-Boss1
+
+Note : WeaponClass sur BP_Enemy_Base sera supprimée dans C2-EnemyMesh (décision 23/05).
+La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 avec C1-MagicProgressionDesign.
 
 ---
 
@@ -229,7 +247,8 @@ C2-EnemyMesh
 | Touchpad PS5 : carte, journal, ou autre ? | C7-PauseMenu |
 | Menu pause : Time Dilation 0 ou pause complète ? | C7-PauseMenu |
 | Quickslot switch : press = utiliser, hold = changer de page ? | C1-InputsUI |
-| Radial Magie N2 : validation = CastSpell ou assignation quickslot ? | C1-RadialMagie |
+| Progression magies : linéaire (puissance/durée) ou arbre de talent ? | C1-MagicProgressionDesign |
+| Magie ennemie : DT_Spells partagé ou sous-ensemble dédié ? | C1-MagicProgressionDesign / C2 |
 | Distribution future : Steam / itch.io / perso | C8-Build2 |
 
 ---
@@ -241,3 +260,4 @@ C2-EnemyMesh
 - Resynchro complète : 18/05/2026
 - MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé
 - MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
+- MAJ 23/05/2026 : décisions C1-RadialMagie actées, C1-MagicProgressionDesign ajouté, SelectedIndex en C1-CleanupDettes

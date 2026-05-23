@@ -50,7 +50,7 @@ statique sans logique separee.
 - Supprimer WeaponClass de BP_Enemy_Base dans C2-EnemyMesh (ou des que touche)
 - Pas de DT_Weapons cote ennemi, pas de ComboManager cote ennemi
 - La dette "WeaponClass hardcode BP_Enemy_Sword01 (C2-EnemyMesh)" est CLOTUREE par cette decision
-**Point ouvert** : Magie ennemie -- les ennemis capables de magie s'appuieront probablement
+**Point ouvert -- Magie ennemie** : les ennemis capables de magie s'appuieront probablement
 sur le meme referentiel que les sorts apprenables par le hero (meme DT_Spells ou sous-ensemble).
 Decision reportee a C2 quand un premier ennemi magique sera concu.
 
@@ -65,7 +65,6 @@ et SwitchCooldown dans BP_CombatLockOnComponent.
 Supprimer LockOnSwitchCooldown du PC.
 **Raison** : Le Component gere tout l'etat du lock-on (bisLockOnActive, CurrentTarget, AvailableTargets...).
 Le cooldown en fait partie logiquement. Le PC ne doit pas avoir d'etat lock-on en propre.
-Si un systeme externe interroge le cooldown, il le trouvera sur le Component.
 **Consequences** : A implementer dans C1-CleanupDettes. Verifier que tout le code qui lisait
 LockOnSwitchCooldown PC pointe sur GetBP_CombatLockOnComponent -> SwitchCooldown.
 
@@ -106,7 +105,6 @@ automatiquement sur la cible apres un delai d'inactivite.
 
 ### [23/05/2026] Architecture IMC -- liste definitive et modes d'activation
 **Contexte** : IMC_Prototype trop chargee (gameplay + radial melange). Refonte complete de l'architecture IMC.
-Question posee : faut-il 2 IMC generiques (Gameplay + UI) ou des IMC par contexte metier ?
 **Decision** : 5 IMC distincts, chacun a une responsabilite unique :
 
 | IMC | Contenu | Mode |
@@ -117,95 +115,85 @@ Question posee : faut-il 2 IMC generiques (Gameplay + UI) ou des IMC par context
 | IMC_Dialogue | Confirm/Avance, Choix | CUMULATIF avec IMC_Gameplay |
 | IMC_Cutscene | IA_Skip | Exclusif |
 
-IMC_Forge et IMC_Map : points ouverts, decision reportee a C5/C3 selon besoins reels.
-
-**Raison pour rejeter 2 IMC generiques** : IMC_Radial et IMC_Menu utilisent tous deux le stick
-mais avec des comportements differents (rotation plateau vs navigation liste). Un fourre-tout
-necessiterait des branches dans le code pour distinguer les contextes -- exactement ce qu'on evite.
-
-**Raison cle pour IMC_Dialogue CUMULATIF** : le personnage peut bouger pendant les dialogues
-(dialogues de quetes annexes). IMC_Dialogue s'ajoute par-dessus IMC_Gameplay (priority 1)
-plutot que de le remplacer. Le systeme de distance (dialogue s'arrete si trop loin) est gere
-cote Blueprint (distance check), pas par les inputs.
-
-**Raison pour rejeter IMC_Combat** : le combat est une sous-couche du gameplay, pas un contexte
-d'input distinct. Lock-on, attaques, tout est dans IMC_Gameplay.
-
-**Raison pour rejeter IMC_Swimming/IMC_Climbing** : UE5 gere via CharacterMovement.
-Les inputs restent les memes (IA_Move, IA_Jump), seul le mouvement change en interne.
-
+**Raison** : Voir detail complet dans historique 23/05.
 **Consequences** :
 - IMC_Prototype renomme IMC_Gameplay dans C1-InputsUI
 - OpenRadial : Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
 - CloseRadial : Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
-- IMC_Menu, IMC_Dialogue, IMC_Cutscene : stubs crees maintenant, cables en C4/C7
-- IA_UI_Radial_Open reste dans IMC_Gameplay (doit etre actif en jeu pour ouvrir le radial)
-- IA_UI_Radial_Rotate migre dans IMC_Radial (etait oublie dans la liste initiale)
 
 ### [23/05/2026] IA Radial -- audit noms reels (correction doc)
-**Contexte** : Les noms des IA dans CLAUDE.md et Input_Architecture.md etaient incorrects.
-Audit T3D du PC a revele les vrais noms.
 **Correction** :
 - `IA_UI_RadialMenu_ChangeCat` -> reel : `IA_UI_Radial_ChangeCat`
 - `IA_RadialMenu` -> reel : `IA_UI_Radial_Open`
-- Nouvelle IA identifiee : `IA_UI_Radial_Rotate` (rotation stick, etait absente de la doc)
-**Consequences** : Tous les fichiers doc corriges dans cette session.
-
-### [23/05/2026] ToggleRadial -- architecture open/close separee
-**Contexte** : Audit T3D de ToggleRadial revele :
-- IsValid(RadialMainRef) ? TRUE -> CloseRadial() : FALSE -> OpenRadial()
-- OpenRadial a ErrorType=1 (fonction manquante ou mal nommee -- a verifier en editeur)
-**Decision** : Le swap IMC va dans OpenRadial et CloseRadial, pas dans ToggleRadial.
-**Raison** : Responsabilites claires. ToggleRadial = routeur. Open/Close = logique metier.
-**Consequences** : Verifier/creer OpenRadial avant d'implémenter le swap IMC.
-
-### [21/05/2026] IMC separation initiale -- SUPERSEDE par decision 23/05/2026
-**Note** : La decision initiale d'un IMC_UI generique est remplacee par l'architecture 5 IMC ci-dessus.
+- Nouvelle IA identifiee : `IA_UI_Radial_Rotate`
 
 ### [07/05/2026] Source unique InputActions
 **Decision** : Toutes les IA dans Content/Input/InputActions/ uniquement.
-**Raison** : Eviter la proliferation d'IA dupliquees dans des dossiers divers.
 **Consequences** : Ne jamais creer d'IA en dehors de ce dossier.
 
 ---
 
 ## RADIAL MENU & MAGIE
 
-### [21/05/2026] Architecture Radial Magie -- 2 niveaux imbriques
-**Contexte** : Le radial actuel gere les armes. La magie n'est accessible que via quickslots.
-**Decision** : 2 niveaux pour la magie dans le meme widget UI_Radial_Main :
-- N1 : ecoles de magie (Lumina, Ondine, Ombre, Athanor, Sylphide, Gnome, Salamandre, Dryade)
-- N2 : sorts de l'ecole selectionnee (Attack, Buff, Debuff, Soin)
-**Raison** : Coherent avec le lore (8 deites). Le radial 1 seul niveau serait trop charge avec tous les sorts.
-Navigation B = retour N2->N1, pas fermeture directe.
-**Consequences** : SwitchCategory branche Magic = stub a implementer. PopulateMagicSchools + PopulateMagicSpells a creer.
-Point ouvert : validation N2 = CastSpell ou assignation quickslot ?
+### [23/05/2026] Radial Magie -- decisions actees pour C1-RadialMagie
+**Contexte** : Choix d'architecture pour les 2 niveaux magie du radial.
 
-### [21/05/2026] SelectedIndex radial -- retour sur arme equipee
-**Contexte** : A chaque ouverture du radial Armes, SelectedIndex est remis a 0.
+**Decision 1 -- Validation N2 = CastSpell direct.**
+Raison : L'assignation quickslot se fait hors combat via le menu general uniquement.
+Le radial en combat = acces rapide pour lancer, pas pour organiser.
+Consequences : ValidateSelectedSpell -> CastSpell(SpellID) via MagicComponent. Pas de logique d'assignation dans le radial.
+
+**Decision 2 -- Source de verite ecoles = filtrage UnlockedSpells par ecole.**
+Raison : Les ecoles se debloquent implicitement en apprenant un premier sort.
+Ce modele est coherent avec une progression ou les sorts d'une meme ecole peuvent s'apprendre
+a des niveaux differents (pas forcement tous en meme temps).
+Pas de variable UnlockedSchools separee a maintenir.
+Consequences : PopulateMagicSchools = loop sur UnlockedSpells -> extraire Category -> dedupliquer -> generer slots N1.
+Une ecole disparait automatiquement du radial si tous ses sorts sont retires (cas edge, pas prioritaire).
+
+**Decision 3 -- SelectedIndex arme = dette separee (C1-CleanupDettes).**
+Raison : Fix mineur, ne bloque pas C1-RadialMagie. Sera traite avec LockOnSwitchCooldown PC.
+Consequences : Ajoute a la liste C1-CleanupDettes.
+
+**Point ouvert -- Magie ennemie.**
+Les ennemis magiques utiliseront probablement DT_Spells (ou sous-ensemble) du hero.
+Decision reportee a C2 quand un premier ennemi magique sera concu.
+
+### [21/05/2026] Architecture Radial Magie -- 2 niveaux imbriques
+**Decision** : N1 = ecoles (Lumina, Ondine, Ombre, Athanor, Sylphide, Gnome, Salamandre, Dryade) / N2 = sorts de l'ecole.
+Navigation B = retour N2->N1, pas fermeture directe.
+
+### [21/05/2026] SelectedIndex radial -- retour sur arme equipee (DETTE C1-CleanupDettes)
 **Decision** : SelectedIndex doit pointer sur ChoosenWeapon dans DiscoveredWeapons a l'ouverture.
-**Raison** : UX -- le joueur retrouve directement son arme equipee selectionnee, pas le premier slot.
-**Consequences** : Lookup ChoosenWeapon -> FindIndex dans DiscoveredWeapons a ajouter dans OpenRadialMenu ou PopulateWeaponSlots.
+**Consequences** : Lookup ChoosenWeapon -> FindIndex dans DiscoveredWeapons. A traiter dans C1-CleanupDettes.
 
 ### [13/05/2026] Slow-mo radial -- Time Dilation 0.2
-**Decision** : Time Dilation 0.2 a l'ouverture du radial (pas de pause complete).
-**Raison** : Maintenir la pression du combat. Le joueur prend une decision rapide, pas dans un menu hors-temps.
-**Consequences** : CloseRadialMenu doit toujours restaurer Time Dilation a 1.0.
+**Decision** : Time Dilation 0.2 a l'ouverture. CloseRadialMenu doit toujours restaurer a 1.0.
+
+---
+
+## MAGIE -- PROGRESSION
+
+### [23/05/2026] Montee de niveau des magies -- jalon design dedie
+**Contexte** : Sujet ouvert : montee en puissance des sorts (lineaire simple ou arbre de talent).
+Exemples envisages :
+- Lineaire simple : augmentation puissance/duree selon niveau du sort
+- Arbre de talent : ameliorations specifiques (portee, zone, cout mana reduit...) comme les armes
+**Decision** : Aucune implementation pour l'instant. Creer le jalon C1-MagicProgressionDesign
+(spec uniquement, comme C1-SaveDesign).
+**Raison** : Question de game design non triviale. Merite une session de design dediee avant de coder quoi que ce soit.
+La progression magie doit etre coherente avec la progression armes pour ne pas desequilibrer.
+**Consequences** : C1-MagicProgressionDesign ajoute a la roadmap apres C1-RadialMagie.
+Aucune variable "niveau de sort" a creer avant cette session.
 
 ---
 
 ## GAMEPLAY & NARRATION
 
 ### [23/05/2026] Dialogues quetes annexes -- personnage mobile
-**Contexte** : Reflexion sur le systeme de dialogue. Distinction entre cinematiques (personnage immobile)
-et dialogues de quetes annexes (PNJ dans le monde).
-**Decision** : Le personnage peut se deplacer pendant les dialogues de quetes annexes.
-Comportement envisage (non definitif) : si le joueur s'eloigne trop du PNJ, le dialogue s'interrompt
-et peut etre relance. Implementation via distance check Blueprint, pas via inputs.
-**Raison** : Liberte de mouvement = moins de friction. Coherent avec le style ARPG ouvert.
-**Consequences** : IMC_Dialogue = cumulatif avec IMC_Gameplay (pas de remplacement).
-Distance check a definir lors de C4-DialogueSystem.
-Point ouvert : seuil de distance exact, relance automatique ou manuelle ?
+**Decision** : Personnage mobile pendant les dialogues de quetes annexes.
+IMC_Dialogue = cumulatif avec IMC_Gameplay (priority 1).
+Distance check via Blueprint, pas via inputs. Detail a definir en C4-DialogueSystem.
 
 ---
 
@@ -214,19 +202,14 @@ Point ouvert : seuil de distance exact, relance automatique ou manuelle ?
 ### [07/05/2026] SetStatValue -- unique point de modification
 **Decision** : SetStatValue(StatName, Value) = UNIQUE point de modification de toutes les stats.
 OnStatChanged = dispatcher de notification.
-**Raison** : Centralisation = auditabilite, prevention des modifications concurrentes, UI event-driven triviale.
-**Consequences** : Jamais modifier une stat directement. Passer TOUJOURS par SetStatValue.
+**Consequences** : Jamais modifier une stat directement.
 
 ### [07/05/2026] UI HUD -- zero polling
 **Decision** : UI_HUD_Main entierement event-driven via OnStatChanged. Zero Tick polling.
-**Raison** : Performance + architecture propre. Le HUD ne sait pas quand les stats changent, il reagit.
-**Consequences** : Toute nouvelle stat affichee dans le HUD doit passer par OnStatChanged.
 
 ### [18/05/2026] ComboManager -- HandleAttack sans parametre ChoosenWeapon
-**Contexte** : HandleAttack prenait ChoosenWeapon en parametre.
-**Decision** : Supprimer le parametre. Le ComboManager lit CurrentWeaponID en interne.
-**Raison** : Single source of truth. Le ComboManager gere son propre etat d'arme via InitComboTree.
-**Consequences** : EquipWeapon appelle InitComboTree(WeaponID, WeaponLevel). Aucun appel externe ne passe l'arme a HandleAttack.
+**Decision** : ComboManager lit CurrentWeaponID en interne. Pas de parametre externe.
+**Consequences** : EquipWeapon appelle InitComboTree(WeaponID, WeaponLevel).
 
 ---
 
@@ -234,12 +217,11 @@ OnStatChanged = dispatcher de notification.
 
 ### [11/05/2026] AnimGraph via MCP -- INTERDIT
 **Decision** : Ne jamais creer d'etat AnimGraph via l'outil add_state du MCP.
-**Raison** : add_state produit des shells corrompus non utilisables dans l'editeur.
-**Consequences** : Toute creation d'etat AnimGraph = manuelle dans l'editeur UE5.7. Regle absolue pour l'agent UnrealClaude.
+**Raison** : add_state produit des shells corrompus non utilisables.
+**Consequences** : Toute creation d'etat AnimGraph = manuelle dans l'editeur UE5.7. Regle absolue.
 
 ### [14/05/2026] LevelMin DT_Combo -- valeur 0
 **Decision** : LevelMin = 0 sur toutes les rows DT_Combo (pas 1).
-**Raison** : Le niveau de base est 0. Une valeur 1 excluait les armes non upgradees du combo.
 **Consequences** : Toute nouvelle row DT_Combo doit avoir LevelMin = 0 par defaut.
 
 ---
@@ -247,4 +229,7 @@ OnStatChanged = dispatcher de notification.
 ## Historique
 
 - Creation : 21/05/2026
-- Derniere mise a jour : 23/05/2026 -- architecture ennemis sans WeaponClass, magie ennemie point ouvert
+- 23/05/2026 : architecture IMC, dialogues mobiles, correction noms IA
+- 23/05/2026 : architecture ennemis sans WeaponClass
+- 23/05/2026 : decisions C1-RadialMagie actees (CastSpell direct, filtrage UnlockedSpells, SelectedIndex en dette)
+- 23/05/2026 : jalon C1-MagicProgressionDesign cree (design uniquement)
