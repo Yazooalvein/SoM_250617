@@ -5,7 +5,7 @@ Mis à jour après chaque session de design ou de développement.
 
 ---
 
-## Modules existants (état au 21/05/2026)
+## Modules existants (état au 23/05/2026)
 
 | Module | État | Notes |
 |--------|------|-------|
@@ -29,8 +29,8 @@ Mis à jour après chaque session de design ou de développement.
 | Hero placeholder | ✅ PIE | Mesh Meshy + AccuRIG + retargeting Mannequin |
 | TestBed | ✅ VALIDE PIE | Lvl_TestBed, BP_Enemy_TestBed, SFX placeholder |
 | Collisions capsule | ✅ VALIDE PIE | CapsuleComponent Pawn = Block |
-| Radial menu magie | 🔧 En cours | C1-RadialMagie — 2 niveaux (écoles → sorts) |
-| IMC_UI dédié menus | 🔧 En cours | C1-InputsUI — PRIORITAIRE |
+| IMC dédiés (5 contextes) | ✅ VALIDE PIE | C1-InputsUI complet -- swap OpenRadial/CloseRadial |
+| Radial menu magie | 🔧 À faire | C1-RadialMagie — 2 niveaux (écoles → sorts) |
 
 ---
 
@@ -51,14 +51,14 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
 
 ---
 
-## Ordre de dépendances global (révisé 21/05/2026)
+## Ordre de dépendances global (révisé 23/05/2026)
 
 ```
 [FAIT] J-LockOn -> J-Camera -> J-LockMove -> J-TestBed -> J-ComboFix
   └─> C1-CollisionFix ✅
         └─> C1-HitFeel (partiel : knockback ✅, shake ✅, gamepad ❌, hitstop reporté)
-              └─> C1-InputsUI  ← PROCHAIN
-                    └─> C1-RadialMagie (radial magie 2 niveaux + fix retour arme équipée)
+              └─> C1-InputsUI ✅ VALIDE PIE
+                    └─> C1-RadialMagie (radial magie 2 niveaux + fix retour arme équipée)  ← PROCHAIN
                           └─> C1-CleanupDettes (supprimer LockOnSwitchCooldown PC)
                                 └─> C1-WeaponArchitecture (audit data armes)
                                       └─> C1-SwordMoveset
@@ -68,7 +68,7 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
                                                               └─> C2-SaveGame
                                                                     └─> C1-AnimationsPass1 (fin C1)
 
-C1-SFXCombat : peut démarrer dès C1-CollisionFix terminé
+C1-SFXCombat : peut démarrer dès maintenant
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
 
 C2-EnemyMesh
@@ -90,116 +90,75 @@ C2-EnemyMesh
 ### ✅ C1-CollisionFix — Fix collisions capsule COMPLET VALIDE PIE (18/05/2026)
 
 ### ❌ C1-HitFlashEnemies — ABANDONNE (21/05/2026)
-- Architecture DMI complète mais flash bloqué par M_Mannequin engine (read-only runtime)
-- Décision : CS_EnemyDeath (screen shake) + animation dédiée suffisent pour le feedback
+- Décision : CS_EnemyDeath (screen shake) + animation dédiée suffisent
 
 ### 🔧 C1-HitFeel — Feedback physique des coups (partiel)
-- [x] Knockback : LaunchCharacter sur l'ennemi touché VALIDE PIE
-- [x] Screen shake polish : CS_HitReceived + CS_EnemyDeath VALIDES PIE
-- [ ] Vibration gamepad : hits reçus + mort (standard)
+- [x] Knockback VALIDE PIE
+- [x] Screen shake VALIDE PIE
+- [ ] Vibration gamepad
 - [ ] Hitstop : reporté après C2-EnemyMesh + C1-SFXCombat
 
-### C1-InputsUI — IMC dédié pour les menus ← PRIORITAIRE
-- [ ] Créer IMC_UI séparé (inputs menus séparés des inputs gameplay)
-- [ ] Migrer : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat
-- [ ] Nettoyer IMC_Prototype (inputs gameplay uniquement)
-- [ ] Tester switch context gameplay <-> menu (source classique de bugs gamepad)
-- [ ] Vérifier que le radial désactive IMC_Prototype et active IMC_UI à l'ouverture
-- ⚠️ Prérequis pour C1-RadialMagie
+### ✅ C1-InputsUI — IMC dédiés COMPLET VALIDE PIE (23/05/2026)
+- [x] IMC_Gameplay (ex IMC_Prototype) : charge au ReceivePossessed HeroCharacter
+- [x] IMC_Radial : 4 IA, swap dans OpenRadial/CloseRadial
+- [x] Stubs vides : IMC_Menu (C7), IMC_Dialogue (C4), IMC_Cutscene (C3)
+- [x] Fix rotation : trigger Pressed threshold 0.5 + Modifier Negate X direction gauche
+- [x] Tests PIE : gameplay bloqué pendant radial, repris après fermeture
 
-### C1-RadialMagie — Radial magie 2 niveaux + fix arme équipée
-- [ ] Fix SelectedIndex à l'ouverture : retourner sur ChoosenWeapon (lookup DiscoveredWeapons) au lieu de 0
-- [ ] ERadialMode : vérifier/ajouter valeurs MagicSchool si nécessaire
-- [ ] PopulateMagicSchools : lit les écoles disponibles depuis BP_MagicComponent (UnlockedSpells groupés par école)
-- [ ] Câbler branche Magic de SwitchCategory : remplacer stub PrintVar par PopulateMagicSchools
+### C1-RadialMagie — Radial magie 2 niveaux + fix arme équipée ← PROCHAIN
+- [ ] Fix SelectedIndex : retourner sur ChoosenWeapon (lookup DiscoveredWeapons) au lieu de 0
+- [ ] PopulateMagicSchools : lit écoles depuis BP_MagicComponent
+- [ ] Câbler branche Magic de SwitchCategory (remplacer stub PrintVar)
 - [ ] Sélection école → PopulateMagicSpells(SchoolID) → slots N2
-- [ ] ValidateSelectedSpell : CastSpell ou assignation quickslot selon contexte
+- [ ] ValidateSelectedSpell : CastSpell ou assignation quickslot
 - [ ] Navigation retour (B) : N2 → N1, N1 → fermer
-- [ ] Voir Docs/Architecture/RadialMenu_Architecture.md pour détails techniques
-- ⚠️ Nécessite C1-InputsUI
+- [ ] Voir Docs/Architecture/RadialMenu_Architecture.md
+- ⚠️ Nécessite C1-InputsUI ✅
 
 ### C1-CleanupDettes — Nettoyage dettes mineures (presque fini)
 - [x] Fix TargetActor espace dans UI_LockOnIndicator
 - [x] ZOrder=10 sur AddToViewport indicateur lock-on
 - [x] Supprimer BT_TestBed et BB_TestBed
-- [ ] Supprimer LockOnSwitchCooldown du PC (redondant avec SwitchCooldown du BP_CombatLockOnComponent)
-      -> Vérifier que tout le code qui lisait LockOnSwitchCooldown pointe sur Component->SwitchCooldown
+- [ ] Supprimer LockOnSwitchCooldown du PC (redondant avec Component->SwitchCooldown)
 
 ### C1-WeaponArchitecture — Audit & décision structure data armes
 - [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData
 - [ ] Décision BP_WeaponType_Base (classe mère abstraite par TYPE)
-- [ ] Vérifier champs forge (tier, matériaux, unlock condition) dans FWeaponData
-- [ ] Vérifier champs talents (TalentTree ref) dans FWeaponData
+- [ ] Vérifier champs forge + talents dans FWeaponData
 - [ ] Doc de décision
 - ⚠️ Conditionne C1-SwordMoveset, C1-BowPOC, C5-ForgeSystem, C5-TalentTree
 
 ### C1-SwordMoveset — Moveset épée complet
 - [ ] Combo 3 coups légers, finisseur, coup chargé (heavy)
-- [ ] RotateTowardLockTarget du ComboManager vérifié/câblé avec lock-on
-- [ ] Feedback visuel combat : flash arme, posture
+- [ ] RotateTowardLockTarget câblé avec lock-on
 - [ ] Épée Mana placeholder
-- ⚠️ Nécessite C1-WeaponArchitecture validé
+- ⚠️ Nécessite C1-WeaponArchitecture
 
-### C1-SaveDesign — Session design : système respawn & sauvegarde
-- [ ] Modèle de respawn : sanctuaires DS / checkpoints Seiken-KH / hybride
-- [ ] Ce qui est sauvegardé : stats, armes débloquées, sorts, flags narratifs, position
-- [ ] Granularité : auto-save + save manuel ? Save slots ?
-- [ ] Implications game feel : pénalité mort ? Récupération XP/items ?
-- [ ] Livrable : spec SaveGame.md dans Docs/Architecture/
+### C1-SaveDesign — Session design respawn & sauvegarde
+- [ ] Modèle respawn, ce qui est sauvegardé, granularité
+- [ ] Livrable : spec SaveGame.md
 
 ### C1-BowPOC — Arc POC
-- [ ] Munitions illimitées
-- [ ] Système de visée (lock-on oriente la flèche, visée libre sans lock)
-- [ ] Projectile BP, charge optionnelle
-- ⚠️ Nécessite C1-WeaponArchitecture validé
+- [ ] Munitions illimitées, visée, projectile
+- ⚠️ Nécessite C1-WeaponArchitecture
 
 ### C1-WeaponSwitching — Switching d'armes en combat
-- [ ] Switching via radial menu en combat
-- [ ] Conservation ou reset combo au switch ?
-- [ ] Transition animations entre types d'armes
+- [ ] Via radial, conservation ou reset combo ?
 
 ### C1-SFXCombat — Sons de combat de base
-- [ ] Attaques (léger, fort, finisseur), esquive, dash, dégâts reçus, mort joueur + ennemi
-- [ ] Sons UI : radial menu, quickslot, validation
-- [ ] Sources : packs libres de droits (Free Realistic Sword SFX, 50 Free Game Sounds)
-- Peut démarrer dès maintenant (C1-CollisionFix terminé)
+- [ ] Attaques, esquive, dégâts, mort, sons UI
+- Peut démarrer maintenant
 
 ### C1-AnimationsPass1 — Premier pass animations (fin de Couche 1)
-- [ ] Animations strafe gauche/droite distinctes
-- [ ] Roll sans Root Motion en lock-on : LaunchCharacter + animation visuelle
+- [ ] Strafe gauche/droite distincts
+- [ ] Roll sans Root Motion en lock-on
 - [ ] Rename ABP_Manny_Platforming -> ABP_Hero
-- [ ] Consolidation animations en double
-- [ ] Animations de transition (idle -> combat, switch arme)
-- ⚠️ Fix roll en lock-on (dette J-LockMove2) inclus ici
 
 ---
 
 ## COUCHE 2 — Combat & Ennemis
 
-### C2-SaveGame — Implémentation SaveGame
-- [ ] BP_SoM_SaveGame (hérite USaveGame)
-- [ ] Stats joueur, armes débloquées, sorts débloqués
-- [ ] Progression hub, flags narratifs
-- [ ] Système respawn selon spec C1-SaveDesign
-- ⚠️ Nécessite C1-SaveDesign validé
-
-### C2-EnemyMesh — Mesh ennemis POC
-- [ ] Workflow Meshy/AccuRIG pour ennemis
-- [ ] Knight ennemi avec vrai mesh (BP_Enemy_Knight)
-- [ ] WeaponClass dans BP_Enemy_Base rendu générique
-- [ ] Au moins 2 types visuels distincts
-
-### C2-EnemyAI — Révision IA ennemie
-- [ ] Révision comportements (aggro, patrouille, désengagement)
-- [ ] IA par type d'arme
-- [ ] Hitbox précises par type d'attaque
-
-### C2-EnemyTypes — Nouveaux types ennemis
-- [ ] Archer, Mage, Colosse
-
-### C2-Boss1 — Premier boss POC
-- [ ] Boss Acte 1, 2 phases, attaques spéciales + tells visuels
-- [ ] Caméra boss dédiée, musique boss dédiée
+### C2-SaveGame / C2-EnemyMesh / C2-EnemyAI / C2-EnemyTypes / C2-Boss1
 
 ---
 
@@ -280,4 +239,5 @@ C2-EnemyMesh
 - Création : 11/05/2026
 - Refonte complète : 14/05/2026
 - Resynchro complète : 18/05/2026
-- MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé, CleanupDettes partiel, ordre jalons révisé
+- MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé
+- MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
