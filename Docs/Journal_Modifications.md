@@ -209,57 +209,65 @@ Suivi precis de toutes les evolutions majeures du projet.
 ---
 
 ### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE
-
-#### Architecture DMI BP_Enemy_Base
-- Variable HitFlashDMIs : Array<Material Instance Dynamic>
-- BeginPlay : GetMaterial -> CreateDMI -> ADD
-- TriggerHitFlash(ScalarValue) : SetScalarParameterValue("HitFlashAmount")
-- ReceiveDamage : TriggerHitFlash(1.0) -> Delay 0.12s -> TriggerHitFlash(0.0)
-
-#### Blocage M_Mannequin
-- M_Mannequin = material Engine partage, read-only en runtime -> flash invisible
-- Solution identifiee : dupliquer en M_Enemy_Base
+- Architecture DMI BP_Enemy_Base (HitFlashDMIs, TriggerHitFlash)
+- Blocage M_Mannequin (material Engine read-only runtime)
 
 ---
 
 ### 21/05/2026 -- Session design & documentation
+- C1-HitFlashEnemies ABANDONNE (screen shake suffit)
+- C1-CleanupDettes : 3/4 resolus, reste LockOnSwitchCooldown PC
+- C1-InputsUI declare PRIORITAIRE
+- Nouveau jalon C1-RadialMagie formalise
+- Decisions.md cree (centralisation des decisions archi)
+- CLAUDE.md : references docs + regles de maintenance
 
-#### C1-HitFlashEnemies ABANDONNE
-- Decision : le flash visuel n'est pas necessaire
-- CS_EnemyDeath (screen shake) + animation dediee suffisent pour le feedback
-- Architecture DMI conservee dans le code mais non utilisee
+---
 
-#### C1-CleanupDettes -- 3 points sur 4 resolus
-- TargetActor espace dans UI_LockOnIndicator : CORRIGE
-- ZOrder=10 sur AddToViewport indicateur lock-on : CORRIGE
-- BT_TestBed + BB_TestBed : SUPPRIMES
-- Reste : supprimer LockOnSwitchCooldown du PC (redondant avec SwitchCooldown du Component)
-  Decision : source de verite = SwitchCooldown dans BP_CombatLockOnComponent
+### 23/05/2026 -- Session design -- Architecture IMC complete
 
-#### C1-InputsUI -- PRIORITAIRE
-- IMC_Prototype trop chargee : inputs gameplay actifs pendant le radial
-- Decision : creer IMC_UI dedie, migrer IA_UI_Radial_Cancel / IA_validate_radial_selection / IA_UI_RadialMenu_ChangeCat
-- Prioritaire avant C1-RadialMagie (le radial doit switcher d'IMC proprement)
+#### Contexte
+Refonte architecture inputs avant implementation C1-InputsUI.
+Question posee : 2 IMC generiques ou IMC par contexte metier ?
 
-#### Nouveau jalon : C1-RadialMagie
-- Architecture 3 niveaux :
-  - Armes : 1 radial (existant, fix retour arme equipee)
-  - Magie N1 : ecoles (Ondine, Ombre, Athanor, Lumina...) -- PopulateMagicSchools a creer
-  - Magie N2 : sorts de l'ecole selectionnee -- PopulateMagicSpells(SchoolID) a creer
-- SwitchCategory : branche Weapons valide PIE, branche Magic = stub PrintVar a implementer
-- Fix SelectedIndex : retour sur arme equipee (lookup ChoosenWeapon dans DiscoveredWeapons) au lieu de 0 hardcode
-- Audit T3D SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons")
-  Apres VariableSet_1 (Weapons) : PopulateWeaponSlots -> SelectedIndex=0 -> TargetRotation=0 -> CurrentRotation=0
-  Apres VariableSet_0 (Magic) : stub MacroInstance PrintVar "PASSAGE EN MAGIC" (then deconnecte)
+#### Decision : 5 IMC distincts (voir Decisions.md + Input_Architecture.md)
+- `IMC_Gameplay` : tout le gameplay, exclusif, base permanente
+- `IMC_Radial` : 4 IA navigation radial, exclusif (remplace Gameplay)
+- `IMC_Menu` : Navigate/Confirm/Back, exclusif (pause, mort, main menu) -- stub
+- `IMC_Dialogue` : Confirm/Avance/Choix, CUMULATIF avec Gameplay -- stub
+- `IMC_Cutscene` : IA_Skip, exclusif, Level Sequence -- stub
+
+#### Decisions cles
+- IMC_Dialogue = SEUL IMC cumulatif : personnage mobile pendant dialogues quetes annexes
+  Distance check Blueprint si trop loin (seuil defini en C4-DialogueSystem)
+- Cinematiques = Level Sequence uniquement (pas de video precalculee)
+  -> IMC_Cutscene reste pertinent (IA_Skip -> SequencePlayer->Stop)
+- Pas d'IMC_Combat, pas d'IMC_Swimming/Climbing (inutiles)
+- IMC_Forge et IMC_Map : points ouverts (C5/C3)
+
+#### Corrections noms IA (audit T3D PC)
+- IA_UI_RadialMenu_ChangeCat -> reel : IA_UI_Radial_ChangeCat
+- IA_RadialMenu -> reel : IA_UI_Radial_Open
+- Nouvelle IA identifiee : IA_UI_Radial_Rotate (absente de la doc)
+- Total IA a migrer vers IMC_Radial : 4 (pas 3)
+
+#### Audit ToggleRadial T3D
+- IsValid(RadialMainRef) ? TRUE -> CloseRadial : FALSE -> OpenRadial
+- OpenRadial a ErrorType=1 (a verifier en editeur avant implementation)
+- Swap IMC ira dans OpenRadial et CloseRadial
+
+#### Docs mises a jour
+- Decisions.md : decisions IMC + dialogues mobiles + corrections noms IA
+- Input_Architecture.md : refonte complete, 5 IMC, plan implementation final
 
 ---
 
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
-Pour le design UI/HUD/Menu : voir Docs/Architecture/UI_GlobalMenu.md
+Pour les decisions architecturales : voir Docs/Architecture/Decisions.md
+Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
 Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
-Pour les inputs : voir Docs/Architecture/Input_Architecture.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 21/05/2026
+- Derniere mise a jour : 23/05/2026
