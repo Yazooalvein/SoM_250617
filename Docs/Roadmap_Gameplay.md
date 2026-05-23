@@ -70,6 +70,7 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
                                                                           └─> C1-AnimationsPass1 (fin C1)
 
 C1-SFXCombat : peut démarrer dès maintenant
+C1-MagicUnlockSystem : après C1-MagicProgressionDesign
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
 
 C2-EnemyMesh
@@ -111,15 +112,20 @@ C2-EnemyMesh
 - Validation N2 = CastSpell direct (assignation quickslot = menu général hors combat)
 - Source écoles = filtrage UnlockedSpells par Category (pas de variable UnlockedSchools)
 - SelectedIndex arme au retour = reporté en C1-CleanupDettes
+- UnlockedSpells alimenté par stub test au BeginPlay de BP_MagicComponent (dette C1-MagicUnlockSystem)
+- Icônes déités/sorts = placeholder null pour PIE (session ART-MagicIcons à planifier)
 
 **Tâches :**
-- [ ] PopulateMagicSchools : loop UnlockedSpells -> extract Category -> dedup -> slots N1
-- [ ] Câbler branche Magic de SwitchCategory (remplacer stub PrintVar)
-- [ ] Sélection école + confirmer A -> PopulateMagicSpells(SchoolID) -> slots N2
-- [ ] ValidateSelectedSpell : CastSpell(SpellID) via MagicComponent -> CloseRadial
-- [ ] Navigation retour B : N2 -> N1, N1 -> fermer
-- [ ] Variable CurrentMagicSchool (FName) dans UI_Radial_Main : ecole selectionnee en N1
-- [ ] Text_Category : afficher "MAGIE - [NomEcole]" en N2, "MAGIE" en N1
+- [x] Variable CurrentMagicSchool (FName) dans UI_Radial_Main
+- [x] Variable MagicComponentRef + injection depuis OpenRadial (PC)
+- [x] PopulateMagicSchools complet
+- [x] PopulateMagicSpells(SchoolID) complet
+- [x] SwitchCategory branche Magic câblée
+- [ ] Stub BeginPlay BP_MagicComponent : Map Add("Lumina", SpellIDs Lumina x4)
+- [ ] Reset SelectedIndex=0 + TargetRotation=0 + CurrentRotation=0 côté Magic dans SwitchCategory
+- [ ] ValidateSelection (routeur A) : Weapons / Magic N1 -> PopulateMagicSpells / Magic N2 -> CastSpell + CloseRadial
+- [ ] Navigation retour B : N2 -> PopulateMagicSchools + CurrentMagicSchool=None / N1 -> CloseRadial
+- [ ] Text_Category : "MAGIE" en N1, "MAGIE - [NomEcole]" en N2
 - ⚠️ Nécessite C1-InputsUI ✅
 
 ### C1-MagicProgressionDesign — Session design progression des sorts
@@ -128,6 +134,13 @@ C2-EnemyMesh
 - [ ] Décider si les ennemis magiques partagent DT_Spells du hero ou sous-ensemble dédié
 - [ ] Livrable : spec MagicProgression.md
 - ⚠️ Aucune implémentation avant cette session
+
+### C1-MagicUnlockSystem — Système de déblocage de sorts
+- [ ] Fonction UnlockSpell(SchoolID, SpellID) sur BP_MagicComponent
+- [ ] Chaque sort/école appris passe par cette fonction (pas en dur dans BeginPlay)
+- [ ] Retirer le stub test BeginPlay de BP_MagicComponent
+- [ ] Chaque nouvelle école = nouveau DT_Spells dédié + rows enregistrées via UnlockSpell
+- ⚠️ Après C1-MagicProgressionDesign
 
 ### C1-CleanupDettes — Nettoyage dettes mineures (presque fini)
 - [x] Fix TargetActor espace dans UI_LockOnIndicator
@@ -226,6 +239,7 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 | ART-Hero | LODs + correction 6 doigts + sockets (retopo 246K -> 10-15K) |
 | ART-Enemies | Meshes ennemis (Knight + 1-2 types) |
 | ART-Weapons | Assets armes (Sword_01, 2HSword_01, Arc_01...) |
+| ART-MagicIcons | Icônes déités (8 écoles) + icônes sorts — placeholder null en PIE jusqu'alors |
 | ART-NPC | Lumina, Luna, Athanor placeholders |
 | MAP-Test/Hub/Start | Maps terrain UE5 |
 | MUS-1/2/3 | Thèmes musicaux (workflow Suno établi) |
@@ -261,3 +275,4 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 - MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé
 - MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
 - MAJ 23/05/2026 : décisions C1-RadialMagie actées, C1-MagicProgressionDesign ajouté, SelectedIndex en C1-CleanupDettes
+- MAJ 23/05/2026 : ART-MagicIcons ajouté, C1-MagicUnlockSystem ajouté, tâches C1-RadialMagie mises à jour
