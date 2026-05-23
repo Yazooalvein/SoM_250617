@@ -176,15 +176,26 @@ Navigation B = retour N2->N1, pas fermeture directe.
 
 ### [23/05/2026] Montee de niveau des magies -- jalon design dedie
 **Contexte** : Sujet ouvert : montee en puissance des sorts (lineaire simple ou arbre de talent).
-Exemples envisages :
-- Lineaire simple : augmentation puissance/duree selon niveau du sort
-- Arbre de talent : ameliorations specifiques (portee, zone, cout mana reduit...) comme les armes
-**Decision** : Aucune implementation pour l'instant. Creer le jalon C1-MagicProgressionDesign
-(spec uniquement, comme C1-SaveDesign).
+**Decision** : Aucune implementation pour l'instant. Creer le jalon C1-MagicProgressionDesign (spec uniquement).
 **Raison** : Question de game design non triviale. Merite une session de design dediee avant de coder quoi que ce soit.
-La progression magie doit etre coherente avec la progression armes pour ne pas desequilibrer.
 **Consequences** : C1-MagicProgressionDesign ajoute a la roadmap apres C1-RadialMagie.
 Aucune variable "niveau de sort" a creer avant cette session.
+
+### [23/05/2026] UnlockedSpells -- stub test BeginPlay + dette systeme de deblocage
+**Contexte** : UnlockedSpells (TMap<FName, FSoM_DeitySpells> sur BP_MagicComponent) n'est jamais alimente
+au runtime. Les sorts Lumina existent dans DT_Spells mais aucun systeme ne les debloque.
+Pour valider C1-RadialMagie en PIE, il faut que le radial ait des donnees a afficher.
+**Decision** : Ajouter un remplissage test au BeginPlay de BP_MagicComponent :
+  - Key = "Lumina", Value = FSoM_DeitySpells{ SpellIDs = ["Lumina_Heal", "Lumina_Attack", "Lumina_Buff", "Lumina_Debuff"] }
+Ce stub est temporaire et sera retire quand le vrai systeme de deblocage existera.
+**Raison** : Pragmatisme -- valider le radial sans attendre C1-MagicProgressionDesign.
+**Consequences -- DETTE (C1-MagicUnlockSystem)** :
+- Creer un systeme de deblocage de sorts (appel a une fonction UnlockSpell(SchoolID, SpellID) sur MagicComponent)
+- Chaque nouvelle ecole ou sort appris doit passer par cette fonction
+- Si de nouvelles ecoles sont creees (Ondine, Ombre...), elles doivent avoir leur DT_Spells dedie
+  ET leurs SpellIDs doivent etre enregistres via UnlockSpell -- pas en dur dans BeginPlay
+- Retirer le stub BeginPlay test quand UnlockSpell est opere en jeu
+- Ce jalon C1-MagicUnlockSystem est a planifier apres C1-MagicProgressionDesign
 
 ---
 
@@ -233,3 +244,4 @@ OnStatChanged = dispatcher de notification.
 - 23/05/2026 : architecture ennemis sans WeaponClass
 - 23/05/2026 : decisions C1-RadialMagie actees (CastSpell direct, filtrage UnlockedSpells, SelectedIndex en dette)
 - 23/05/2026 : jalon C1-MagicProgressionDesign cree (design uniquement)
+- 23/05/2026 : stub test UnlockedSpells BeginPlay + dette C1-MagicUnlockSystem
