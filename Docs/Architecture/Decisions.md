@@ -34,6 +34,28 @@ Reference Dark Souls : le feedback vient du son + animation stagger, pas d'un hi
 
 ---
 
+## ENNEMIS
+
+### [23/05/2026] WeaponClass ennemi -- ABANDONNE, arme integree par ennemi
+**Contexte** : BP_Enemy_Base avait une variable WeaponClass (hardcode BP_Enemy_Sword01)
+prevue pour gerer les armes des ennemis via un systeme similaire au hero.
+**Decision** : Supprimer toute notion de WeaponClass / systeme d'arme generique sur les ennemis.
+Chaque ennemi a ses attaques et comportements integres directement dans son Blueprint child.
+Pas de child BP dedie a la gestion d'arme.
+**Raison** : Les ennemis dans SoM ne sont pas des clones du hero. Chaque type d'ennemi a une
+identite combat propre (slime, chevalier, dragon...). Un systeme generique WeaponClass ajoute
+de la complexite inutile. L'arme visuelle (mesh) est une partie du mesh ennemi ou un composant
+statique sans logique separee.
+**Consequences** :
+- Supprimer WeaponClass de BP_Enemy_Base dans C2-EnemyMesh (ou des que touche)
+- Pas de DT_Weapons cote ennemi, pas de ComboManager cote ennemi
+- La dette "WeaponClass hardcode BP_Enemy_Sword01 (C2-EnemyMesh)" est CLOTUREE par cette decision
+**Point ouvert** : Magie ennemie -- les ennemis capables de magie s'appuieront probablement
+sur le meme referentiel que les sorts apprenables par le hero (meme DT_Spells ou sous-ensemble).
+Decision reportee a C2 quand un premier ennemi magique sera concu.
+
+---
+
 ## LOCK-ON
 
 ### [21/05/2026] Cooldown switch cible -- source de verite = Component
@@ -225,4 +247,4 @@ OnStatChanged = dispatcher de notification.
 ## Historique
 
 - Creation : 21/05/2026
-- Derniere mise a jour : 23/05/2026 -- architecture IMC complete, dialogues mobiles, correction noms IA
+- Derniere mise a jour : 23/05/2026 -- architecture ennemis sans WeaponClass, magie ennemie point ouvert
