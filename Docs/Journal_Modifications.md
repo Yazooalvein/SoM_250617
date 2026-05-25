@@ -5,6 +5,41 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
+
+#### Nouveaux assets data layer
+- E_SpellTier (enum) : Base / TreeActive / TreeEvolution / Ultime
+- E_NodeType (enum) : Active / Passive / Ultime
+- FSoM_TalentNode (struct) : NodeID, DeityID, NodeType, SpellID, PassiveStat, PassiveValue, PointCost, Prerequisites
+- FSoM_DeityData (struct) : DeityID, DeityName, Icon, UnlockOrder, BaseSpells
+- FSoM_SpellData : SpellTier (E_SpellTier) + ReplacesSpellID (Name) ajoutes
+- DT_Deities : row Lumina (UnlockOrder=1, BaseSpells=[Lumina_Attack, Lumina_Heal, Lumina_Buff, Lumina_Debuff], Icon placeholder)
+- DT_TalentNodes : cree vide, pret pour C1-MagicTreeModule
+- Convention BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
+
+#### BP_MagicComponent -- UnlockDeity refactore
+- Avant : TempSpellsIDs hardcode en default value -> mode dummy
+- Apres : GetDataTableRow(DT_Deities, DeityName) -> BaseSpells -> Set Members in FSoM_DeitySpells
+- TempSpellsIDs supprime
+- Bug resolu : logique Map_Contains inversee (TRUE=deja present->return, FALSE=absent->debloquer)
+
+#### UI_Radial_Main -- PopulateMagicSchools refactore
+- Avant : Conv_NameToText(Map Key) -> DisplayName, Icon null
+- Apres : GetDataTableRow(DT_Deities, Map Key) -> DeityData.DeityName + DeityData.Icon -> MakeStruct
+- Icone deite reelle affichee dans le radial N1
+
+#### Tests valides PIE
+- Radial N1 (Deity) : icone Lumina affichee, DeityName = "Lumina"
+- Radial N2 (Spell) : 4 sorts Lumina accessibles, CastSpell fonctionnel
+
+#### Dettes
+- Stub BeginPlay Lumina : toujours present, a retirer quand C1-MagicUnlockSystem opere en jeu
+
+#### Etat final
+Sortie du mode dummy magie. Data layer deites complet et data-driven. Prochain jalon : C1-MagicUnlockSystem.
+
+---
+
 ### 25/05/2026 -- Session design + outils IA
 
 #### C1-MagicProgressionDesign -- DESIGN VALIDE
