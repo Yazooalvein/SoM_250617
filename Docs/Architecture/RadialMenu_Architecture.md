@@ -8,40 +8,49 @@ Systeme de menu radial unifie (Armes + Magie) :
 - Navigation circulaire dynamique, plateau tournant, curseur fixe a 12h
 - Slow-mo a l'ouverture (Time Dilation 0.2)
 - Armes : 1 radial
-- Magie : 2 niveaux (Ecole -> Sort)
+- Magie : 2 niveaux (Ecole/Deity -> Sort/Spell)
 - Data-driven via FSoM_RadialSlotData (generique, non lie a DT_Weapons)
-- Support gamepad (stick G/D = rotation, stick H/B = categorie, A = confirmer, B = retour)
+- Support gamepad (stick G/D = rotation, ChangeCat = switch categorie, A = confirmer, B = retour)
 
 ---
 
-## ETAT ACTUEL (23/05/2026)
+## ETAT ACTUEL (25/05/2026) -- VALIDE PIE
 
 ### Radial Armes -- VALIDE PIE
 - PopulateWeaponSlots : lit DiscoveredWeapons -> lookup DT_Weapons -> FSoM_RadialSlotData
-- SwitchCategory branche Weapons : valide PIE
+- SwitchCategory : toggle Weapons <-> Deity
 - ValidateSelectedWeapon : EquipWeapon(SlotID) -> CloseRadial
 - Dette : SelectedIndex remis a 0 a chaque ouverture -> doit retourner sur ChoosenWeapon (C1-CleanupDettes)
 
-### Radial Magie -- A IMPLEMENTER (C1-RadialMagie)
-- SwitchCategory branche Magic : stub PrintVar "PASSAGE EN MAGIC" (then deconnecte -- a remplacer)
-- Decisions actees (23/05/2026) :
-  - Validation N2 = CastSpell direct (pas d'assignation quickslot dans le radial)
-  - Source ecoles = filtrage UnlockedSpells par Category (pas de variable UnlockedSchools)
-  - SelectedIndex arme = dette C1-CleanupDettes
+### Radial Magie -- VALIDE PIE (C1-RadialMagie complete 25/05/2026)
+- N1 (Deity) : PopulateMagicSchools -- loop UnlockedSpells -> slots par ecole
+- N2 (Spell) : PopulateMagicSpells(SchoolID) -- loop SpellIDs de la deity selectionnee
+- ValidateRadial (fonction dediee sur PC) : route selon CurrentCategory
+  - Weapons -> ValidateSelectedWeapon
+  - Deity -> capture TempSchoolID -> SET CurrentCategory=Spell -> resets -> PopulateMagicSpells(TempSchoolID)
+  - Spell -> capture TempSpellID -> CastSpell(TempSpellID) -> CloseRadial
+- SwitchCategory 3 branches : Weapons->Deity, Deity->Weapons, Spell->Deity
+- Cancel B : Spell->Deity (PopulateMagicSchools) / Deity->CloseRadial
+- Rotation slots fonctionnelle en Weapons, Deity et Spell
+
+### Dettes restantes (non bloquantes)
+- Text_Category : "MAGIE" en N1, "MAGIE - [NomEcole]" en N2 (pas implemente)
+- Icones deites/sorts : placeholder null -> ART-MagicIcons
+- SelectedIndex radial : retour sur ChoosenWeapon -> C1-CleanupDettes
 
 ### Ancienne architecture -- DECONNECTEE
 - UI_RadialMenu + UI_RadialSlot_OLD : presents mais deconnectes depuis 12/05/2026
-- A supprimer une fois C1-RadialMagie valide
+- A supprimer une fois C1-RadialMagie valide (maintenant fait)
 
 ---
 
 ## Composants principaux
 
-- `ERadialMode` (enum) : Weapons / Magic (NewEnumerator0 / NewEnumerator1)
+- `ERadialMode` (enum) : Weapons / Deity / Spell (NewEnumerator0 / NewEnumerator1 / NewEnumerator2)
 - `FSoM_RadialSlotData` (struct) : SlotID, DisplayName, Description, Icon, Category, StatA/B/C
 - `UI_RadialSlot` (widget 80x80) : slot generique avec SetSelected + SetSlotData
 - `UI_Radial_Main` (widget principal) : generation Cos/Sin, navigation, categories
-- `BP_SoM_PlayerController` : Open/Close + Time Dilation
+- `BP_SoM_PlayerController` : Open/Close + Time Dilation + ValidateRadial
 
 ---
 
@@ -49,104 +58,91 @@ Systeme de menu radial unifie (Armes + Magie) :
 
 ```
 Content/UI/Widgets/RadialMenu/
-├── ERadialMode.uasset
+├── ERadialMode.uasset                <- 3 valeurs : Weapons / Deity / Spell
 ├── FSoM_RadialSlotData.uasset
-├── UI_RadialSlot.uasset         <- slot generique
-├── UI_RadialSlot_OLD.uasset     <- ancien slot (deconnecte, a supprimer apres C1-RadialMagie)
-├── UI_RadialMenu.uasset         <- ancien radial (deconnecte, a supprimer apres C1-RadialMagie)
-└── UI_Radial_Main.uasset        <- radial principal actif
+├── UI_RadialSlot.uasset              <- slot generique
+├── UI_RadialSlot_OLD.uasset          <- ancien slot (deconnecte, a supprimer)
+├── UI_RadialMenu.uasset              <- ancien radial (deconnecte, a supprimer)
+└── UI_Radial_Main.uasset             <- radial principal actif
+
+Content/Systems/Magic/Data/
+├── FSoM_DeitySpells.uasset           <- struct { SpellIDs: Array<Name> }
+Content/Systems/Magic/Core/
+├── BP_MagicComponent.uasset          <- UnlockedSpells, UnlockDeity, CastSpell
 ```
 
 ---
 
-## SwitchCategory -- analyse T3D (21/05/2026)
-
-Flow complet de la fonction SwitchCategory(Direction: int) :
+## SwitchCategory -- logique finale (25/05/2026)
 
 ```
 Entry
   |
   v
-Branch (CurrentCategory == "Weapons" via Conv_ByteToString + EqualEqual_StriStri)
+Branch (CurrentCategory == Weapons)
   |
-  |-- TRUE (on est en Weapons, on passe en Magic)
-  |     SET CurrentCategory = NewEnumerator1 (Magic)
-  |     --> stub MacroInstance PrintVar "PASSAGE EN MAGIC" (then deconnecte -- a remplacer)
+  |-- TRUE -> SET CurrentCategory = Deity
+  |           PopulateMagicSchools
+  |           SET SelectedIndex=0 / TargetRotation=0 / CurrentRotation=0
   |
-  |-- FALSE (on est en Magic, on passe en Weapons)
-        SET CurrentCategory = NewEnumerator0 (Weapons)
-        PopulateWeaponSlots
-        SET SelectedIndex = 0  <- dette C1-CleanupDettes : doit etre index de ChoosenWeapon
-        SET TargetRotation = 0
-        SET CurrentRotation = 0
-
-  Puis 2e Branch (CurrentCategory == "Weapons" apres le set)
-    TRUE  -> appel PopulateWeaponSlots + reset SelectedIndex/Rotations
-    FALSE -> stub PrintVar (Magic)
+  |-- FALSE -> Branch (CurrentCategory == Deity)
+                |
+                |-- TRUE  -> SET CurrentCategory = Weapons
+                |            PopulateWeaponSlots
+                |            SET SelectedIndex=0 / TargetRotation=0 / CurrentRotation=0
+                |
+                |-- FALSE (Spell) -> SET CurrentCategory = Deity
+                                     PopulateMagicSchools
+                                     SET SelectedIndex=0 / TargetRotation=0 / CurrentRotation=0
 ```
-
-Note : la comparaison passe par Conv_ByteToString car ERadialMode est un UserDefinedEnum stocke en byte.
 
 ---
 
-## Architecture Radial Magie (C1-RadialMagie)
+## ValidateRadial -- logique finale (25/05/2026)
+
+Fonction dediee sur BP_SoM_PlayerController (pas dans l'EventGraph).
+Variables locales : TempSchoolID (FName), TempSpellID (FName).
 
 ```
-Triangle (ouvre/ferme)
-  |
-  v
-UI_Radial_Main
-  |
-  |-- SwitchCategory -> Weapons : PopulateWeaponSlots (existant)
-  |                               SelectedIndex = index de ChoosenWeapon (dette C1-CleanupDettes)
-  |
-  └-- SwitchCategory -> Magic
-        |
-        v
-      PopulateMagicSchools (a creer)
-        Acces : BP_SoM_PlayerController -> PlayerCharacterRef -> MagicComponent -> UnlockedSpells
-        Loop sur UnlockedSpells -> Extract SpellCategory -> Dedup -> MakeFSoM_RadialSlotData
-        Genere slots N1 (une case = une ecole)
-        SET CurrentMagicSchool = "" (reset)
-        |
-        v (selection d'une ecole + confirmer A / IA_UI_Radial_Validate)
-      PopulateMagicSpells(SchoolID: FName) (a creer)
-        Loop UnlockedSpells -> Filter sur Category == SchoolID -> Genere slots N2
-        SET CurrentMagicSchool = SchoolID
-        |
-        v (selection d'un sort + confirmer A)
-      ValidateSelectedSpell (a creer)
-        Branch (CurrentMagicSchool == "") -> PopulateMagicSpells (entrer N2)
-        Branch (CurrentMagicSchool != "") -> CastSpell(SlotDataList[SelectedIndex].SlotID)
-          -> GetPlayerCharacter -> MagicComponent -> CastSpell(SpellID)
-          -> CloseRadial
-
-Retour B (IA_UI_Radial_Cancel) :
-  Branch (CurrentMagicSchool != "") -> PopulateMagicSchools (retour N1) + SET CurrentMagicSchool = ""
-  Branch (CurrentMagicSchool == "") -> CloseRadial
+Branch (CurrentCategory == Weapons)
+  TRUE  -> ValidateSelectedWeapon
+  FALSE -> Branch (CurrentCategory == Deity)
+    TRUE  -> TempSchoolID = SlotDataList[SelectedIndex].SlotID
+             SET CurrentCategory = Spell
+             SET SelectedIndex = 0
+             SET TargetRotation = 0
+             SET CurrentRotation = 0
+             PopulateMagicSpells(TempSchoolID)
+    FALSE (Spell) -> TempSpellID = SlotDataList[SelectedIndex].SlotID
+                     CastSpell(TempSpellID)
+                     CloseRadial
 ```
 
-### Variables a ajouter dans UI_Radial_Main
-- `CurrentMagicSchool` (FName) : "" si en N1 ou en mode Weapons, NomEcole si en N2
+IMPORTANT : ne pas utiliser CurrentMagicSchool pour distinguer N1/N2 --
+PopulateMagicSpells commence par SET CurrentMagicSchool="None", la rendant inutilisable
+comme discriminant. Utiliser CurrentCategory a la place.
 
-### Logique ValidateSelection
-L'appui sur A (IA_UI_Radial_Validate) a un comportement different selon le contexte :
-- Mode Weapons : ValidateSelectedWeapon (existant)
-- Mode Magic + CurrentMagicSchool == "" : entrer N2 via PopulateMagicSpells
-- Mode Magic + CurrentMagicSchool != "" : CastSpell + CloseRadial
-Il faut donc une fonction centrale ValidateSelection qui route selon ces conditions.
+---
 
-### Acces MagicComponent depuis UI_Radial_Main
-UI_Radial_Main -> GetOwningPlayerPawn -> Cast BP_SoM_HeroCharacter -> GET MagicComponent
-OU : passer une ref MagicComponentRef dans OpenRadialMenu depuis le PC.
-Option recommandee : passer la ref a l'ouverture (plus propre, pas de cast dans le widget).
+## Architecture UnlockedSpells / UnlockDeity (25/05/2026)
 
-### Population slots : FSoM_RadialSlotData pour la magie
-- SlotID = SpellID (FName, ex : "Lumina_Heal")
-- DisplayName = nom affiche (ex : "Soin")
-- Icon = icone du sort depuis DT_Spells
-- Category = nom de l'ecole (ex : "Lumina")
-- StatA = ManaCost, StatB = Cooldown, StatC = Puissance
+Bug resolu : Make FSoM_DeitySpells a bDefaultValueIsIgnored=True sur le pin SpellIDs,
+ce qui fait qu'UE5 ignore la valeur connectee.
+
+Solution : noeud "Set Members in FSoM_DeitySpells" a la place.
+
+```
+UnlockDeity(DeityName)
+  Branch (Map_Contains(UnlockedSpells, DeityName))
+    TRUE  -> return (deja present)
+    FALSE -> Set Members in FSoM_DeitySpells :
+               StructRef = GET TempDeitySpells  (variable simple FSoM_DeitySpells, PAS un Array)
+               SpellIDs  = GET TempSpellsIDs    (Array<FName> avec 4 elements par defaut)
+             StructOut -> Map_Add(UnlockedSpells, Key=DeityName, Value=StructOut)
+```
+
+TempDeitySpells : variable membre de BP_MagicComponent, type FSoM_DeitySpells SIMPLE.
+TempSpellsIDs : variable membre Array<FName>, Default = [Lumina_Attack, Lumina_Heal, Lumina_Buff, Lumina_Debuff].
 
 ---
 
@@ -168,30 +164,18 @@ SizeBox (80x80)
 
 ---
 
-## UI_Radial_Main -- detail
+## UI_Radial_Main -- variables cles
 
-### Layout
-```
-Canvas Panel
-└── Overlay (fullscreen)
-    ├── Image_Background (noir A=0.6)
-    └── SizeBox (400x400)
-        └── Canvas_Radial
-            ├── Text_Category   (haut : "ARMES" / "MAGIE" / "MAGIE - Lumina")
-            ├── RadialContainer (Is Variable, 10x10, point d'ancrage slots)
-            ├── Image_Cursor    (12h, indicateur fixe)
-            └── VBox_Center
-                ├── Text_ItemName
-                └── Text_Description
-```
-
-### Variables cles
-- `CurrentCategory` (ERadialMode)
+- `CurrentCategory` (ERadialMode) : Weapons / Deity / Spell
+- `CurrentMagicSchool` (FName) : ecole selectionnee en N1 ("None" par defaut)
+- `MagicComponentRef` (BP_MagicComponent) : injectee depuis OpenRadial(PC)
 - `SelectedIndex` (Integer) : index slot selectionne
 - `SlotWidgets` (Array<UI_RadialSlot>)
 - `SlotDataList` (Array<FSoM_RadialSlotData>)
 - `RadialRadius` (Float, 150)
-- `CurrentMagicSchool` (FName) : "" si N1 ou Weapons, NomEcole si N2 -- A AJOUTER
+- `CurrentRotation` (Float) : rotation courante interpolee
+- `TargetRotation` (Float) : rotation cible
+- `InterpSpeed` (Float, 8) : vitesse interpolation
 
 ---
 
@@ -200,12 +184,11 @@ Canvas Panel
 ### OpenRadialMenu
 ```
 Create UI_Radial_Main -> SET RadialMainRef
+SET MagicComponentRef (via PlayerCharacterRef -> MagicComponent)
 Add to Viewport (ZOrder 99)
 Set Global Time Dilation (0.2)
 Set Input Mode Game And UI
-SET Show Mouse Cursor = true
-Remove IMC_Gameplay -> Add IMC_Radial (priority 1)  [FAIT C1-InputsUI]
-[A faire C1-RadialMagie] : passer MagicComponentRef au widget via fonction Init
+Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
 ```
 
 ### CloseRadialMenu
@@ -213,36 +196,22 @@ Remove IMC_Gameplay -> Add IMC_Radial (priority 1)  [FAIT C1-InputsUI]
 Remove from Parent (RadialMainRef)
 Set Global Time Dilation (1.0)
 Set Input Mode Game Only
-SET Show Mouse Cursor = false
 SET RadialMainRef = null
-Remove IMC_Radial -> Add IMC_Gameplay (priority 0)  [FAIT C1-InputsUI]
+Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
 ```
 
 ---
 
-## Input map cible
+## Input map
 
 | Input | Action |
 |-------|--------|
 | Hold IA_UI_Radial_Open | Ouvre radial + slow-mo |
 | Stick G/D | IA_UI_Radial_Rotate : rotation plateau (selection) |
-| IA_UI_Radial_ChangeCat | Categorie precedente/suivante |
-| IA_UI_Radial_Validate (A/X) | Confirmer (entrer ecole N1 / caster N2 / equiper arme) |
-| IA_UI_Radial_Cancel (B/Circle) | Retour (N2->N1) / fermer (N1 ou Weapons) |
+| IA_UI_Radial_ChangeCat | Switch categorie |
+| IA_UI_Radial_Validate (A/X) | ValidateRadial : equiper arme / entrer N2 / caster sort |
+| IA_UI_Radial_Cancel (B/Circle) | Spell->Deity / Deity->fermer |
 | Release IA_UI_Radial_Open | Ferme + restore Time Dilation |
-
----
-
-## Design decisions actees
-
-- Curseur fixe a 12h, le plateau tourne (pas le curseur)
-- Slow-mo 0.2 (pas de pause complete)
-- Armes : 1 radial
-- Magie : 2 radiales imbriquees (ecoles N1 -> sorts N2)
-- Validation N2 = CastSpell direct (pas d'assignation dans le radial)
-- Source ecoles = filtrage UnlockedSpells par Category (pas de variable UnlockedSchools separee)
-- SelectedIndex arme = dette C1-CleanupDettes (retour sur ChoosenWeapon)
-- StatA/B/C : Degats/Portee/Vitesse pour armes, ManaCost/Cooldown/Puissance pour magie
 
 ---
 
@@ -250,25 +219,26 @@ Remove IMC_Radial -> Add IMC_Gameplay (priority 0)  [FAIT C1-InputsUI]
 
 - [x] ERadialMode + FSoM_RadialSlotData
 - [x] UI_RadialSlot (SetSelected + SetSlotData)
-- [x] UI_Radial_Main GenerateSlots (Cos/Sin, VALIDE PIE)
+- [x] UI_Radial_Main GenerateSlots (Cos/Sin)
 - [x] OpenRadialMenu slow-mo + CloseRadialMenu restore
 - [x] Navigation stick G/D (UpdateSelection + rotation plateau lerp)
 - [x] UpdateCenterInfo (Text_ItemName + Text_Description)
-- [x] SwitchCategory structure (toggle ERadialMode)
+- [x] SwitchCategory 3 branches (Weapons/Deity/Spell)
 - [x] PopulateWeaponSlots valide PIE
 - [x] ValidateSelectedWeapon valide PIE
-- [x] C1-InputsUI : switch IMC a l'open/close VALIDE PIE
-- [ ] C1-RadialMagie : ajouter CurrentMagicSchool dans UI_Radial_Main
-- [ ] C1-RadialMagie : PopulateMagicSchools (loop UnlockedSpells -> dedup ecoles)
-- [ ] C1-RadialMagie : Cablage branche Magic SwitchCategory
-- [ ] C1-RadialMagie : PopulateMagicSpells(SchoolID)
-- [ ] C1-RadialMagie : ValidateSelection centralisee (Weapons / Magic N1 / Magic N2)
-- [ ] C1-RadialMagie : ValidateSelectedSpell -> CastSpell + CloseRadial
-- [ ] C1-RadialMagie : navigation retour B (N2->N1 / N1->fermer)
-- [ ] C1-RadialMagie : passer MagicComponentRef a l'ouverture via Init
-- [ ] C1-RadialMagie : Text_Category affiche "MAGIE - [NomEcole]" en N2
-- [ ] C1-CleanupDettes : SelectedIndex = index ChoosenWeapon dans DiscoveredWeapons
-- [ ] Supprimer ancienne logique UI_RadialMenu une fois C1-RadialMagie valide
+- [x] C1-InputsUI : switch IMC open/close VALIDE PIE
+- [x] C1-RadialMagie : MagicComponentRef injected a l'ouverture
+- [x] C1-RadialMagie : PopulateMagicSchools (loop UnlockedSpells)
+- [x] C1-RadialMagie : PopulateMagicSpells(SchoolID) -- 4 sorts Lumina
+- [x] C1-RadialMagie : ValidateRadial (fonction PC, variables locales TempSchoolID/TempSpellID)
+- [x] C1-RadialMagie : CastSpell(SpellID) -> CloseRadial
+- [x] C1-RadialMagie : Cancel Spell->Deity / Deity->CloseRadial
+- [x] C1-RadialMagie : Rotation slots Weapons + Deity + Spell
+- [x] Fix bDefaultValueIsIgnored : Set Members in FSoM_DeitySpells
+- [ ] Text_Category : "MAGIE" / "MAGIE - [NomEcole]" (dette mineure)
+- [ ] Icones deites/sorts : ART-MagicIcons
+- [ ] C1-CleanupDettes : SelectedIndex = index ChoosenWeapon a l'ouverture
+- [ ] Supprimer UI_RadialMenu et UI_RadialSlot_OLD
 
 ---
 
@@ -276,6 +246,7 @@ Remove IMC_Radial -> Add IMC_Gameplay (priority 0)  [FAIT C1-InputsUI]
 
 - Creation : 17/06/2025
 - Refonte complete J-13 : 12/05/2026
-- Nommage mis a jour : 15/05/2026 (J-Renommage)
+- Nommage mis a jour : 15/05/2026
 - MAJ architecture Magie + analyse SwitchCategory T3D : 21/05/2026
 - MAJ decisions C1-RadialMagie actees : 23/05/2026
+- MAJ C1-RadialMagie VALIDE PIE : 25/05/2026 -- architecture finale ValidateRadial, UnlockDeity, ERadialMode 3 valeurs
