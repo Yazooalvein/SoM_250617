@@ -135,6 +135,27 @@ automatiquement sur la cible apres un delai d'inactivite.
 
 ## RADIAL MENU & MAGIE
 
+### [25/05/2026] ValidateRadial -- fonction dediee sur PC + condition CurrentCategory
+**Contexte** : ValidateSelection dans l'EventGraph du PC ne permettait pas de variables locales
+(TempSchoolID, TempSpellID) necessaires pour capturer SlotDataList[SelectedIndex].SlotID
+avant que PopulateMagicSpells efface SlotDataList.
+De plus, la condition N1/N2 utilisait CurrentMagicSchool == "None" -- mais PopulateMagicSpells
+commence par SET CurrentMagicSchool = "None", ce qui rendait la condition toujours vraie en N2.
+**Decision** :
+1. Extraire toute la logique de validation dans une fonction dediee "ValidateRadial" sur le PC.
+   Les variables locales TempSchoolID et TempSpellID (FName) y sont declarees.
+2. La condition N1/N2 utilise CurrentCategory (ERadialMode) et non CurrentMagicSchool :
+   - CurrentCategory == Weapons -> ValidateSelectedWeapon
+   - CurrentCategory == Deity -> capturer TempSchoolID -> SET CurrentCategory=Spell -> resets -> PopulateMagicSpells(TempSchoolID)
+   - CurrentCategory == Spell -> capturer TempSpellID -> CastSpell(TempSpellID) -> CloseRadial
+**Raison** :
+- Variables locales impossibles dans l'EventGraph, disponibles dans les fonctions.
+- CurrentCategory est fiable car elle n'est modifiee que par les actions explicites du joueur.
+  CurrentMagicSchool est remise a "None" par PopulateMagicSpells, la rendant inutilisable comme discriminant.
+**Consequences** :
+- L'EventGraph ne contient plus que : IA_UI_Radial_Validate -> IsValid(RadialMainRef) -> ValidateRadial
+- Ne jamais utiliser CurrentMagicSchool pour distinguer N1 de N2 dans la logique de validation
+
 ### [25/05/2026] ERadialMode -- enum a 3 valeurs
 **Decision** : NewEnumerator0=Weapons, NewEnumerator1=Deity, NewEnumerator2=Spell.
 Renommage Magic->Deity et ajout Spell comme valeur N2 distincte.
@@ -147,13 +168,6 @@ Renommage Magic->Deity et ajout Spell comme valeur N2 distincte.
 - CurrentCategory == Spell -> passer en Deity -> PopulateMagicSchools (retour N2->N1)
 **Raison** : Le bouton SwitchCategory depuis Spell doit revenir en Deity, pas fermer le radial.
 La fermeture depuis Spell passe par Cancel (retour N1) puis Cancel a nouveau (fermeture).
-
-### [25/05/2026] ValidateSelection -- capture TempSchoolID avant PopulateMagicSpells (DETTE)
-**Contexte** : GetArrayItem(SlotDataList, SelectedIndex) est un noeud pur evalue APRES que
-PopulateMagicSpells a efface SlotDataList, ce qui retourne une struct vide.
-**Decision (DETTE)** : Capturer SlotDataList[SelectedIndex].SlotID dans une variable locale
-TempSchoolID (FName) AVANT d'appeler PopulateMagicSpells.
-**Consequences** : SchoolID hardcode "Lumina" en attendant. A corriger dans C1-RadialMagie finalisation.
 
 ### [25/05/2026] UnlockDeity -- architecture finale avec Set Members in FSoM_DeitySpells
 **Contexte** : Bug critique : le pin SpellIDs du noeud Make FSoM_DeitySpells a
@@ -284,4 +298,5 @@ OnStatChanged = dispatcher de notification.
 - 25/05/2026 : ERadialMode 3 valeurs (Weapons/Deity/Spell), SwitchCategory 3 branches
 - 25/05/2026 : bug bDefaultValueIsIgnored Make FSoM_DeitySpells -> fix Set Members in struct
 - 25/05/2026 : architecture finale UnlockDeity (TempDeitySpells simple + Set Members)
-- 25/05/2026 : dette TempSchoolID capture avant PopulateMagicSpells
+- 25/05/2026 : ValidateRadial fonction dediee PC + condition CurrentCategory pour N1/N2
+- 25/05/2026 : C1-RadialMagie VALIDE PIE
