@@ -5,7 +5,7 @@ Mis à jour après chaque session de design ou de développement.
 
 ---
 
-## Modules existants (état au 23/05/2026)
+## Modules existants (état au 25/05/2026)
 
 | Module | État | Notes |
 |--------|------|-------|
@@ -25,12 +25,12 @@ Mis à jour après chaque session de design ou de développement.
 | IA ennemis | ✅ POC | Behavior Tree + PawnSensing |
 | Hit Flash joueur | ✅ Stable | M_Hero HitFlashAmount |
 | Hit Flash ennemi | ❌ Abandonné | Decision 21/05 : screen shake + anim suffisent |
-| Système de magie | ✅ POC | BP_MagicComponent + 4 sorts Lumina validés PIE |
+| Système de magie | ✅ VALIDE PIE | BP_MagicComponent + radial 2 niveaux + CastSpell validés PIE |
+| Radial menu magie | ✅ VALIDE PIE | C1-RadialMagie complet 25/05/2026 |
 | Hero placeholder | ✅ PIE | Mesh Meshy + AccuRIG + retargeting Mannequin |
 | TestBed | ✅ VALIDE PIE | Lvl_TestBed, BP_Enemy_TestBed, SFX placeholder |
 | Collisions capsule | ✅ VALIDE PIE | CapsuleComponent Pawn = Block |
 | IMC dédiés (5 contextes) | ✅ VALIDE PIE | C1-InputsUI complet -- swap OpenRadial/CloseRadial |
-| Radial menu magie | 🔧 À faire | C1-RadialMagie — 2 niveaux (écoles → sorts) |
 
 ---
 
@@ -51,14 +51,14 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
 
 ---
 
-## Ordre de dépendances global (révisé 23/05/2026)
+## Ordre de dépendances global (révisé 25/05/2026)
 
 ```
 [FAIT] J-LockOn -> J-Camera -> J-LockMove -> J-TestBed -> J-ComboFix
   └─> C1-CollisionFix ✅
         └─> C1-HitFeel (partiel : knockback ✅, shake ✅, gamepad ❌, hitstop reporté)
               └─> C1-InputsUI ✅ VALIDE PIE
-                    └─> C1-RadialMagie (radial magie 2 niveaux)  ← PROCHAIN
+                    └─> C1-RadialMagie ✅ VALIDE PIE (25/05/2026)
                           └─> C1-MagicProgressionDesign (spec design : montée de niveau sorts)
                                 └─> C1-CleanupDettes (LockOnSwitchCooldown PC + SelectedIndex radial)
                                       └─> C1-WeaponArchitecture
@@ -107,26 +107,34 @@ C2-EnemyMesh
 - [x] Fix rotation : trigger Pressed threshold 0.5 + Modifier Negate X direction gauche
 - [x] Tests PIE : gameplay bloqué pendant radial, repris après fermeture
 
-### C1-RadialMagie — Radial magie 2 niveaux ← PROCHAIN
-**Décisions actées (23/05/2026) :**
-- Validation N2 = CastSpell direct (assignation quickslot = menu général hors combat)
-- Source écoles = filtrage UnlockedSpells par Category (pas de variable UnlockedSchools)
-- SelectedIndex arme au retour = reporté en C1-CleanupDettes
-- UnlockedSpells alimenté par stub test au BeginPlay de BP_MagicComponent (dette C1-MagicUnlockSystem)
-- Icônes déités/sorts = placeholder null pour PIE (session ART-MagicIcons à planifier)
+### ✅ C1-RadialMagie — Radial magie 2 niveaux COMPLET VALIDE PIE (25/05/2026)
 
-**Tâches :**
+**Décisions actées :**
+- ERadialMode : Weapons / Deity (N1) / Spell (N2)
+- Validation N2 = CastSpell direct (pas d'assignation quickslot dans le radial)
+- Source écoles = filtrage UnlockedSpells par clé Map
+- ValidateRadial = fonction dédiée sur PC (variables locales TempSchoolID / TempSpellID)
+- Condition N1/N2 dans ValidateRadial = CurrentCategory (pas CurrentMagicSchool)
+- UnlockedSpells alimenté par stub test BeginPlay BP_MagicComponent (dette C1-MagicUnlockSystem)
+- Fix bDefaultValueIsIgnored : Make FSoM_DeitySpells remplacé par Set Members in FSoM_DeitySpells
+
+**Tâches validées :**
 - [x] Variable CurrentMagicSchool (FName) dans UI_Radial_Main
 - [x] Variable MagicComponentRef + injection depuis OpenRadial (PC)
 - [x] PopulateMagicSchools complet
-- [x] PopulateMagicSpells(SchoolID) complet
-- [x] SwitchCategory branche Magic câblée
-- [ ] Stub BeginPlay BP_MagicComponent : Map Add("Lumina", SpellIDs Lumina x4)
-- [ ] Reset SelectedIndex=0 + TargetRotation=0 + CurrentRotation=0 côté Magic dans SwitchCategory
-- [ ] ValidateSelection (routeur A) : Weapons / Magic N1 -> PopulateMagicSpells / Magic N2 -> CastSpell + CloseRadial
-- [ ] Navigation retour B : N2 -> PopulateMagicSchools + CurrentMagicSchool=None / N1 -> CloseRadial
+- [x] PopulateMagicSpells(SchoolID) complet — 4 sorts Lumina
+- [x] SwitchCategory 3 branches (Weapons↔Deity, Spell→Deity)
+- [x] Stub BeginPlay BP_MagicComponent : UnlockDeity("Lumina") via Set Members in struct
+- [x] Reset SelectedIndex=0 + TargetRotation=0 + CurrentRotation=0 à l'entrée en Spell
+- [x] ValidateRadial (fonction PC) : Weapons / Deity→PopulateMagicSpells / Spell→CastSpell+CloseRadial
+- [x] Navigation Cancel B : Spell→PopulateMagicSchools / Deity→CloseRadial
+- [x] Rotation slots fonctionnelle en Weapons, Deity et Spell
+
+**Dettes restantes (non bloquantes) :**
 - [ ] Text_Category : "MAGIE" en N1, "MAGIE - [NomEcole]" en N2
-- ⚠️ Nécessite C1-InputsUI ✅
+- [ ] Icônes déités/sorts : placeholder null → ART-MagicIcons
+- [ ] SelectedIndex radial : retour sur ChoosenWeapon → C1-CleanupDettes
+- [ ] SchoolID dynamique depuis CurrentMagicSchool (actuellement lu depuis TempSchoolID capturé au validate)
 
 ### C1-MagicProgressionDesign — Session design progression des sorts
 - [ ] Trancher : montée de niveau linéaire (puissance/durée) vs arbre de talent par sort
@@ -276,3 +284,4 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 - MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
 - MAJ 23/05/2026 : décisions C1-RadialMagie actées, C1-MagicProgressionDesign ajouté, SelectedIndex en C1-CleanupDettes
 - MAJ 23/05/2026 : ART-MagicIcons ajouté, C1-MagicUnlockSystem ajouté, tâches C1-RadialMagie mises à jour
+- MAJ 25/05/2026 : C1-RadialMagie VALIDE PIE — navigation 3 niveaux + CastSpell + fix bDefaultValueIsIgnored
