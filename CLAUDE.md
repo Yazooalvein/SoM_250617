@@ -240,7 +240,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
 - Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
-### Magie -- C1-RadialMagie VALIDE PIE (25/05/2026)
+### Magie -- data layer deites VALIDE PIE (25/05/2026)
 - `BP_MagicComponent` : UnlockedSpells, SpellUsageCounts, SpellLevels, TalentPoints,
   QuickslotSlots, SpellCooldowns, CastSpell, IncrementSpellUsage, LevelUpSpell,
   AddTalentPoint, UnlockTreeNode
@@ -248,6 +248,10 @@ Format dans Docs/Session_UnrealClaude.md :
 - Radial 2 niveaux : N1 Deity -> N2 Spell -> CastSpell VALIDE PIE
 - Progression : usage -> niveau -> point talent -> arbre (voir Magic_System.md)
 - Stub BeginPlay Lumina temporaire -> C1-MagicUnlockSystem
+- Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
+- UnlockDeity : lit DT_Deities.BaseSpells (plus de TempSpellsIDs hardcode)
+- PopulateMagicSchools : lit DT_Deities.DeityName + Icon (plus de Conv_NameToText)
+- Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
@@ -293,6 +297,7 @@ Options=Menu Global
 - [x] C1-InputsUI COMPLET VALIDE PIE : IMC_Gameplay/Radial/Menu/Dialogue/Cutscene, swap IMC, fix rotation radial (23/05/2026)
 - [x] C1-RadialMagie COMPLET VALIDE PIE : radial 2 niveaux Deity->Spell, CastSpell, fix bDefaultValueIsIgnored (25/05/2026)
 - [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
+- [x] C1-MagicDataLayer VALIDE PIE : E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven (25/05/2026)
 
 ## Dettes techniques
 
@@ -302,7 +307,7 @@ Options=Menu Global
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **Stub BeginPlay Lumina** : temporaire, a retirer quand C1-MagicUnlockSystem opere
+- **Stub BeginPlay Lumina** : temporaire, a retirer quand C1-MagicUnlockSystem opere en jeu
 
 ## Prochains jalons
 
@@ -337,7 +342,9 @@ Options=Menu Global
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
 - SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
 - UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
+- UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
 - IncrementSpellUsage -> LevelUpSpell -> AddTalentPoint : chaine de progression magique
+- DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 
 ---
