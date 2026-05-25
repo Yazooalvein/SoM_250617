@@ -12,13 +12,14 @@ deux roues distinctes, deux philosophies d'acces. Elle peut sauver une situation
 mais ne remplace pas un cac maitrise. Utiliser trop de magie a des consequences
 (voir Corruption Magique, module futur).
 
-**Standardisation des sorts** : chaque deite dispose exactement de 4 sorts :
+**Standardisation des sorts** : chaque deite dispose exactement de 4 sorts de base :
 - 1 Attaque
 - 1 Heal
 - 1 Buff
 - 1 Debuff
 
-Cette regle est fixe pour toutes les deites. Les ultimes sont un systeme separe debloque plus tard.
+Ces 4 sorts sont disponibles immediatement a l'acces a la deite. Les sorts supplementaires
+et evolutions passent par l'arbre de talent (voir section Progression Magique).
 
 ---
 
@@ -43,6 +44,63 @@ Cette regle est fixe pour toutes les deites. Les ultimes sont un systeme separe 
 
 ---
 
+## Progression Magique (C1-MagicProgressionDesign -- DESIGN VALIDE 25/05/2026)
+
+### Boucle de progression
+
+> **Utilise tes sorts -> ils progressent -> tu gagnes des points -> tu debloques l'arbre -> l'arbre modifie tes sorts**
+
+Pas de grind d'XP generique. Chaque progression est le resultat direct du jeu.
+
+### Montee en niveau des sorts de base
+
+- Chaque sort de base monte en niveau via l'utilisation (comptage du nombre de lancements)
+- Seuils de passage de niveau : a calibrer selon la duree de vie cible du jeu
+- La montee en niveau ameliore le sort (puissance, effet -- a definir sort par sort)
+
+### Points de talent
+
+- **A chaque montee de niveau d'un sort -> gain d'un point de talent**
+- Les points sont depenses dans l'arbre de la deite correspondante
+- Le total de points accumulables est volontairement insuffisant pour completer l'arbre entier
+  -> choix force -> builds differents -> rejouabilite
+
+### Structure de l'arbre par deite
+
+```
+Arbre de talent par deite
+├── 3-4 noeuds actifs
+│   ├── Sort supplementaire (s'ajoute au pool du radial/quickslots)
+│   └── Evolution d'un sort de base (REMPLACE le sort de base -- pas de coexistence)
+├── 2-3 noeuds passifs (bonus permanents lies a la deite)
+└── 1 ulti (bout d'arbre -- condition alternative possible, a definir)
+```
+
+**Coherence avec le systeme armes :** le nombre de niveaux de sorts doit correspondre
+aux niveaux d'armes pour une progression globale coherente. Valeurs exactes a calibrer
+lors de la definition de la duree de vie du jeu.
+
+### Gestion des deites
+
+- Toutes les deites se debloquent au fil de la progression (narratif ou condition de jeu)
+- Aucun cout de switch entre deites
+- Pas d'equipement de deite : une deite debloquee est definitivement accessible
+- Apparition immediate dans le radial et/ou menu quickslots au deblocage
+- Moment narratif/UI de presentation prevu mais non encore defini (non bloquant)
+
+### Points ouverts pour C1-MagicUnlockSystem
+
+| Question | Statut |
+|---|---|
+| Seuils de montee en niveau (nb utilisations) | A calibrer |
+| Nombre exact de noeuds par arbre | Depend duree de vie jeu / coherence niveaux armes |
+| Condition deblocage ulti (bout d'arbre ou autre) | A definir |
+| Conditions deblocage deites (narratif / quete / zone) | A definir |
+| Points max accumulables vs noeuds totaux (ratio) | A calibrer |
+| Presentation UI deite debloquee | A definir (non bloquant) |
+
+---
+
 ## Ressource : Mana
 
 - Jauge independante de la Stamina
@@ -56,7 +114,7 @@ Cette regle est fixe pour toutes les deites. Les ultimes sont un systeme separe 
 ## Cast time
 
 | Type | Cast time | Exemples |
-|------|-----------|---------|
+|------|-----------|----------|
 | Instantane | CastTime = 0.0 | Soin d'urgence, buff rapide, debuff simple |
 | Avec cast time | CastTime > 0.0 | Attaque puissante, sort de zone |
 
@@ -75,15 +133,15 @@ Navigation hierarchique en deux niveaux :
 - Effet monde : slow-mo 0.2x (SetGlobalTimeDilation)
 
 **Niveau 2 -- Roue des sorts (Spell)**
-- 4 sorts par deite : Attaque / Buff / Debuff / Heal
+- 4 sorts de base par deite + sorts supplementaires debloques via arbre
 - Validation = CastSpell direct + CloseRadial
 - Retour niveau 1 : bouton Cancel
 
 ### 2. Quickslots (acces rapide)
 
-- 4 emplacements assignables librement
+- 4 emplacements assignables librement (sorts de base ET sorts d'arbre)
 - Configuration hors combat uniquement (menu general)
-- Déclenchement : mini roue a 4 entrees, temps reel (pas de slow-mo)
+- Declenchement : mini roue a 4 entrees, temps reel (pas de slow-mo)
 - Cooldowns independants par slot
 
 ---
@@ -133,6 +191,7 @@ FSoM_SpellData
 ├── SpellName (Text)
 ├── Deity (Name)                  // Lumina, Luna, Sylphide...
 ├── Category (E_SpellCategory)    // Attack, Buff, Debuff, Heal, Ultime
+├── SpellTier (E_SpellTier)       // Base, TreeActive, Ulti -- a ajouter
 ├── ManaCost (Float)
 ├── CastTime (Float)              // 0.0 = instantane
 ├── Cooldown (Float)
@@ -141,6 +200,7 @@ FSoM_SpellData
 ├── Duration (Float)              // pour buffs/debuffs
 ├── AffectedStat (Name)           // stat modifiee (ex: "HealthMax", "MoveSpeed")
 ├── DeliveryType (E_DeliveryType) // Direct, Projectile, AOE (futur)
+├── ReplacesSpellID (Name)        // si evolution : SpellID du sort de base remplace
 └── SpellClass (BP_SpellBase)     // classe Blueprint a spawner
 ```
 
@@ -151,19 +211,28 @@ FSoM_SpellData
 ```
 BP_MagicComponent (ActorComponent)
 ├── Variables
-│   ├── UnlockedSpells : Map<Name, FSoM_DeitySpells>  // DeityName -> SpellIDs
+│   ├── UnlockedSpells : Map<Name, FSoM_DeitySpells>  // DeityName -> SpellIDs actifs
+│   ├── SpellUsageCounts : Map<Name, Int>              // SpellID -> nb utilisations
+│   ├── SpellLevels : Map<Name, Int>                   // SpellID -> niveau actuel
+│   ├── TalentPoints : Map<Name, Int>                  // DeityName -> points disponibles
 │   ├── TempDeitySpells : FSoM_DeitySpells             // variable helper (SIMPLE, pas Array)
 │   ├── TempSpellsIDs : Array<Name>                    // [Attack, Heal, Buff, Debuff] par defaut
 │   ├── QuickslotSlots : Array<Name> (4 slots)
 │   ├── SpellCooldowns : Map<Name, Float>
 │   └── bIsCasting : Boolean
 ├── Fonctions
-│   ├── CastSpell(SpellID)       // CanCast -> DT lookup -> Spawn -> Execute -> ConsumeMana
-│   ├── CanCast(SpellID) : Bool  // Pure : NOT bIsCasting AND cooldown<=0 AND mana>=cost
-│   ├── ConsumeMana(Amount)      // SetStatValue("ManaCurrent")
-│   ├── UnlockDeity(DeityName)   // Map_Contains -> FALSE -> Set Members -> Map_Add
+│   ├── CastSpell(SpellID)           // CanCast -> DT lookup -> Spawn -> Execute -> ConsumeMana -> IncrementUsage
+│   ├── CanCast(SpellID) : Bool      // Pure : NOT bIsCasting AND cooldown<=0 AND mana>=cost
+│   ├── ConsumeMana(Amount)          // SetStatValue("ManaCurrent")
+│   ├── IncrementSpellUsage(SpellID) // +1 usage -> check seuil niveau -> LevelUpSpell si atteint
+│   ├── LevelUpSpell(SpellID)        // monte niveau + AddTalentPoint(Deity)
+│   ├── AddTalentPoint(DeityName)    // +1 dans TalentPoints[DeityName]
+│   ├── UnlockTreeNode(NodeID)       // depense point -> active sort/passif dans UnlockedSpells
+│   ├── UnlockDeity(DeityName)       // Map_Contains -> FALSE -> Set Members -> Map_Add
 │   └── IsSpellUnlocked(SpellID) : Bool
-└── Dispatcher : OnSpellCast(SpellID)
+└── Dispatchers
+    ├── OnSpellCast(SpellID)
+    └── OnSpellLevelUp(SpellID, NewLevel)
 ```
 
 **Note FSoM_DeitySpells :** struct helper `{SpellIDs: Array<Name>}` pour contourner la limite
@@ -190,7 +259,7 @@ pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=Tr
 
 ---
 
-## Deblocage progressif
+## Deblocage progressif des deites
 
 | Ordre | Deite | Moment narratif |
 |-------|-------|-----------------|
@@ -212,9 +281,10 @@ pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=Tr
 - [x] Stub BeginPlay Lumina x4 (temporaire)
 - [x] Fix bDefaultValueIsIgnored : Set Members in FSoM_DeitySpells
 - [x] Radial Magie 2 niveaux VALIDE PIE
-- [ ] C1-MagicProgressionDesign : spec montee de niveau sorts (lineaire vs arbre de talent)
-- [ ] C1-MagicUnlockSystem : UnlockSpell(SchoolID, SpellID) -- apres MagicProgressionDesign
+- [x] C1-MagicProgressionDesign : spec progression sorts + arbre de talent DESIGN VALIDE
+- [ ] C1-MagicUnlockSystem : UnlockSpell(SchoolID, SpellID) + systeme usage/niveau/points
 - [ ] Retirer stub BeginPlay quand UnlockSpell opere en jeu
+- [ ] Ajouter SpellTier + ReplacesSpellID dans FSoM_SpellData
 - [ ] Ajouter DeliveryType (E_DeliveryType) dans FSoM_SpellData
 - [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat depuis SpellData
 - [ ] UI_QuickslotBar (HUD permanent) + UI_MagicConfig (hors combat)
@@ -230,3 +300,6 @@ pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=Tr
 - MAJ : 25/05/2026 -- C1-RadialMagie VALIDE PIE, architecture UnlockDeity finale,
   fix bDefaultValueIsIgnored, variables TempDeitySpells/TempSpellsIDs,
   note Set Members obligatoire
+- MAJ : 25/05/2026 -- C1-MagicProgressionDesign VALIDE : section Progression Magique ajoutee,
+  boucle usage->niveau->points->arbre, structure arbre par deite, variables BP_MagicComponent
+  etendues (SpellUsageCounts, SpellLevels, TalentPoints, dispatchers OnSpellLevelUp)
