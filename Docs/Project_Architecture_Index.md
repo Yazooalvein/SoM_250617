@@ -30,6 +30,7 @@ A mettre a jour a chaque creation ou modification de document.
 | Index inputs & controles | Input_Architecture.md | Mis a jour 21/05 |
 | Radial Menu | RadialMenu_Architecture.md | Mis a jour 21/05 |
 | Magic System | Magic_System.md | POC valide |
+| Magic Progression | Magic_Progression.md | Design 26/05 |
 | Weapons System | Weapons_System_Architecture.md | Stable |
 | Combo System | Combo_System_Architecture.md | Stable |
 | Stats System | Stats_Architecture.md | Stable |
@@ -62,8 +63,11 @@ A mettre a jour a chaque creation ou modification de document.
 | C1-HitFeel | Partiel (knockback + shake ok, gamepad manque, hitstop reporte) |
 | C1-HitFlashEnemies | Abandonne (21/05/2026) |
 | C1-CleanupDettes | Partiel (3/4 faits, reste LockOnSwitchCooldown PC) |
-| C1-InputsUI | A faire -- PRIORITAIRE |
-| C1-RadialMagie | A faire (apres InputsUI) |
+| C1-InputsUI | Complet VALIDE PIE (23/05/2026) |
+| C1-RadialMagie | Complet VALIDE PIE (25/05/2026) |
+| C1-MagicProgressionDesign | Design valide (25/05/2026) |
+| C1-MagicDataLayer | Complet VALIDE PIE (25/05/2026) |
+| C1-MagicUnlockSystem | A faire -- PRIORITAIRE |
 | C1-WeaponArchitecture | A faire |
 | C1-SwordMoveset | A faire |
 | C1-SaveDesign | A faire |
@@ -86,3 +90,4 @@ A mettre a jour a chaque creation ou modification de document.
 
 - Creation : 17/06/2025
 - MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
+- MAJ 26/05/2026 : ajout Magic_Progression.md, mise a jour jalons C1
