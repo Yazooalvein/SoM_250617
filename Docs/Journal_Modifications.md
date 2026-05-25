@@ -5,6 +5,30 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 26/05/2026 -- Session design -- Magic_Progression DESIGN
+
+#### Magic_Progression.md -- DESIGN
+- Nouveau fichier cree : Docs/Architecture/Magic_Progression.md
+- Seuils progression differencies par role de sort : Attack (bas) < Heal (moyen) < Buff (moyen-haut) < Debuff (haut)
+- Rationale : refleter la frequence d'usage naturelle en combat, eviter le grind artificiel
+- Inspiration Secret of Mana : formule 9 - niveau actuel % par lancer, adaptee avec seuils differencies
+- Systeme de rattrapage tardif : objet/monnaie dedie pour injecter XP sur sorts sous-evolues en fin de jeu
+- Cap narratif : rencontrer une deite = sorts de base, completer quete de deite = paliers arbre debloquees (2-4)
+- Nombre de paliers par quete : potentiellement variable selon difficulte / deite
+
+#### Points ouverts documentes
+- Ordre deblocage deites -> session Lore dediee
+- Structure quetes de deite (narrative / epreuve thematique / mixte) -> session Lore
+- Timing disponibilite quetes -> session Lore
+- Calibration seuils d'usage par role -> C1-MagicUnlockSystem
+- Nom et format systeme de rattrapage -> jalon dedie
+- Structure arbre de talents -> jalon dedie
+
+#### Etat final
+Design progression magique pose dans Magic_Progression.md. Session Lore necessaire pour deblocage deites. Prochain jalon technique : C1-MagicUnlockSystem.
+
+---
+
 ### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
 
 #### Nouveaux assets data layer
@@ -270,7 +294,8 @@ Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour les decisions architecturales : voir Docs/Architecture/Decisions.md
 Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
 Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
+Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 25/05/2026
+- Derniere mise a jour : 26/05/2026
