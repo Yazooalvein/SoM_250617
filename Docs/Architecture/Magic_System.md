@@ -25,22 +25,49 @@ et evolutions passent par l'arbre de talent (voir section Progression Magique).
 
 ## ETAT ACTUEL (25/05/2026)
 
-### BP_MagicComponent -- VALIDE PIE
-- UnlockedSpells : TMap<FName, FSoM_DeitySpells> -- alimente au BeginPlay (stub test)
-- UnlockDeity(DeityName) : Map_Add via Set Members in FSoM_DeitySpells (fix bDefaultValueIsIgnored)
-- CastSpell(SpellID) : lookup DT_Spells -> Spawn -> Execute -> ConsumeMana
-- Stub BeginPlay : UnlockDeity("Lumina") avec 4 sorts [Lumina_Attack, Lumina_Heal, Lumina_Buff, Lumina_Debuff]
+### Data layer deites -- VALIDE PIE
+
+#### Nouveaux enums
+- `E_SpellTier` : Base / TreeActive / TreeEvolution / Ultime
+- `E_NodeType` : Active / Passive / Ultime
+
+#### Nouvelles structs
+- `FSoM_DeityData` : DeityID (Name), DeityName (Text), Icon (Texture2D), UnlockOrder (Int), BaseSpells (Array<Name>)
+- `FSoM_TalentNode` : NodeID, DeityID, NodeType (E_NodeType), SpellID, PassiveStat, PassiveValue (Float), PointCost (Int), Prerequisites (Array<Name>)
+
+#### FSoM_SpellData -- champs ajoutes
+- SpellTier (E_SpellTier) : Base sur les 4 sorts Lumina existants
+- ReplacesSpellID (Name) : vide par defaut, utilise pour les evolutions d'arbre
+
+#### DataTables
+- `DT_Deities` : row Lumina (UnlockOrder=1, Icon=placeholder, BaseSpells=[Lumina_Attack, Lumina_Heal, Lumina_Buff, Lumina_Debuff])
+- `DT_TalentNodes` : vide, pret pour C1-MagicTreeModule
+
+#### Convention BaseSpells
+Ordre fixe pour toutes les deites : [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
+Source de verite pour l'ordre d'affichage dans le radial N2.
+
+### BP_MagicComponent -- UnlockDeity refactore -- VALIDE PIE
+- Avant : TempSpellsIDs hardcode en default value (mode dummy)
+- Apres : GetDataTableRow(DT_Deities, DeityName) -> BreakStruct -> BaseSpells -> Set Members in FSoM_DeitySpells -> Map_Add
+- TempSpellsIDs supprime
+- GOTCHA : Map_Contains retourne TRUE si deja present -> branch TRUE = return (ne rien faire), FALSE = debloquer
+  (logique contre-intuitive -- inverser produit un bug silencieux : UnlockedSpells vide, radial vide)
+
+### UI_Radial_Main -- PopulateMagicSchools refactore -- VALIDE PIE
+- Avant : Conv_NameToText(Map Key) -> DisplayName, Icon null
+- Apres : GetDataTableRow(DT_Deities, Map Key) -> BreakStruct -> DeityName + Icon -> MakeStruct FSoM_RadialSlotData
+- Row Not Found : non connecte = skip silencieux (deite non referencee dans DT ignoree)
 
 ### Radial Magie 2 niveaux -- VALIDE PIE
-- N1 (Deity) : ecoles debloquees depuis UnlockedSpells
-- N2 (Spell) : 4 sorts de l'ecole selectionnee
+- N1 (Deity) : ecoles debloquees depuis UnlockedSpells, icone reelle affichee
+- N2 (Spell) : 4 sorts depuis UnlockedSpells[DeityID].SpellIDs (alimentes par DT_Deities.BaseSpells)
 - CastSpell depuis N2 : fonctionne PIE
 
 ### Dette C1-MagicUnlockSystem
-- Le stub BeginPlay est temporaire
-- Implementer UnlockSpell(SchoolID, SpellID) pour un deblocage progressif reel
-- Chaque nouvelle ecole (Ondine, Ombre...) = nouveau DT_Spells + UnlockSpell calls
-- Planifier apres C1-MagicProgressionDesign
+- Stub BeginPlay Lumina toujours present (UnlockDeity("Lumina") au BeginPlay)
+- A retirer quand C1-MagicUnlockSystem gere le deblocage en jeu
+- C1-MagicTreeModule : implementation arbre de talent (apres Menu Principal)
 
 ---
 
@@ -191,7 +218,7 @@ FSoM_SpellData
 ├── SpellName (Text)
 ├── Deity (Name)                  // Lumina, Luna, Sylphide...
 ├── Category (E_SpellCategory)    // Attack, Buff, Debuff, Heal, Ultime
-├── SpellTier (E_SpellTier)       // Base, TreeActive, Ulti -- a ajouter
+├── SpellTier (E_SpellTier)       // Base, TreeActive, TreeEvolution, Ultime
 ├── ManaCost (Float)
 ├── CastTime (Float)              // 0.0 = instantane
 ├── Cooldown (Float)
@@ -200,8 +227,35 @@ FSoM_SpellData
 ├── Duration (Float)              // pour buffs/debuffs
 ├── AffectedStat (Name)           // stat modifiee (ex: "HealthMax", "MoveSpeed")
 ├── DeliveryType (E_DeliveryType) // Direct, Projectile, AOE (futur)
-├── ReplacesSpellID (Name)        // si evolution : SpellID du sort de base remplace
+├── ReplacesSpellID (Name)        // si TreeEvolution : SpellID du sort de base remplace
 └── SpellClass (BP_SpellBase)     // classe Blueprint a spawner
+```
+
+---
+
+## Structure FSoM_DeityData (DataTable DT_Deities)
+
+```
+FSoM_DeityData
+├── DeityID (Name)          -- cle de lookup (ex: "Lumina")
+├── DeityName (Text)        -- nom affiche dans le radial N1
+├── Icon (Texture2D)        -- icone radial N1
+├── UnlockOrder (Int)       -- ordre narratif (1=Lumina, 9=Ondine)
+└── BaseSpells (Array<Name>) -- 4 SpellIDs [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
+```
+
+## Structure FSoM_TalentNode (DataTable DT_TalentNodes)
+
+```
+FSoM_TalentNode
+├── NodeID (Name)              -- cle unique (ex: "Lumina_Node_01")
+├── DeityID (Name)             -- filtrage par deite
+├── NodeType (E_NodeType)      -- Active / Passive / Ulti
+├── SpellID (Name)             -- si Active/Ulti : sort debloque (vide si Passive)
+├── PassiveStat (Name)         -- si Passive : stat affectee
+├── PassiveValue (Float)       -- valeur du bonus passif
+├── PointCost (Int)            -- cout en points (defaut 1)
+└── Prerequisites (Array<Name>) -- NodeIDs requis avant deblocage
 ```
 
 ---
@@ -216,7 +270,6 @@ BP_MagicComponent (ActorComponent)
 │   ├── SpellLevels : Map<Name, Int>                   // SpellID -> niveau actuel
 │   ├── TalentPoints : Map<Name, Int>                  // DeityName -> points disponibles
 │   ├── TempDeitySpells : FSoM_DeitySpells             // variable helper (SIMPLE, pas Array)
-│   ├── TempSpellsIDs : Array<Name>                    // [Attack, Heal, Buff, Debuff] par defaut
 │   ├── QuickslotSlots : Array<Name> (4 slots)
 │   ├── SpellCooldowns : Map<Name, Float>
 │   └── bIsCasting : Boolean
@@ -228,7 +281,7 @@ BP_MagicComponent (ActorComponent)
 │   ├── LevelUpSpell(SpellID)        // monte niveau + AddTalentPoint(Deity)
 │   ├── AddTalentPoint(DeityName)    // +1 dans TalentPoints[DeityName]
 │   ├── UnlockTreeNode(NodeID)       // depense point -> active sort/passif dans UnlockedSpells
-│   ├── UnlockDeity(DeityName)       // Map_Contains -> FALSE -> Set Members -> Map_Add
+│   ├── UnlockDeity(DeityName)       // GetDataTableRow(DT_Deities) -> BaseSpells -> Set Members -> Map_Add
 │   └── IsSpellUnlocked(SpellID) : Bool
 └── Dispatchers
     ├── OnSpellCast(SpellID)
@@ -240,6 +293,9 @@ Blueprint Map<Name, Array<Name>>.
 
 **Note Set Members :** utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells"
 pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=True dans UE5.
+
+**Note Map_Contains dans UnlockDeity :** TRUE = deja present -> return sans rien faire.
+FALSE = absent -> proceder au deblocage. Logique contre-intuitive, ne pas inverser.
 
 ---
 
@@ -282,14 +338,20 @@ pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=Tr
 - [x] Fix bDefaultValueIsIgnored : Set Members in FSoM_DeitySpells
 - [x] Radial Magie 2 niveaux VALIDE PIE
 - [x] C1-MagicProgressionDesign : spec progression sorts + arbre de talent DESIGN VALIDE
+- [x] E_SpellTier + E_NodeType crees
+- [x] FSoM_DeityData + FSoM_TalentNode crees
+- [x] FSoM_SpellData : SpellTier + ReplacesSpellID ajoutes
+- [x] DT_Deities : row Lumina complete (BaseSpells, Icon, UnlockOrder)
+- [x] DT_TalentNodes : cree vide
+- [x] UnlockDeity : data-driven via DT_Deities (TempSpellsIDs supprime)
+- [x] PopulateMagicSchools : DeityName + Icon depuis DT_Deities VALIDE PIE
 - [ ] C1-MagicUnlockSystem : UnlockSpell(SchoolID, SpellID) + systeme usage/niveau/points
 - [ ] Retirer stub BeginPlay quand UnlockSpell opere en jeu
-- [ ] Ajouter SpellTier + ReplacesSpellID dans FSoM_SpellData
-- [ ] Ajouter DeliveryType (E_DeliveryType) dans FSoM_SpellData
 - [ ] Refactorer BP_Spell_Buff/Debuff pour lire AffectedStat depuis SpellData
 - [ ] UI_QuickslotBar (HUD permanent) + UI_MagicConfig (hors combat)
 - [ ] Binding input -> Quickslots
 - [ ] BP_Spell_Attack_Projectile et BP_Spell_Attack_AOE
+- [ ] C1-MagicTreeModule : implementation arbre de talent (apres Menu Principal)
 
 ---
 
@@ -298,8 +360,10 @@ pour alimenter le Map_Add -- le pin SpellIDs de Make a bDefaultValueIsIgnored=Tr
 - Creation : 11/05/2026
 - MAJ : 12/05/2026 -- POC logique complet, hierarchie sorts
 - MAJ : 25/05/2026 -- C1-RadialMagie VALIDE PIE, architecture UnlockDeity finale,
-  fix bDefaultValueIsIgnored, variables TempDeitySpells/TempSpellsIDs,
-  note Set Members obligatoire
+  fix bDefaultValueIsIgnored, note Set Members obligatoire
 - MAJ : 25/05/2026 -- C1-MagicProgressionDesign VALIDE : section Progression Magique ajoutee,
   boucle usage->niveau->points->arbre, structure arbre par deite, variables BP_MagicComponent
   etendues (SpellUsageCounts, SpellLevels, TalentPoints, dispatchers OnSpellLevelUp)
+- MAJ : 25/05/2026 -- Data layer deites VALIDE PIE : E_SpellTier, E_NodeType, FSoM_DeityData,
+  FSoM_TalentNode, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven,
+  gotcha Map_Contains logique documente
