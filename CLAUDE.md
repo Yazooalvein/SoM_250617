@@ -104,7 +104,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_SoM_GameMode` : Player Controller Class = BP_SoM_PlayerController
 - Hit Flash ennemi : ABANDONNE -- screen shake + animation suffisent (voir Decisions.md)
 - Inputs : source unique Content/Input/InputActions/
-- IMC_Prototype = inputs gameplay uniquement (IMC_UI en cours de creation -- C1-InputsUI)
+- IMC_Gameplay : inputs gameplay (ex IMC_Prototype renomme -- C1-InputsUI COMPLET)
 
 ---
 
@@ -233,34 +233,32 @@ Format dans Docs/Session_UnrealClaude.md :
   - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
   - Aim(Axis X, Axis Y) : gestion camera
 
-### Radial Menu -- COMPLET VALIDE PIE (armes), Magie EN COURS (C1-RadialMagie)
-- `ERadialMode` (enum) : Weapons / Magic (NewEnumerator0 / NewEnumerator1)
+### Radial Menu -- COMPLET VALIDE PIE (armes), Magie C1-RadialMagie VALIDE PIE
+- `ERadialMode` (enum) : Weapons / Magic
 - `CurrentCategory` (ERadialMode) dans UI_Radial_Main : categorie active
-- `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots, reset SelectedIndex/TargetRotation/CurrentRotation
-  - Branche Weapons : PopulateWeaponSlots -> valide PIE
-  - Branche Magic : stub PrintVar "PASSAGE EN MAGIC" -> a implementer (C1-RadialMagie)
-
-#### Architecture Radial Magie (cible C1-RadialMagie)
-- Armes : 1 radial (existant), retour sur arme equipee (SelectedIndex = index de ChoosenWeapon dans DiscoveredWeapons)
-- Magie niveau 1 : ecoles (Ondine, Ombre, Athanor, Lumina...) -- PopulateMagicSchools a creer
-- Magie niveau 2 : sorts de l'ecole selectionnee -- PopulateMagicSpells(SchoolID) a creer
-- Validation : CastSpell ou assignation quickslot selon contexte
+- `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots
+- Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
 - Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
-### Magie
-- `BP_MagicComponent` : UnlockedSpells, QuickslotSlots, SpellCooldowns, CastSpell
+### Magie -- C1-RadialMagie VALIDE PIE (25/05/2026)
+- `BP_MagicComponent` : UnlockedSpells, SpellUsageCounts, SpellLevels, TalentPoints,
+  QuickslotSlots, SpellCooldowns, CastSpell, IncrementSpellUsage, LevelUpSpell,
+  AddTalentPoint, UnlockTreeNode
 - `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
+- Radial 2 niveaux : N1 Deity -> N2 Spell -> CastSpell VALIDE PIE
+- Progression : usage -> niveau -> point talent -> arbre (voir Magic_System.md)
+- Stub BeginPlay Lumina temporaire -> C1-MagicUnlockSystem
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
 - `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC, ZOrder=10
 
-### Inputs -- etat actuel
-- `IMC_Prototype` : inputs gameplay (Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialMenu)
-- `IMC_UI` : A CREER (C1-InputsUI) -- inputs menus separes du gameplay
-  - Inputs a migrer : IA_UI_Radial_Cancel, IA_validate_radial_selection, IA_UI_RadialMenu_ChangeCat
-  - Probleme actuel : inputs gameplay restent actifs pendant le radial
-- Voir Docs/Architecture/Input_Architecture.md pour details et plan C1-InputsUI
+### Inputs -- etat actuel (C1-InputsUI COMPLET VALIDE PIE 23/05/2026)
+- `IMC_Gameplay` (ex IMC_Prototype renomme) : inputs gameplay, charge au ReceivePossessed
+- `IMC_Radial` : 4 IA navigation radial, actif pendant ouverture radial
+- `IMC_Menu`, `IMC_Dialogue`, `IMC_Cutscene` : stubs vides
+- Swap IMC dans PC : OpenRadial (Remove Gameplay + Add Radial) / CloseRadial (inverse)
+- Voir Docs/Architecture/Input_Architecture.md pour details
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -292,6 +290,9 @@ Options=Menu Global
 - [x] C1-HitFeel PARTIEL : knockback + screen shake VALIDES PIE, hitstop reporte, gamepad manque (18/05/2026)
 - [x] C1-HitFlashEnemies ABANDONNE : Decision 21/05 -- voir Decisions.md
 - [x] C1-CleanupDettes PARTIEL : 3/4 faits (21/05/2026) -- reste LockOnSwitchCooldown PC
+- [x] C1-InputsUI COMPLET VALIDE PIE : IMC_Gameplay/Radial/Menu/Dialogue/Cutscene, swap IMC, fix rotation radial (23/05/2026)
+- [x] C1-RadialMagie COMPLET VALIDE PIE : radial 2 niveaux Deity->Spell, CastSpell, fix bDefaultValueIsIgnored (25/05/2026)
+- [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
 
 ## Dettes techniques
 
@@ -301,21 +302,20 @@ Options=Menu Global
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **IMC_Prototype trop charge** (C1-InputsUI) -- voir Decisions.md
+- **Stub BeginPlay Lumina** : temporaire, a retirer quand C1-MagicUnlockSystem opere
 
-## Prochains jalons (ordre revise le 21/05/2026)
+## Prochains jalons
 
-1. **C1-InputsUI** : IMC dedie menus -- PRIORITAIRE
-2. **C1-RadialMagie** : Radial magie 2 niveaux (ecoles -> sorts) + fix retour arme equipee
-3. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC
-4. **C1-WeaponArchitecture** : audit data armes pour forge/talents
-5. **C1-SwordMoveset** : moveset epee complet
-6. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
-7. **C1-BowPOC** : arc
-8. **C1-WeaponSwitching** : switching armes en combat
-9. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
-10. **C1-SFXCombat** : sons combat de base
-11. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
+1. **C1-MagicUnlockSystem** : UnlockSpell(SchoolID, SpellID) + systeme usage/niveau/points/arbre
+2. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC
+3. **C1-WeaponArchitecture** : audit data armes pour forge/talents
+4. **C1-SwordMoveset** : moveset epee complet
+5. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
+6. **C1-BowPOC** : arc
+7. **C1-WeaponSwitching** : switching armes en combat
+8. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
+9. **C1-SFXCombat** : sons combat de base
+10. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
 
 ---
 
@@ -335,7 +335,9 @@ Options=Menu Global
 - InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
-- SwitchCategory : toggle ERadialMode via Conv_ByteToString + EqualEqual_StriStri("Weapons")
+- SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
+- UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
+- IncrementSpellUsage -> LevelUpSpell -> AddTalentPoint : chaine de progression magique
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 
 ---
@@ -354,4 +356,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 21/05/2026*
+*Derniere mise a jour : 25/05/2026*
