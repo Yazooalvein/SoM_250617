@@ -135,6 +135,42 @@ automatiquement sur la cible apres un delai d'inactivite.
 
 ## RADIAL MENU & MAGIE
 
+### [25/05/2026] ERadialMode -- enum a 3 valeurs
+**Decision** : NewEnumerator0=Weapons, NewEnumerator1=Deity, NewEnumerator2=Spell.
+Renommage Magic->Deity et ajout Spell comme valeur N2 distincte.
+**Raison** : Separation claire des trois modes du radial. Spell = niveau 2 magie, distinct de Deity = niveau 1.
+
+### [25/05/2026] SwitchCategory -- logique 3 branches
+**Decision** :
+- CurrentCategory == Weapons -> passer en Deity -> PopulateMagicSchools
+- CurrentCategory == Deity -> passer en Weapons -> PopulateWeaponSlots
+- CurrentCategory == Spell -> passer en Deity -> PopulateMagicSchools (retour N2->N1)
+**Raison** : Le bouton SwitchCategory depuis Spell doit revenir en Deity, pas fermer le radial.
+La fermeture depuis Spell passe par Cancel (retour N1) puis Cancel a nouveau (fermeture).
+
+### [25/05/2026] ValidateSelection -- capture TempSchoolID avant PopulateMagicSpells (DETTE)
+**Contexte** : GetArrayItem(SlotDataList, SelectedIndex) est un noeud pur evalue APRES que
+PopulateMagicSpells a efface SlotDataList, ce qui retourne une struct vide.
+**Decision (DETTE)** : Capturer SlotDataList[SelectedIndex].SlotID dans une variable locale
+TempSchoolID (FName) AVANT d'appeler PopulateMagicSpells.
+**Consequences** : SchoolID hardcode "Lumina" en attendant. A corriger dans C1-RadialMagie finalisation.
+
+### [25/05/2026] UnlockDeity -- architecture finale avec Set Members in FSoM_DeitySpells
+**Contexte** : Bug critique : le pin SpellIDs du noeud Make FSoM_DeitySpells a
+bDefaultValueIsIgnored=True. UE5 ignore systematiquement la valeur connectee (MakeArray ou variable),
+ce qui produit un SpellIDs vide -> SlotDataList a 1 element au lieu de 4.
+**Decision** : Remplacer Make FSoM_DeitySpells par le noeud "Set Members in FSoM_DeitySpells".
+Architecture finale dans UnlockDeity (branche Map_Contains == FALSE) :
+  1. GET TempDeitySpells (FSoM_DeitySpells, variable membre simple -- pas un Array)
+  2. Set Members in FSoM_DeitySpells : StructRef=TempDeitySpells, SpellIDs=TempSpellsIDs
+  3. StructOut -> Map_Add(UnlockedSpells, Key=DeityName, Value=StructOut)
+**Raison** : Le noeud Set Members in struct ne souffre pas du bug bDefaultValueIsIgnored.
+Il modifie directement la struct en reference et passe la reference modifiee au Map_Add.
+**Consequences** :
+- TempDeitySpells doit etre de type FSoM_DeitySpells SIMPLE (pas Array de FSoM_DeitySpells)
+- TempSpellsIDs reste un Array<FName> avec 4 elements par defaut dans les Details
+- Ne jamais utiliser Make FSoM_DeitySpells pour alimenter un Map_Add
+
 ### [23/05/2026] Radial Magie -- decisions actees pour C1-RadialMagie
 **Contexte** : Choix d'architecture pour les 2 niveaux magie du radial.
 
@@ -245,3 +281,7 @@ OnStatChanged = dispatcher de notification.
 - 23/05/2026 : decisions C1-RadialMagie actees (CastSpell direct, filtrage UnlockedSpells, SelectedIndex en dette)
 - 23/05/2026 : jalon C1-MagicProgressionDesign cree (design uniquement)
 - 23/05/2026 : stub test UnlockedSpells BeginPlay + dette C1-MagicUnlockSystem
+- 25/05/2026 : ERadialMode 3 valeurs (Weapons/Deity/Spell), SwitchCategory 3 branches
+- 25/05/2026 : bug bDefaultValueIsIgnored Make FSoM_DeitySpells -> fix Set Members in struct
+- 25/05/2026 : architecture finale UnlockDeity (TempDeitySpells simple + Set Members)
+- 25/05/2026 : dette TempSchoolID capture avant PopulateMagicSpells
