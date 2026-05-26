@@ -1,82 +1,108 @@
-# Magic_Progression.md — Design Progression Magique
+# Magic_Progression.md - Design Progression Magique
 
 ## Objectif
 
-Définir la boucle de progression magique du joueur : comment les sorts évoluent,
-comment les déités débloquent les paliers d'arbre, et comment le joueur rattrape
-les sorts sous-évolués en fin de jeu.
+Definir la boucle de progression magique du joueur : comment les sorts evoluent,
+comment les deites debloquent les paliers d'arbre, et comment le joueur rattrape
+les sorts sous-evolues en fin de jeu.
 
-Dernière mise à jour : 26/05/2026
+Derniere mise a jour : 26/05/2026
 
 ---
 
 ## 1. Progression par usage
 
 ### Principe
-Chaque sort monte en niveau via l'usage en combat. Les seuils sont différenciés
-par **rôle du sort**, pas par sort individuel, pour refléter la fréquence d'usage
+Chaque sort monte en niveau via l'usage en combat. Les seuils sont differencies
+par role du sort, pas par sort individuel, pour refleter la frequence d'usage
 naturelle sans forcer le grind.
 
-### Seuils par rôle (ordre croissant)
-| Rôle | Seuil | Rationale |
+### Seuils par role (ordre croissant)
+| Role | Seuil | Rationale |
 |---|---|---|
-| Attack | Bas | Utilisé naturellement à chaque combat |
-| Heal | Moyen | Utilisé situationnellement |
-| Buff | Moyen-haut | Souvent négligé par le joueur |
-| Debuff | Haut | Le moins utilisé naturellement |
+| Attack | Bas | Utilise naturellement a chaque combat |
+| Heal | Moyen | Utilise situationnellement |
+| Buff | Moyen-haut | Souvent neglige par le joueur |
+| Debuff | Haut | Le moins utilise naturellement |
 
-> **Valeurs exactes : à calibrer** selon la durée de vie visée du jeu.
+Valeurs exactes : a calibrer selon la duree de vie visee du jeu.
 
 ### Inspiration
-Système Secret of Mana : `9 - niveau actuel` % par lancer (courbe décroissante).
-SoM adapte ce principe avec des seuils différenciés par rôle plutôt qu'une formule unique.
+Systeme Secret of Mana : 9 - niveau actuel % par lancer (courbe decroissante).
+SoM adapte ce principe avec des seuils differencies par role plutot qu'une formule unique.
 
 ---
 
-## 2. Cap narratif — Déblocage par quêtes de déité
+## 2. Cap narratif - Deblocage par quetes de deite
 
-### Structure de déblocage
-1. **Rencontrer une déité** → sorts de base débloqués immédiatement
-2. **Compléter la quête de déité** → paliers d'arbre de talents débloqués
+### Structure de deblocage - 4 paliers sequentiels
 
-### Paliers débloqués par quête
-- Nombre variable selon la déité / difficulté de la quête : 2, 3 ou 4 paliers
-- Exemple pressenti : Lumina (déité introductive) = 2 paliers
+| Palier | Declencheur | Recompense |
+|---|---|---|
+| 0 - Rencontre | Evenement narratif (rencontre la deite / son representant) | Sorts de base debloques immediatement |
+| 1 - Quete speciale | Quete narrative liee a la deite | Paliers arbre 1 et 2 debloques |
+| 2 - Donjon de deite | Donjon specifique a la deite, rituel / priere de communion | Paliers arbre 3 et 4 debloques |
+| 3 - Boss lore | Boss narrativement lie a la deite | Ultime debloque |
+
+Ordre sequentiel obligatoire - sequencement narratif strict, pas de saut possible.
+
+La communion avec la deite (acces au donjon) passe par un rituel ou une priere
+propre a chaque sanctuaire - defini au cas par cas selon la deite et son identite.
 
 ### Points ouverts
-- Nombre exact de paliers par quête : fixe ou variable ? → à décider
-- Structure des quêtes (narrative, épreuve thématique liée à la déité, mixte) → session Lore
-- Timing de disponibilité : dès la rencontre ou après avancement histoire principale ? → session Lore
-- Ordre de déblocage des déités → **session Lore dédiée**
+- Ordre de deblocage des deites -> session Lore dediee
+- Structure exacte des quetes et rituels par deite -> session Lore
+- Cas particulier Ondine (statut ambigu, fusion soeur) -> session Lore
 
 ---
 
-## 3. Système de rattrapage (fin de jeu)
+## 3. Corruption Magique
 
 ### Principe
-En fin de jeu, le joueur peut accélérer la progression de sorts sous-évolués
-via un coût dédié, sans casser la progression naturelle en early/mid game.
+L'usage de la magie accumule de la Corruption sur le heros. Effets principalement negatifs
+et progressifs selon des seuils (legere / moderee / severe - a definir).
 
-### Format envisagé
-- Objet spécifique lié à la magie, monnaie dédiée, ou les deux selon la rareté
-- **À nommer et définir** dans un jalon dédié
+### Purge
+Repos a la Fontaine de Fee -> Corruption purgee integralement.
+
+### Twist - Representant d'Ombre
+Le heros etant lie a la deite Ombre, il peut tirer parti de la Corruption a hauts niveaux :
+- Bonus pressentis : augmentation des degats
+- Contreparties pressenties : soins indisponibles, certaines interactions PNJ bloquees
+
+Points ouverts : seuils exacts, reversibilite partielle hors Fontaine, reactions ennemis
+face a un heros corrompu, impact visuel - a brainstormer en session dediee.
 
 ---
 
-## 4. Points ouverts globaux
+## 4. Systeme de rattrapage (fin de jeu)
+
+### Principe
+En fin de jeu, le joueur peut accelerer la progression de sorts sous-evolues
+via un cout dedie, sans casser la progression naturelle en early/mid game.
+
+### Format envisage
+- Objet specifique lie a la magie, monnaie dediee, ou les deux selon la rarete
+- A nommer et definir dans un jalon dedie (session Economie)
+
+---
+
+## 5. Points ouverts globaux
 
 | Sujet | Statut | Jalon cible |
 |---|---|---|
-| Ordre de déblocage des déités | Ouvert | Session Lore |
-| Structure quêtes de déité | Ouvert | Session Lore |
-| Calibration seuils d'usage par rôle | Ouvert | C1-MagicUnlockSystem |
-| Nombre de paliers débloqués par quête | Ouvert | À décider |
-| Nom et format du système de rattrapage | Ouvert | Jalon dédié |
-| Structure de l'arbre de talents | Ouvert | Jalon dédié arbre |
+| Ordre de deblocage des deites | Ouvert | Session Lore |
+| Structure quetes et rituels par deite | Ouvert | Session Lore |
+| Cas Ondine (statut ambigu) | Ouvert | Session Lore |
+| Calibration seuils d'usage par role | Ouvert | C1-MagicUnlockSystem |
+| Seuils Corruption (legere/moderee/severe) | Ouvert | Session dediee Corruption |
+| Nom et format systeme de rattrapage | Ouvert | Session Economie |
+| Structure de l'arbre de talents | Ouvert | Jalon dedie arbre |
 
 ---
 
-## Références
+## References
+- `Docs/Lore_ShadowOfMana.md` : lore complet, section Corruption Magique et Fontaine de Fee
 - `Docs/Architecture/Magic_System.md` : architecture technique BP_MagicComponent
-- `Docs/Architecture/Decisions.md` : décisions d'abandon et choix archi
+- `Docs/Architecture/Decisions.md` : decisions d'abandon et choix archi
 - `Docs/Roadmap_Gameplay.md` : jalons magie
