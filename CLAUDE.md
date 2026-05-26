@@ -246,12 +246,15 @@ Format dans Docs/Session_UnrealClaude.md :
   AddTalentPoint, UnlockTreeNode
 - `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
 - Radial 2 niveaux : N1 Deity -> N2 Spell -> CastSpell VALIDE PIE
-- Progression : usage -> niveau -> point talent -> arbre (voir Magic_System.md)
+- Progression : usage -> niveau -> point talent -> arbre (voir Magic_Progression.md)
 - Stub BeginPlay Lumina temporaire -> C1-MagicUnlockSystem
 - Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
 - UnlockDeity : lit DT_Deities.BaseSpells (plus de TempSpellsIDs hardcode)
 - PopulateMagicSchools : lit DT_Deities.DeityName + Icon (plus de Conv_NameToText)
 - Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
+- Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
+- Corruption Magique : compteur sur le heros, effets negatifs progressifs, purge a la Fontaine de Fee
+- Twist Representant d'Ombre : bonus degats a haut niveau Corruption, contreparties (soins off, PNJ bloques)
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
@@ -298,6 +301,7 @@ Options=Menu Global
 - [x] C1-RadialMagie COMPLET VALIDE PIE : radial 2 niveaux Deity->Spell, CastSpell, fix bDefaultValueIsIgnored (25/05/2026)
 - [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
 - [x] C1-MagicDataLayer VALIDE PIE : E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven (25/05/2026)
+- [x] DESIGN-MagicProgression : structure 4 paliers quetes deite, Corruption Magique, Fontaine de Fee, fee liee au heros (26/05/2026)
 
 ## Dettes techniques
 
@@ -315,12 +319,19 @@ Options=Menu Global
 2. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC
 3. **C1-WeaponArchitecture** : audit data armes pour forge/talents
 4. **C1-SwordMoveset** : moveset epee complet
-5. **C1-SaveDesign** : session design respawn/sauvegarde (spec uniquement)
+5. **C1-SaveDesign** : session design respawn/sauvegarde Fontaine de Fee (spec uniquement)
 6. **C1-BowPOC** : arc
 7. **C1-WeaponSwitching** : switching armes en combat
 8. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
 9. **C1-SFXCombat** : sons combat de base
 10. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
+
+## Sessions design a planifier
+
+- **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption
+- **Session Lore Deites** : ordre deblocage, structure rituel par deite, cas Ondine
+- **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
+- **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
 
 ---
 
@@ -345,7 +356,12 @@ Options=Menu Global
 - UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
 - IncrementSpellUsage -> LevelUpSpell -> AddTalentPoint : chaine de progression magique
 - DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
+- Athanor = Salamandre : meme deite, deux noms selon localisation
+- Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
+- Fontaine de Fee = feu de camp DS : repos -> purge Corruption + fee restauree + mobs respawn
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
+- Pour le design progression magique : voir Docs/Architecture/Magic_Progression.md
+- Pour le lore complet : voir Docs/Lore_ShadowOfMana.md
 
 ---
 
@@ -363,4 +379,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 25/05/2026*
+*Derniere mise a jour : 26/05/2026*
