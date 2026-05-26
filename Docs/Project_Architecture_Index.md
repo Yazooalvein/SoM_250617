@@ -18,7 +18,8 @@ A mettre a jour a chaque creation ou modification de document.
 | Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour |
 | Journal des modifications | Docs/Journal_Modifications.md | Mis a jour |
 | Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour |
-| Lore | Docs/Lore_ShadowOfMana.md | Stable |
+| Planning sessions | Docs/Planning_Sessions.md | Mis a jour |
+| Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 26/05 |
 | Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
 
 ---
@@ -47,7 +48,7 @@ A mettre a jour a chaque creation ou modification de document.
 | Ennemi weapon collision | Enemy_WeaponCollision_And_Damage.md | Stable |
 | Animation weapon | Animation_WeaponIntegration.md | Stable |
 | Gameplay de base | BasicGameplay_Architecture.md | Stable |
-| SaveGame | (a creer -- C1-SaveDesign) | Pas commence |
+| SaveGame | (a creer -- C2-SaveGame) | Pas commence |
 | Audio | (a creer -- C1-SFXCombat) | Pas commence |
 | Quetes | (a creer -- C4-QuestSystem) | Pas commence |
 | Dialogue | (a creer -- C4-DialogueSystem) | Pas commence |
@@ -90,4 +91,4 @@ A mettre a jour a chaque creation ou modification de document.
 
 - Creation : 17/06/2025
 - MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
-- MAJ 26/05/2026 : ajout Magic_Progression.md, mise a jour jalons C1
+- MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md, Lore mis a jour
