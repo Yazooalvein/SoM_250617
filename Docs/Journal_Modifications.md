@@ -5,6 +5,45 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee, quetes deite
+
+#### Lore_ShadowOfMana.md -- MIS A JOUR
+- Athanor = Salamandre : deux noms pour la meme deite selon localisation (corrige partout)
+- Deites : 8 au total (Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre/Athanor, Ondine, Dryade)
+- Structure deblocage deite finalisee : 4 paliers sequentiels obligatoires
+  - Palier 0 Rencontre narratif -> sorts de base
+  - Palier 1 Quete speciale -> paliers arbre 1-2
+  - Palier 2 Donjon deite + rituel -> paliers arbre 3-4
+  - Palier 3 Boss lore -> ultime
+- Communion via rituel / priere propre a chaque deite, defini au cas par cas
+- Fee liee au heros ajoutee : fee affaiblie, besoin des Fontaines de Fee pour se restaurer
+- Fontaine de Fee : equivalent feu de camp DS, integre au lore via la fee
+  - Repos -> fee restauree + Corruption purgee + stats restaurees + mobs respawn
+  - Tension DS : se reposer coute (mobs respawn) vs ne pas se reposer (Corruption monte)
+- Corruption Magique detaillee :
+  - Usage magie -> accumulation Corruption, effets negatifs progressifs
+  - Twist Representant d'Ombre : bonus degats a haut niveau de Corruption
+  - Contreparties : soins indisponibles, certaines interactions PNJ bloquees
+- Sessions design a planifier listees : Fee, Deites, SaveDesign, Economie
+
+#### Magic_Progression.md -- MIS A JOUR
+- Structure 3 paliers quetes deite finalisee (tableau palier 0-3)
+- Section Corruption Magique ajoutee avec twist Representant d'Ombre
+- Points ouverts mis a jour : seuils Corruption, cas Ondine
+
+#### Points ouverts documentes
+- Fee : nom, personnalite, histoire, lien Ombre/Corruption -> session Lore Fee
+- Deites : ordre deblocage, structure rituel par deite -> session Lore Deites
+- Fontaine de Fee : frequence, montee Corruption hors repos, HUD fee -> session SaveDesign
+- Seuils Corruption (legere/moderee/severe), reversibilite, reactions ennemis -> session dediee
+- Cas particulier Ondine (statut ambigu) -> session Lore
+
+#### Etat final
+Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement.
+Sessions Lore et SaveDesign a planifier pour debloquer les points ouverts restants.
+
+---
+
 ### 26/05/2026 -- Session design -- Magic_Progression DESIGN
 
 #### Magic_Progression.md -- DESIGN
@@ -13,19 +52,10 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Rationale : refleter la frequence d'usage naturelle en combat, eviter le grind artificiel
 - Inspiration Secret of Mana : formule 9 - niveau actuel % par lancer, adaptee avec seuils differencies
 - Systeme de rattrapage tardif : objet/monnaie dedie pour injecter XP sur sorts sous-evolues en fin de jeu
-- Cap narratif : rencontrer une deite = sorts de base, completer quete de deite = paliers arbre debloquees (2-4)
-- Nombre de paliers par quete : potentiellement variable selon difficulte / deite
-
-#### Points ouverts documentes
-- Ordre deblocage deites -> session Lore dediee
-- Structure quetes de deite (narrative / epreuve thematique / mixte) -> session Lore
-- Timing disponibilite quetes -> session Lore
-- Calibration seuils d'usage par role -> C1-MagicUnlockSystem
-- Nom et format systeme de rattrapage -> jalon dedie
-- Structure arbre de talents -> jalon dedie
+- Cap narratif : rencontrer une deite = sorts de base, completer quete de deite = paliers arbre debloques
 
 #### Etat final
-Design progression magique pose dans Magic_Progression.md. Session Lore necessaire pour deblocage deites. Prochain jalon technique : C1-MagicUnlockSystem.
+Design progression magique pose dans Magic_Progression.md. Prochain jalon technique : C1-MagicUnlockSystem.
 
 ---
 
@@ -73,22 +103,6 @@ Sortie du mode dummy magie. Data layer deites complet et data-driven. Prochain j
 - Evolution d'un sort de base : remplace le sort (pas de coexistence)
 - Sorts supplementaires d'arbre : s'ajoutent au pool radial/quickslots
 - Deites : aucun cout de switch, pas d'equipement, apparition immediate au deblocage
-- Coherence avec niveaux armes : a calibrer selon duree de vie jeu
-- Magic_System.md mis a jour : section Progression Magique ajoutee, BP_MagicComponent etendu
-  (SpellUsageCounts, SpellLevels, TalentPoints, IncrementSpellUsage, LevelUpSpell, AddTalentPoint,
-  UnlockTreeNode, OnSpellLevelUp), FSoM_SpellData : SpellTier + ReplacesSpellID ajoutes
-
-#### Points ouverts (-> C1-MagicUnlockSystem)
-- Seuils de montee en niveau (nb utilisations) : a calibrer
-- Nombre exact de noeuds par arbre : depend duree de vie jeu
-- Condition deblocage ulti : bout d'arbre par defaut, evolution possible
-- Conditions deblocage deites : a definir (narratif / quete / zone)
-- Ratio points max vs noeuds totaux : a calibrer
-
-#### Skills SoM crees (outils IA)
-- `Skills/som-session-start/SKILL.md` : protocole lecture CLAUDE.md + Journal en debut de session
-- `Skills/som-commit-protocol/SKILL.md` : protocole SHA, confirmation, format journal, checklist
-- Installes localement via Settings -> Customize -> Skills sur claude.ai
 
 #### Etat final
 C1-MagicProgressionDesign VALIDE. Prochain jalon : C1-MagicUnlockSystem.
@@ -103,38 +117,27 @@ C1-MagicProgressionDesign VALIDE. Prochain jalon : C1-MagicUnlockSystem.
 - IMC_Menu, IMC_Dialogue, IMC_Cutscene : stubs vides
 
 #### Swap IMC cable dans BP_SoM_PlayerController
-- OpenRadial (apres SET bShowMouseCursor=true) :
-  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Gameplay) -> AddMappingContext(IMC_Radial, Priority=1)
-- CloseRadial (avant RemoveFromParent) :
-  GetSubsystemFromPC(Self) -> RemoveMappingContext(IMC_Radial) -> AddMappingContext(IMC_Gameplay, Priority=0)
+- OpenRadial : RemoveMappingContext(IMC_Gameplay) -> AddMappingContext(IMC_Radial, Priority=1)
+- CloseRadial : RemoveMappingContext(IMC_Radial) -> AddMappingContext(IMC_Gameplay, Priority=0)
 
 #### Fix rotation radial
-- Bug : rotations multiples et sens incorrect au premier test
-- Cause : axe analogique continu sans threshold -> declenchements en rafale
-- Fix 1 : ajout trigger Pressed avec threshold 0.5 sur IA_UI_Radial_Rotate
-- Fix 2 : ajout Modifier Negate X sur le binding direction gauche (Q / Stick G X-)
-  Sans Negate, les deux directions envoient la meme valeur positive -> meme sens
+- Bug : rotations multiples et sens incorrect
+- Fix 1 : trigger Pressed avec threshold 0.5 sur IA_UI_Radial_Rotate
+- Fix 2 : Modifier Negate X sur binding direction gauche
 
-#### Tests valides PIE
-- Triangle -> inputs gameplay morts, radial naviguable
-- Rotation gauche/droite correcte avec 3 armes
-- Rond -> fermeture, inputs gameplay reviennent
-- Attaque pendant radial ouvert -> rien
-- IA_UI_Radial_Open toujours fonctionnel depuis le gameplay
+#### Etat final
+C1-InputsUI COMPLET VALIDE PIE.
 
 ---
 
 ### 23/05/2026 -- Session design -- Architecture IMC complete
 - 5 IMC decides (Gameplay/Radial/Menu/Dialogue/Cutscene)
-- IMC_Dialogue = SEUL cumulatif, personnage mobile pendant dialogues
-- Cinematiques = Level Sequence -> IMC_Cutscene pertinent
-- Corrections noms IA (audit T3D), IA_UI_Radial_Rotate identifiee
+- IMC_Dialogue = SEUL cumulatif
 
 ---
 
 ### 21/05/2026 -- Session design & documentation
 - C1-HitFlashEnemies ABANDONNE, C1-CleanupDettes 3/4, C1-InputsUI PRIORITAIRE
-- Nouveau jalon C1-RadialMagie, Decisions.md cree, regles maintenance doc
 
 ---
 
@@ -180,112 +183,66 @@ C1-MagicProgressionDesign VALIDE. Prochain jalon : C1-MagicUnlockSystem.
 
 ### 15/05/2026 -- J-lock COMPLET -- VALIDE PIE
 - Fix IsLockOnActive, fix dispatcher espace, fix bind PC, UpdateLockOnUIIndicator
-- ABP_Manny_Platforming Strafe VALIDE PIE, edge cases valides
+- ABP_Manny_Platforming Strafe VALIDE PIE
 
 ---
 
 ### 14/05/2026 -- Session design -- Roadmap globale refondee
 - ~50 jalons, 8 couches, projet complet de A a Z
-- Decisions : FR+EN, tuto minimaliste, vibration standard
-- Ordre revise : J-lock -> J-Camera -> J-TestBed -> J-15/16/17
 
 ---
 
 ### 14/05/2026 -- J-Nettoyage COMPLET
-- BP_SoM_HeroCharacter : WeaponDataTest supprimee
-- BP_SoM_PlayerController : RadialMenuRef, SlotRowNames, SlotIcons supprimes
-- Assets : UI_RadialMenu, UI_RadialSlot_old, BP_PlatformingGameMode, BP_test_IA
-- Reorganisation dossier Enemies (Animations/, Model/, Blueprints/)
+- Suppression assets obsoletes, reorganisation dossier Enemies
 
 ---
 
 ### 14/05/2026 -- Session creative J-ART ; Hero PLACEHOLDER COMPLET
-- Workflow valide : Dessin -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5.7
-- Design palette actee, retargeting VALIDE PIE (ABP_Manny reutilise via Compatible Skeletons)
-- Dettes : 6 doigts, retopo 246K -> 10-15K, LODs, sockets HandGrip a affiner
+- Workflow Dessin -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5.7 valide
 
 ---
 
 ### 14/05/2026 -- Session creative J-MUS (exploration workflow)
-- Workflow : Fredonnement -> Suno (gratuit 50 credits/jour) -> Export MP3 -> UE5
-- Prompt theme overworld sombre etabli (60 BPM, D minor, cello lead)
+- Workflow Fredonnement -> Suno -> Export MP3 -> UE5 etabli
 
 ---
 
-### 12-13/05/2026 -- Jalon J-13 COMPLET -- Radial Menu + Quickslot
-
-#### Radial Menu (UI_Radial_Main) -- VALIDE PIE
-- Navigation par cran (stick G/D), lerp fluide, wrap correct
-- Fix drift (RadialContainer 0.01x0.01), fix sens rotation
-- PopulateWeaponSlots, SwitchCategory, ValidateSelectedWeapon -- VALIDES PIE
-
-#### Quickslot POC -- VALIDE PIE
-- 3 variables dans PC : QuickslotUp/Left/Right (FName, SpellID)
-- IA_Quickslot_Up/Left/Right -> CastSpell via MagicComponent
+### 12-13/05/2026 -- Jalon J-13 COMPLET -- Radial Menu + Quickslot VALIDE PIE
 
 ---
 
 ### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE
-- SizeBox_Weapon (64x64) + HUD_Main_VertBox (HP/ST/MP/XP)
-- RichTextBlock HP/ST/MP + UpdateStatText + DT_HUD_RichTextStyle
 
-### 12/05/2026 -- Jalons J-10 a J-14 -- POC Systeme Magie VALIDE
+---
 
-#### Structure assets (Content/Systems/Magic/)
-- BP_MagicComponent, BP_SpellBase
-- E_SpellCategory, E_SpellTarget, E_DeliveryType, FSoM_SpellData, FSoM_DeitySpells, DT_Spells
-- BP_Spell_Heal, BP_Spell_Attack, BP_Spell_Buff, BP_Spell_Debuff (Lumina) -- VALIDES PIE
+### 12/05/2026 -- Jalons J-10 a J-14 -- POC Systeme Magie VALIDE PIE
 
-#### BP_MagicComponent
-- UnlockedSpells, QuickslotSlots, SpellCooldowns, bIsCasting
-- CastSpell : Switch E_SpellTarget -> SpawnActor -> Execute -> ConsumeMana -> cooldown
+---
 
 ### 11/05/2026 -- Session design
-- Lore : Docs/Lore_ShadowOfMana.md
-- Roadmap : Docs/Roadmap_Gameplay.md
-- Architecture magie : Docs/Architecture/Magic_System.md
+- Lore, Roadmap, Architecture magie
 
 ### 11/05/2026 -- Jalon #9 -- Audit complet + nettoyage
-- Fixes config (DefaultGame.ini, uproject, ProjectName)
-- Nettoyage : ThirdPerson/, IA debug, Lvl_Platforming GameMode Override
 
 ### 11/05/2026 -- Jalon #8 -- Migration UE5.7 + UnrealClaude
-- Projet migre UE5.6 -> UE5.7.4
-- UnrealClaude v1.4.5 : 28 outils MCP, panel operationnel
-- Workflow dual-agent mis en place (Docs/Session_UnrealClaude.md)
 
 ### 07/05/2026 -- Jalons #1 a #7
-- #1 : MCP + Hit Flash joueur (M_Hero HitFlashAmount)
-- #2 : Mort du joueur (bIsDead, OnPlayerDeath, LoseAggro)
-- #3 : OnStatChanged dispatcher (SetStatValue = unique point)
-- #4 : Unification inputs (source unique InputActions/)
-- #5 : Iframes dash/roll (bIsInvincible via AnimNotify)
-- #6 : UI event-driven (zero polling, OnStatChanged)
-- #7 : Hit Flash ennemi partiel + fix GameMode PlayerController
 
-### 20/07/2025 -- Nico
-- Animation Weapon Integration
+### 20/07/2025 -- Nico -- Animation Weapon Integration
 
-### 27/06/2025 -- Nico
-- BP_AIController_Enemy_Base, PawnSensing, aggro/perte
+### 27/06/2025 -- Nico -- BP_AIController_Enemy_Base, PawnSensing
 
-### 26/06/2025 -- Nico
-- BPI_TakeDamage, BP_Enemy_Base ReceiveDamage + OnDeath
+### 26/06/2025 -- Nico -- BPI_TakeDamage, BP_Enemy_Base
 
-### 24/06/2025 -- Nico
-- Systeme armes data-driven, Menu Radial data-driven, Combo multi-armes
+### 24/06/2025 -- Nico -- Systeme armes data-driven, Radial, Combo
 
-### 21/06/2025 -- Nico
-- Refactorisation BP_ComboManagerComponent (TMap, fenetre dynamique)
+### 21/06/2025 -- Nico -- Refactorisation BP_ComboManagerComponent
 
-### 19-20/06/2025 -- Nico
-- Lock-On, Menu Radial, refonte Combo
+### 19-20/06/2025 -- Nico -- Lock-On, Menu Radial, refonte Combo
 
-### 18/06/2025 -- Nico
-- Refactoring pipeline Gameplay de base (Dash, Roll, Jump, Stamina)
+### 18/06/2025 -- Nico -- Refactoring pipeline Gameplay de base
 
 ### 17/06/2025 -- Nico -- Creation du projet
-- Initialisation SoM sous UE5.6, template Third Person Platforming
 
 ---
 
@@ -295,6 +252,7 @@ Pour les decisions architecturales : voir Docs/Architecture/Decisions.md
 Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
 Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
 Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
+Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
 - Creation : 17/06/2025
