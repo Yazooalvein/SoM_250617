@@ -332,6 +332,8 @@ Options=Menu Global
 - **Session Lore Deites** : ordre deblocage, structure rituel par deite, cas Ondine
 - **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
 - **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
+- **Session Stats/Progression personnage** : caracteristiques (Force, Dext, Magie...), fourchette de niveaux,
+  points par niveau, formule degats de base -- a planifier avant C1-SwordMoveset (bloquant pour equilibrage combat)
 
 ---
 
