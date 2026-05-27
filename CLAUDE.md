@@ -240,21 +240,22 @@ Format dans Docs/Session_UnrealClaude.md :
 - Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
 - Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
-### Magie -- data layer deites VALIDE PIE (25/05/2026)
-- `BP_MagicComponent` : UnlockedSpells, SpellUsageCounts, SpellLevels, TalentPoints,
-  QuickslotSlots, SpellCooldowns, CastSpell, IncrementSpellUsage, LevelUpSpell,
-  AddTalentPoint, UnlockTreeNode
+### Magie -- C1-MagicUnlockSystem VALIDE PIE (27/05/2026)
+- `BP_MagicComponent` : UnlockedSpells, LockedDeities, SpellUsageCounts, SpellLevels, TalentPoints,
+  QuickslotSlots, SpellCooldowns, CategoryThresholdsConfig
+- Fonctions : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell, AddTalentPoint
 - `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
 - Radial 2 niveaux : N1 Deity -> N2 Spell -> CastSpell VALIDE PIE
-- Progression : usage -> niveau -> point talent -> arbre (voir Magic_Progression.md)
-- Stub BeginPlay Lumina temporaire -> C1-MagicUnlockSystem
+- Etats deite : Non debloquee (invisible) / Debloquee+lockee (grisee, non castable) / Accessible (normal)
+- Progression sorts : usage -> seuil effectif -> LevelUpSpell -> TalentPoints
+- Formule seuil : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel) -- inspire SoM
+- Seuils par categorie (BP_SpellCategoryThresholds) : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
+- Logique seuils : Buff/Debuff (peu utilises) montent vite, Attack/Heal (spammes) montent lentement
 - Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
-- UnlockDeity : lit DT_Deities.BaseSpells (plus de TempSpellsIDs hardcode)
-- PopulateMagicSchools : lit DT_Deities.DeityName + Icon (plus de Conv_NameToText)
 - Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
 - Corruption Magique : compteur sur le heros, effets negatifs progressifs, purge a la Fontaine de Fee
-- Twist Representant d'Ombre : bonus degats a haut niveau Corruption, contreparties (soins off, PNJ bloques)
+- Dette restante : UsageThreshold dans FSoM_SpellData a supprimer (remplace par BP_SpellCategoryThresholds)
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
@@ -302,6 +303,7 @@ Options=Menu Global
 - [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
 - [x] C1-MagicDataLayer VALIDE PIE : E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven (25/05/2026)
 - [x] DESIGN-MagicProgression : structure 4 paliers quetes deite, Corruption Magique, Fontaine de Fee, fee liee au heros (26/05/2026)
+- [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
 
 ## Dettes techniques
 
@@ -311,20 +313,25 @@ Options=Menu Global
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **Stub BeginPlay Lumina** : temporaire, a retirer quand C1-MagicUnlockSystem opere en jeu
+- **UsageThreshold dans FSoM_SpellData** : a supprimer, remplace par BP_SpellCategoryThresholds
 
 ## Prochains jalons
 
-1. **C1-MagicUnlockSystem** : UnlockSpell(SchoolID, SpellID) + systeme usage/niveau/points/arbre
-2. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC
+1. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC + UsageThreshold FSoM_SpellData
+2. **Stats/Progression personnage** : caracteristiques, fourchette niveaux, formule degats
 3. **C1-WeaponArchitecture** : audit data armes pour forge/talents
-4. **C1-SwordMoveset** : moveset epee complet
-5. **C1-SaveDesign** : session design respawn/sauvegarde Fontaine de Fee (spec uniquement)
-6. **C1-BowPOC** : arc
-7. **C1-WeaponSwitching** : switching armes en combat
-8. **C2-SaveGame** : implementation apres spec C1-SaveDesign validee
-9. **C1-SFXCombat** : sons combat de base
-10. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero (fin C1)
+4. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
+5. **C1-SwordMoveset** : moveset epee complet
+6. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
+7. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
+8. **C2-SaveGame** : implementation apres spec SaveDesign validee
+9. **Economie** : forge, monnaie narrative
+10. **C1-BowPOC** : arc
+11. **C1-WeaponSwitching** : switching armes en combat
+12. **C1-SFXCombat** : sons combat de base
+13. **Lore Deites** : ordre deblocage, structure rituel
+14. **Lore Fee** : nom, personnalite, histoire
+15. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
 
 ## Sessions design a planifier
 
@@ -332,8 +339,7 @@ Options=Menu Global
 - **Session Lore Deites** : ordre deblocage, structure rituel par deite, cas Ondine
 - **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
 - **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
-- **Session Stats/Progression personnage** : caracteristiques (Force, Dext, Magie...), fourchette de niveaux,
-  points par niveau, formule degats de base -- a planifier avant C1-SwordMoveset (bloquant pour equilibrage combat)
+- **Session Stats/Progression personnage** : caracteristiques, fourchette de niveaux, formule degats
 
 ---
 
@@ -356,7 +362,11 @@ Options=Menu Global
 - SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
 - UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
 - UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
-- IncrementSpellUsage -> LevelUpSpell -> AddTalentPoint : chaine de progression magique
+- IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities) -- deux conditions independantes
+- LockDeity(DeityID) : AddUnique(LockedDeities) -- deite visible dans radial mais non castable
+- IncrementSpellUsage -> EffectiveThreshold = BaseThreshold / Max(1, 9-CurrentSpellLevel) -> LevelUpSpell
+- BP_SpellCategoryThresholds : TMap<E_SpellCategory, int> keyed par enum, acces via GetClassDefaults
+- Seuils categories : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200 (Buff/Debuff montent vite)
 - DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Athanor = Salamandre : meme deite, deux noms selon localisation
 - Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
@@ -381,4 +391,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 26/05/2026*
+*Derniere mise a jour : 27/05/2026*
