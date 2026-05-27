@@ -179,7 +179,6 @@ Format dans Docs/Session_UnrealClaude.md :
   - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
   - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom)
   - **SwitchCooldown** : source de verite UNIQUE pour le cooldown de switch cible
-    (LockOnSwitchCooldown du PC est redondant -> a supprimer dans C1-CleanupDettes)
 - `BP_SoM_HeroCharacter` bindings (au BeginPlay) :
   - OnLockOnActivated_Handler : bOrientRotationToMovement=false + UseControllerRotationYaw=true
   - OnLockOnDeactivated_Handler : bOrientRotationToMovement=true + UseControllerRotationYaw=false
@@ -205,12 +204,9 @@ Format dans Docs/Session_UnrealClaude.md :
   - Lighting Movable (DirectionalLight + SkyLight + SkyAtmosphere) -- zero bake
   - GameMode Override : BP_SoM_GameMode
 - `BP_Enemy_TestBed` : stats configurables en map sans ouvrir le BP
-- SFX placeholder dans Content/Audio/SFX/Combat/ :
-  - Hit joueur recu, attaque ennemi, roll hero
-  - Branchement direct Play Sound at Location (pas de SoundCue)
-- `BP_Debug_UnlockDeity` : dans Content/Systems/Magic/Debug/
+- SFX placeholder dans Content/Audio/SFX/Combat/
+- `BP_Debug_UnlockDeity` : Content/Systems/Magic/Debug/
   - Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
-  - Simule l'evenement narratif de debut de jeu
 
 ### Combat -- ComboFix VALIDE PIE (18/05/2026)
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
@@ -244,7 +240,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots
   - Switch vers Magic : Branch(UnlockedSpells.Num() > 0) -- bloque si aucune deite
 - Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
-- Deblocage narratif : bRadialUnlocked (Hero) + UnlockDeity() -- pas de check mecanique DiscoveredWeapons
+- Deblocage narratif : bRadialUnlocked (Hero) + UnlockDeity()
 - Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
 ### Magie -- C1-MagicUnlockSystem VALIDE PIE (27/05/2026)
@@ -261,7 +257,6 @@ Format dans Docs/Session_UnrealClaude.md :
 - Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
 - Corruption Magique : compteur sur le heros, effets negatifs progressifs, purge a la Fontaine de Fee
-- Dette restante : UsageThreshold dans FSoM_SpellData a supprimer (remplace par BP_SpellCategoryThresholds)
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
@@ -303,7 +298,6 @@ Options=Menu Global
 - [x] C1-CollisionFix COMPLET : capsules Block, weapon collision audit (18/05/2026)
 - [x] C1-HitFeel PARTIEL : knockback + screen shake VALIDES PIE, hitstop reporte, gamepad manque (18/05/2026)
 - [x] C1-HitFlashEnemies ABANDONNE : Decision 21/05 -- voir Decisions.md
-- [x] C1-CleanupDettes PARTIEL : 3/4 faits (21/05/2026) -- reste LockOnSwitchCooldown PC
 - [x] C1-InputsUI COMPLET VALIDE PIE : IMC_Gameplay/Radial/Menu/Dialogue/Cutscene, swap IMC, fix rotation radial (23/05/2026)
 - [x] C1-RadialMagie COMPLET VALIDE PIE : radial 2 niveaux Deity->Spell, CastSpell, fix bDefaultValueIsIgnored (25/05/2026)
 - [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
@@ -311,34 +305,32 @@ Options=Menu Global
 - [x] DESIGN-MagicProgression : structure 4 paliers quetes deite, Corruption Magique, Fontaine de Fee, fee liee au heros (26/05/2026)
 - [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
 - [x] RadialUnlock VALIDE PIE : bRadialUnlocked, blocage OpenRadial, blocage SwitchCategory Magic, BP_Debug_UnlockDeity (27/05/2026)
+- [x] C1-CleanupDettes COMPLET : LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime (27/05/2026)
 
 ## Dettes techniques
 
 - **Roll en lock-on** (C1-AnimationsPass1) -- voir Decisions.md
-- **LockOnSwitchCooldown PC** (C1-CleanupDettes) : supprimer, pointer sur Component->SwitchCooldown
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **UsageThreshold dans FSoM_SpellData** : a supprimer, remplace par BP_SpellCategoryThresholds
 
 ## Prochains jalons
 
-1. **C1-CleanupDettes** : supprimer LockOnSwitchCooldown PC + UsageThreshold FSoM_SpellData
-2. **Stats/Progression personnage** : caracteristiques, fourchette niveaux, formule degats
-3. **C1-WeaponArchitecture** : audit data armes pour forge/talents
-4. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
-5. **C1-SwordMoveset** : moveset epee complet
-6. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
-7. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
-8. **C2-SaveGame** : implementation apres spec SaveDesign validee
-9. **Economie** : forge, monnaie narrative
-10. **C1-BowPOC** : arc
-11. **C1-WeaponSwitching** : switching armes en combat
-12. **C1-SFXCombat** : sons combat de base
-13. **Lore Deites** : ordre deblocage, structure rituel
-14. **Lore Fee** : nom, personnalite, histoire
-15. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
+1. **Stats/Progression personnage** : caracteristiques, fourchette niveaux, formule degats
+2. **C1-WeaponArchitecture** : audit data armes pour forge/talents
+3. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
+4. **C1-SwordMoveset** : moveset epee complet
+5. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
+6. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
+7. **C2-SaveGame** : implementation apres spec SaveDesign validee
+8. **Economie** : forge, monnaie narrative
+9. **C1-BowPOC** : arc
+10. **C1-WeaponSwitching** : switching armes en combat
+11. **C1-SFXCombat** : sons combat de base
+12. **Lore Deites** : ordre deblocage, structure rituel
+13. **Lore Fee** : nom, personnalite, histoire
+14. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
 
 ## Sessions design a planifier
 
@@ -356,7 +348,7 @@ Options=Menu Global
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
 - UpdateLockOnRotation dans PC = suivi camera vers cible V2 (conditionnel)
 - Bind "On Lock on Activated/Deactivated" = dispatchers CUSTOM du Component
-- SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT (pas dans PC)
+- SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT (LockOnSwitchCooldown PC supprime)
 - T3D export (clic droit -> Asset Actions -> Export) = meilleur outil d'audit
 - add_state MCP dans AnimGraph = shell corrompu garanti -> toujours creer manuellement
 - IA_Look est dans le PC (pas dans HeroCharacter) depuis J-Camera
@@ -369,16 +361,17 @@ Options=Menu Global
 - SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
 - SwitchCategory vers Magic : bloque si UnlockedSpells.Num() == 0
 - OpenRadial dans PC : bloque si bRadialUnlocked == false sur HeroCharacter
-- bRadialUnlocked = flag narratif UNIQUE pour l'ouverture radial (pas de check mecanique DiscoveredWeapons)
+- bRadialUnlocked = flag narratif UNIQUE pour l'ouverture radial
 - UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
 - UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
-- UnlockDeity hardcode dans BeginPlay HeroCharacter : SUPPRIME -- deblocage via evenement narratif uniquement
+- UnlockDeity hardcode dans BeginPlay HeroCharacter : SUPPRIME
 - search_nodes("UnlockDeity") MCP trouve 0 resultats car le noeud s'appelle "Unlock Deity" (avec espace)
-- IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities) -- deux conditions independantes
+- IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
 - LockDeity(DeityID) : AddUnique(LockedDeities) -- deite visible dans radial mais non castable
 - IncrementSpellUsage -> EffectiveThreshold = BaseThreshold / Max(1, 9-CurrentSpellLevel) -> LevelUpSpell
 - BP_SpellCategoryThresholds : TMap<E_SpellCategory, int> keyed par enum, acces via GetClassDefaults
-- Seuils categories : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200 (Buff/Debuff montent vite)
+- Seuils categories : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
+- UsageThreshold dans FSoM_SpellData : SUPPRIME -- remplace par BP_SpellCategoryThresholds
 - DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Athanor = Salamandre : meme deite, deux noms selon localisation
 - Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
