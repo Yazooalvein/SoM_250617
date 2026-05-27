@@ -5,6 +5,41 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 27/05/2026 -- RadialUnlock + blocages narratifs radial -- VALIDE PIE
+
+#### BP_SoM_HeroCharacter -- nouvelle variable
+- bRadialUnlocked (bool, default=false) : bloque l'ouverture complete du radial jusqu'a un evenement narratif
+
+#### BP_SoM_PlayerController -- OpenRadial modifie
+- Branch(bRadialUnlocked) en entree : FALSE -> Return, TRUE -> continuer flow existant
+- Simule le deblocage narratif du radial en debut de jeu
+
+#### UI_Radial_Main -- SwitchCategory modifie
+- Branch avant switch vers Magic : MagicComponentRef.UnlockedSpells.Num() > 0
+  - FALSE -> Return (pas de deite debloquee, switch bloque)
+  - TRUE -> continuer
+
+#### BP_Debug_UnlockDeity -- mis a jour
+- Suppression UnlockDeity("Lumina") du BeginPlay de BP_SoM_HeroCharacter (stub hardcode)
+- BP_Debug_UnlockDeity : overlap -> Cast BP_SoM_HeroCharacter -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
+- Simule l'evenement narratif complet : deblocage radial + deblocage deite
+
+#### Decision architecture
+- Pas de check DiscoveredWeapons >= 2 dans SwitchCategory
+- bRadialUnlocked = flag narratif unique pour l'ouverture complete
+- Grisage des categories = systeme existant (LockedDeities) pour les blocages ponctuels narratifs
+- Raison : les blocages armes/magie sont rares et narratifs, pas mecaniques
+
+#### Tests valides PIE
+- Sans overlap : radial inaccessible (Triangle bloque)
+- Apres overlap : radial ouvert, Lumina visible, sorts castables
+- Sans overlap Lumina mais bRadialUnlocked=true : radial ouvert en mode Weapons, switch Magic bloque
+
+#### Etat final
+Systeme de deblocage narratif radial operationnel. bRadialUnlocked + UnlockedSpells.Num() couvrent les cas du debut de jeu.
+
+---
+
 ### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
 
 #### BP_MagicComponent -- Nouvelles variables
@@ -30,24 +65,11 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Courbe inspiree Secret of Mana : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel)
 - BaseThreshold differencie par categorie (Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200)
 - Logique : Buff/Debuff (peu utilises) montent vite, Attack/Heal (spammes) montent lentement
-- Courbe progressive sans explosion exponentielle en fin de progression
 
 #### BP_SpellCategoryThresholds -- nouvel asset
 - Blueprint class (parent Object) dans Content/Systems/Magic/Data/
-- TMap<E_SpellCategory, int> CategoryThresholds -- keyed directement par enum, zero conversion fragile
-- Valeurs editables dans Class Defaults sans ouvrir BP_MagicComponent
+- TMap<E_SpellCategory, int> CategoryThresholds -- keyed directement par enum
 - Acces via GetClassDefaults dans IncrementSpellUsage
-
-#### Tests valides PIE
-- Buff : LevelUp en 5 lancers (seuil effectif niveau 0 = 50/9 ~ 5)
-- LevelUpSpell -> AddTalentPoint : "New Talent Point" visible en PIE
-- IsDeityAccessible : bloque CastSpell si deite non debloquee
-
-#### Dettes resolues
-- Stub BeginPlay Lumina : supprime -- deblocage desormais via UnlockDeity(DeityID) depuis trigger narratif
-
-#### Dettes nouvelles
-- UsageThreshold dans FSoM_SpellData : encore present, a supprimer (remplace par BP_SpellCategoryThresholds)
 
 #### Etat final
 C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
@@ -56,30 +78,6 @@ C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle ave
 
 ### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee, quetes deite
 
-#### Lore_ShadowOfMana.md -- MIS A JOUR
-- Athanor = Salamandre : deux noms pour la meme deite selon localisation (corrige partout)
-- Deites : 8 au total (Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre/Athanor, Ondine, Dryade)
-- Structure deblocage deite finalisee : 4 paliers sequentiels obligatoires
-  - Palier 0 Rencontre narratif -> sorts de base
-  - Palier 1 Quete speciale -> paliers arbre 1-2
-  - Palier 2 Donjon deite + rituel -> paliers arbre 3-4
-  - Palier 3 Boss lore -> ultime
-- Communion via rituel / priere propre a chaque deite, defini au cas par cas
-- Fee liee au heros ajoutee : fee affaiblie, besoin des Fontaines de Fee pour se restaurer
-- Fontaine de Fee : equivalent feu de camp DS, integre au lore via la fee
-  - Repos -> fee restauree + Corruption purgee + stats restaurees + mobs respawn
-  - Tension DS : se reposer coute (mobs respawn) vs ne pas se reposer (Corruption monte)
-- Corruption Magique detaillee :
-  - Usage magie -> accumulation Corruption, effets negatifs progressifs
-  - Twist Representant d'Ombre : bonus degats a haut niveau de Corruption
-  - Contreparties : soins indisponibles, certaines interactions PNJ bloquees
-- Sessions design a planifier listees : Fee, Deites, SaveDesign, Economie
-
-#### Magic_Progression.md -- MIS A JOUR
-- Structure 3 paliers quetes deite finalisee (tableau palier 0-3)
-- Section Corruption Magique ajoutee avec twist Representant d'Ombre
-- Points ouverts mis a jour : seuils Corruption, cas Ondine
-
 #### Etat final
 Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement.
 
@@ -87,30 +85,12 @@ Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement
 
 ### 26/05/2026 -- Session design -- Magic_Progression DESIGN
 
-#### Magic_Progression.md -- DESIGN
-- Nouveau fichier cree : Docs/Architecture/Magic_Progression.md
-- Seuils progression differencies par role de sort
-- Inspiration Secret of Mana : formule 9 - niveau actuel % par lancer
-- Systeme de rattrapage tardif : objet/monnaie dedie
-
 #### Etat final
-Design progression magique pose dans Magic_Progression.md. Prochain jalon technique : C1-MagicUnlockSystem.
+Design progression magique pose dans Magic_Progression.md.
 
 ---
 
 ### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
-
-#### Nouveaux assets data layer
-- E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, FSoM_SpellData etendu
-- DT_Deities : row Lumina complete
-- DT_TalentNodes : cree vide
-
-#### BP_MagicComponent -- UnlockDeity refactore
-- GetDataTableRow(DT_Deities) -> BaseSpells -> Set Members in FSoM_DeitySpells
-- Bug resolu : logique Map_Contains inversee
-
-#### UI_Radial_Main -- PopulateMagicSchools refactore
-- GetDataTableRow(DT_Deities) -> DeityName + Icon
 
 #### Etat final
 Sortie du mode dummy magie. Data layer deites complet et data-driven.
@@ -119,20 +99,12 @@ Sortie du mode dummy magie. Data layer deites complet et data-driven.
 
 ### 25/05/2026 -- Session design + outils IA
 
-#### C1-MagicProgressionDesign -- DESIGN VALIDE
-- Boucle progression, structure arbre, sorts de base vs arbre
-
 #### Etat final
 C1-MagicProgressionDesign VALIDE.
 
 ---
 
 ### 23/05/2026 -- C1-InputsUI COMPLET -- VALIDE PIE
-
-#### IMC crees et swap cable
-
-#### Etat final
-C1-InputsUI COMPLET VALIDE PIE.
 
 ---
 
