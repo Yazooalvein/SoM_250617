@@ -5,6 +5,55 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
+
+#### BP_MagicComponent -- Nouvelles variables
+- LockedDeities (TArray<FName>) : deites temporairement verrouillee narrativement
+- SpellUsageCounts (TMap<FName, int>) : compteur d'usage par sort
+- SpellLevels (TMap<FName, int>) : niveau actuel par sort
+- TalentPoints (int) : points talent disponibles
+- CategoryThresholdsConfig (Class Reference BP_SpellCategoryThresholds) : config seuils par categorie
+
+#### BP_MagicComponent -- Nouvelles fonctions
+- IsDeityAccessible(DeityID) -> bool : Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
+- LockDeity(DeityID) : AddUnique(LockedDeities) -- pour evenements narratifs
+- IncrementSpellUsage(SpellID) : usage -> seuil effectif -> LevelUpSpell si atteint
+- LevelUpSpell(SpellID) : SpellLevels +1, reset compteur, AddTalentPoint
+- AddTalentPoint() : TalentPoints +1, debug print
+
+#### BP_MagicComponent -- CastSpell modifie
+- Verification IsDeityAccessible(DeityID) en entree, avant CanCast
+- IncrementSpellUsage(SpellID) branche apres Map_Add(SpellCooldowns)
+- BeginPlay : stub UnlockDeity("Lumina") supprime
+
+#### Systeme de progression -- formule SoM adaptee
+- Courbe inspiree Secret of Mana : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel)
+- BaseThreshold differencie par categorie (Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200)
+- Logique : Buff/Debuff (peu utilises) montent vite, Attack/Heal (spammes) montent lentement
+- Courbe progressive sans explosion exponentielle en fin de progression
+
+#### BP_SpellCategoryThresholds -- nouvel asset
+- Blueprint class (parent Object) dans Content/Systems/Magic/Data/
+- TMap<E_SpellCategory, int> CategoryThresholds -- keyed directement par enum, zero conversion fragile
+- Valeurs editables dans Class Defaults sans ouvrir BP_MagicComponent
+- Acces via GetClassDefaults dans IncrementSpellUsage
+
+#### Tests valides PIE
+- Buff : LevelUp en 5 lancers (seuil effectif niveau 0 = 50/9 ~ 5)
+- LevelUpSpell -> AddTalentPoint : "New Talent Point" visible en PIE
+- IsDeityAccessible : bloque CastSpell si deite non debloquee
+
+#### Dettes resolues
+- Stub BeginPlay Lumina : supprime -- deblocage desormais via UnlockDeity(DeityID) depuis trigger narratif
+
+#### Dettes nouvelles
+- UsageThreshold dans FSoM_SpellData : encore present, a supprimer (remplace par BP_SpellCategoryThresholds)
+
+#### Etat final
+C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
+
+---
+
 ### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee, quetes deite
 
 #### Lore_ShadowOfMana.md -- MIS A JOUR
@@ -31,16 +80,8 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Section Corruption Magique ajoutee avec twist Representant d'Ombre
 - Points ouverts mis a jour : seuils Corruption, cas Ondine
 
-#### Points ouverts documentes
-- Fee : nom, personnalite, histoire, lien Ombre/Corruption -> session Lore Fee
-- Deites : ordre deblocage, structure rituel par deite -> session Lore Deites
-- Fontaine de Fee : frequence, montee Corruption hors repos, HUD fee -> session SaveDesign
-- Seuils Corruption (legere/moderee/severe), reversibilite, reactions ennemis -> session dediee
-- Cas particulier Ondine (statut ambigu) -> session Lore
-
 #### Etat final
 Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement.
-Sessions Lore et SaveDesign a planifier pour debloquer les points ouverts restants.
 
 ---
 
@@ -48,11 +89,9 @@ Sessions Lore et SaveDesign a planifier pour debloquer les points ouverts restan
 
 #### Magic_Progression.md -- DESIGN
 - Nouveau fichier cree : Docs/Architecture/Magic_Progression.md
-- Seuils progression differencies par role de sort : Attack (bas) < Heal (moyen) < Buff (moyen-haut) < Debuff (haut)
-- Rationale : refleter la frequence d'usage naturelle en combat, eviter le grind artificiel
-- Inspiration Secret of Mana : formule 9 - niveau actuel % par lancer, adaptee avec seuils differencies
-- Systeme de rattrapage tardif : objet/monnaie dedie pour injecter XP sur sorts sous-evolues en fin de jeu
-- Cap narratif : rencontrer une deite = sorts de base, completer quete de deite = paliers arbre debloques
+- Seuils progression differencies par role de sort
+- Inspiration Secret of Mana : formule 9 - niveau actuel % par lancer
+- Systeme de rattrapage tardif : objet/monnaie dedie
 
 #### Etat final
 Design progression magique pose dans Magic_Progression.md. Prochain jalon technique : C1-MagicUnlockSystem.
@@ -62,68 +101,35 @@ Design progression magique pose dans Magic_Progression.md. Prochain jalon techni
 ### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
 
 #### Nouveaux assets data layer
-- E_SpellTier (enum) : Base / TreeActive / TreeEvolution / Ultime
-- E_NodeType (enum) : Active / Passive / Ultime
-- FSoM_TalentNode (struct) : NodeID, DeityID, NodeType, SpellID, PassiveStat, PassiveValue, PointCost, Prerequisites
-- FSoM_DeityData (struct) : DeityID, DeityName, Icon, UnlockOrder, BaseSpells
-- FSoM_SpellData : SpellTier (E_SpellTier) + ReplacesSpellID (Name) ajoutes
-- DT_Deities : row Lumina (UnlockOrder=1, BaseSpells=[Lumina_Attack, Lumina_Heal, Lumina_Buff, Lumina_Debuff], Icon placeholder)
-- DT_TalentNodes : cree vide, pret pour C1-MagicTreeModule
-- Convention BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
+- E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, FSoM_SpellData etendu
+- DT_Deities : row Lumina complete
+- DT_TalentNodes : cree vide
 
 #### BP_MagicComponent -- UnlockDeity refactore
-- Avant : TempSpellsIDs hardcode en default value -> mode dummy
-- Apres : GetDataTableRow(DT_Deities, DeityName) -> BaseSpells -> Set Members in FSoM_DeitySpells
-- TempSpellsIDs supprime
-- Bug resolu : logique Map_Contains inversee (TRUE=deja present->return, FALSE=absent->debloquer)
+- GetDataTableRow(DT_Deities) -> BaseSpells -> Set Members in FSoM_DeitySpells
+- Bug resolu : logique Map_Contains inversee
 
 #### UI_Radial_Main -- PopulateMagicSchools refactore
-- Avant : Conv_NameToText(Map Key) -> DisplayName, Icon null
-- Apres : GetDataTableRow(DT_Deities, Map Key) -> DeityData.DeityName + DeityData.Icon -> MakeStruct
-- Icone deite reelle affichee dans le radial N1
-
-#### Tests valides PIE
-- Radial N1 (Deity) : icone Lumina affichee, DeityName = "Lumina"
-- Radial N2 (Spell) : 4 sorts Lumina accessibles, CastSpell fonctionnel
-
-#### Dettes
-- Stub BeginPlay Lumina : toujours present, a retirer quand C1-MagicUnlockSystem opere en jeu
+- GetDataTableRow(DT_Deities) -> DeityName + Icon
 
 #### Etat final
-Sortie du mode dummy magie. Data layer deites complet et data-driven. Prochain jalon : C1-MagicUnlockSystem.
+Sortie du mode dummy magie. Data layer deites complet et data-driven.
 
 ---
 
 ### 25/05/2026 -- Session design + outils IA
 
 #### C1-MagicProgressionDesign -- DESIGN VALIDE
-- Boucle de progression arretee : usage sorts -> montee niveau -> points talent -> arbre de talent
-- Structure par deite : 2-4 sorts de base immediats, arbre = 3-4 actifs + 2-3 passifs + 1 ulti
-- Points insuffisants pour completer l'arbre -> choix force -> builds differents
-- Evolution d'un sort de base : remplace le sort (pas de coexistence)
-- Sorts supplementaires d'arbre : s'ajoutent au pool radial/quickslots
-- Deites : aucun cout de switch, pas d'equipement, apparition immediate au deblocage
+- Boucle progression, structure arbre, sorts de base vs arbre
 
 #### Etat final
-C1-MagicProgressionDesign VALIDE. Prochain jalon : C1-MagicUnlockSystem.
+C1-MagicProgressionDesign VALIDE.
 
 ---
 
 ### 23/05/2026 -- C1-InputsUI COMPLET -- VALIDE PIE
 
-#### IMC crees
-- IMC_Gameplay (ex IMC_Prototype renomme) : charge au ReceivePossessed dans BP_SoM_HeroCharacter
-- IMC_Radial : 4 IA navigation radial
-- IMC_Menu, IMC_Dialogue, IMC_Cutscene : stubs vides
-
-#### Swap IMC cable dans BP_SoM_PlayerController
-- OpenRadial : RemoveMappingContext(IMC_Gameplay) -> AddMappingContext(IMC_Radial, Priority=1)
-- CloseRadial : RemoveMappingContext(IMC_Radial) -> AddMappingContext(IMC_Gameplay, Priority=0)
-
-#### Fix rotation radial
-- Bug : rotations multiples et sens incorrect
-- Fix 1 : trigger Pressed avec threshold 0.5 sur IA_UI_Radial_Rotate
-- Fix 2 : Modifier Negate X sur binding direction gauche
+#### IMC crees et swap cable
 
 #### Etat final
 C1-InputsUI COMPLET VALIDE PIE.
@@ -131,79 +137,62 @@ C1-InputsUI COMPLET VALIDE PIE.
 ---
 
 ### 23/05/2026 -- Session design -- Architecture IMC complete
-- 5 IMC decides (Gameplay/Radial/Menu/Dialogue/Cutscene)
-- IMC_Dialogue = SEUL cumulatif
 
 ---
 
 ### 21/05/2026 -- Session design & documentation
-- C1-HitFlashEnemies ABANDONNE, C1-CleanupDettes 3/4, C1-InputsUI PRIORITAIRE
 
 ---
 
 ### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE
-- Architecture DMI faite, blocage M_Mannequin identifie
 
 ---
 
 ### 18/05/2026 -- C1-HitFeel PARTIEL -- VALIDE PIE
-- Knockback + screen shake valides, hitstop reporte, vibration gamepad manque
 
 ---
 
 ### 18/05/2026 -- C1-CollisionFix COMPLET -- VALIDE PIE
-- CapsuleComponent Pawn=Block, weapon collision audit
 
 ---
 
 ### 18/05/2026 -- J-ComboFix COMPLET -- VALIDE PIE
-- ChoosenWeapon, InitComboTree, HandleAttack sans parametre, LevelMin=0
 
 ---
 
 ### 18/05/2026 -- J-TestBed COMPLET -- VALIDE PIE
-- Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder
 
 ---
 
 ### 18/05/2026 -- J-LockMove COMPLET -- VALIDE PIE
-- Move() en lock-on via CameraRotation, Rotation Rate -1, LastAxisX/Y
 
 ---
 
 ### 17/05/2026 -- J-Camera COMPLET -- VALIDE PIE
-- SpringArm regle, IA_Look dans PC, UpdateLockOnRotation V2, Screen Shake valide
 
 ---
 
 ### 15/05/2026 -- J-Renommage COMPLET
-- Convention nommage unifiee, Fix Up Redirectors, VALIDE PIE
 
 ---
 
 ### 15/05/2026 -- J-lock COMPLET -- VALIDE PIE
-- Fix IsLockOnActive, fix dispatcher espace, fix bind PC, UpdateLockOnUIIndicator
-- ABP_Manny_Platforming Strafe VALIDE PIE
 
 ---
 
 ### 14/05/2026 -- Session design -- Roadmap globale refondee
-- ~50 jalons, 8 couches, projet complet de A a Z
 
 ---
 
 ### 14/05/2026 -- J-Nettoyage COMPLET
-- Suppression assets obsoletes, reorganisation dossier Enemies
 
 ---
 
 ### 14/05/2026 -- Session creative J-ART ; Hero PLACEHOLDER COMPLET
-- Workflow Dessin -> Leonardo.ai -> Gemini -> Meshy 5 -> AccuRIG -> UE5.7 valide
 
 ---
 
 ### 14/05/2026 -- Session creative J-MUS (exploration workflow)
-- Workflow Fredonnement -> Suno -> Export MP3 -> UE5 etabli
 
 ---
 
@@ -220,7 +209,6 @@ C1-InputsUI COMPLET VALIDE PIE.
 ---
 
 ### 11/05/2026 -- Session design
-- Lore, Roadmap, Architecture magie
 
 ### 11/05/2026 -- Jalon #9 -- Audit complet + nettoyage
 
@@ -256,4 +244,4 @@ Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 26/05/2026
+- Derniere mise a jour : 27/05/2026
