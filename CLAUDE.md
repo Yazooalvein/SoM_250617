@@ -116,6 +116,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `bIsDead` (private) + `IsDead()` (public pure)
 - `bIsInvincible` (iframes dash/roll, pilote par AnimNotify)
 - `OnPlayerDeath` dispatcher, `OnStatChanged` dispatcher
+- `bRadialUnlocked` (bool, default=false) : bloque ouverture radial jusqu'a evenement narratif
 - `DiscoveredWeapons` (Array<FName>) : source de verite Radial, alimente par EquipWeapon
 - `ChoosenWeapon` (FName) : arme courante, sette par EquipWeapon, lu par les inputs attaque
 - `BP_CombatLockOnComponent` : sur le CHARACTER (pas le PC)
@@ -207,6 +208,9 @@ Format dans Docs/Session_UnrealClaude.md :
 - SFX placeholder dans Content/Audio/SFX/Combat/ :
   - Hit joueur recu, attaque ennemi, roll hero
   - Branchement direct Play Sound at Location (pas de SoundCue)
+- `BP_Debug_UnlockDeity` : dans Content/Systems/Magic/Debug/
+  - Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
+  - Simule l'evenement narratif de debut de jeu
 
 ### Combat -- ComboFix VALIDE PIE (18/05/2026)
 - `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
@@ -232,12 +236,15 @@ Format dans Docs/Session_UnrealClaude.md :
   - PlayerCharacterRef : SET au OnPossess
   - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
   - Aim(Axis X, Axis Y) : gestion camera
+  - OpenRadial : Branch(bRadialUnlocked) en entree -- FALSE -> Return
 
-### Radial Menu -- COMPLET VALIDE PIE (armes), Magie C1-RadialMagie VALIDE PIE
+### Radial Menu -- COMPLET VALIDE PIE
 - `ERadialMode` (enum) : Weapons / Magic
 - `CurrentCategory` (ERadialMode) dans UI_Radial_Main : categorie active
 - `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots
+  - Switch vers Magic : Branch(UnlockedSpells.Num() > 0) -- bloque si aucune deite
 - Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
+- Deblocage narratif : bRadialUnlocked (Hero) + UnlockDeity() -- pas de check mecanique DiscoveredWeapons
 - Voir Docs/Architecture/RadialMenu_Architecture.md pour details
 
 ### Magie -- C1-MagicUnlockSystem VALIDE PIE (27/05/2026)
@@ -250,7 +257,6 @@ Format dans Docs/Session_UnrealClaude.md :
 - Progression sorts : usage -> seuil effectif -> LevelUpSpell -> TalentPoints
 - Formule seuil : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel) -- inspire SoM
 - Seuils par categorie (BP_SpellCategoryThresholds) : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
-- Logique seuils : Buff/Debuff (peu utilises) montent vite, Attack/Heal (spammes) montent lentement
 - Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
 - Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
@@ -304,6 +310,7 @@ Options=Menu Global
 - [x] C1-MagicDataLayer VALIDE PIE : E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven (25/05/2026)
 - [x] DESIGN-MagicProgression : structure 4 paliers quetes deite, Corruption Magique, Fontaine de Fee, fee liee au heros (26/05/2026)
 - [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
+- [x] RadialUnlock VALIDE PIE : bRadialUnlocked, blocage OpenRadial, blocage SwitchCategory Magic, BP_Debug_UnlockDeity (27/05/2026)
 
 ## Dettes techniques
 
@@ -360,8 +367,13 @@ Options=Menu Global
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
 - HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
 - SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
+- SwitchCategory vers Magic : bloque si UnlockedSpells.Num() == 0
+- OpenRadial dans PC : bloque si bRadialUnlocked == false sur HeroCharacter
+- bRadialUnlocked = flag narratif UNIQUE pour l'ouverture radial (pas de check mecanique DiscoveredWeapons)
 - UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
 - UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
+- UnlockDeity hardcode dans BeginPlay HeroCharacter : SUPPRIME -- deblocage via evenement narratif uniquement
+- search_nodes("UnlockDeity") MCP trouve 0 resultats car le noeud s'appelle "Unlock Deity" (avec espace)
 - IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities) -- deux conditions independantes
 - LockDeity(DeityID) : AddUnique(LockedDeities) -- deite visible dans radial mais non castable
 - IncrementSpellUsage -> EffectiveThreshold = BaseThreshold / Max(1, 9-CurrentSpellLevel) -> LevelUpSpell
