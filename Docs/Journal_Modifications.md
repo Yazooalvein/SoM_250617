@@ -5,6 +5,18 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 27/05/2026 -- C1-CleanupDettes COMPLET
+
+#### Suppressions effectuees
+- LockOnSwitchCooldown dans BP_SoM_PlayerController : supprime, SwitchCooldown du Component est la source unique
+- UsageThreshold dans FSoM_SpellData : supprime, remplace par BP_SpellCategoryThresholds (TMap par enum)
+- Fix Up Redirectors execute, compilation OK
+
+#### Etat final
+C1-CleanupDettes COMPLET. Plus aucune dette de cette serie.
+
+---
+
 ### 27/05/2026 -- RadialUnlock + blocages narratifs radial -- VALIDE PIE
 
 #### BP_SoM_HeroCharacter -- nouvelle variable
@@ -12,71 +24,27 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 #### BP_SoM_PlayerController -- OpenRadial modifie
 - Branch(bRadialUnlocked) en entree : FALSE -> Return, TRUE -> continuer flow existant
-- Simule le deblocage narratif du radial en debut de jeu
 
 #### UI_Radial_Main -- SwitchCategory modifie
 - Branch avant switch vers Magic : MagicComponentRef.UnlockedSpells.Num() > 0
-  - FALSE -> Return (pas de deite debloquee, switch bloque)
-  - TRUE -> continuer
 
-#### BP_Debug_UnlockDeity -- mis a jour
-- Suppression UnlockDeity("Lumina") du BeginPlay de BP_SoM_HeroCharacter (stub hardcode)
-- BP_Debug_UnlockDeity : overlap -> Cast BP_SoM_HeroCharacter -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
-- Simule l'evenement narratif complet : deblocage radial + deblocage deite
-
-#### Decision architecture
-- Pas de check DiscoveredWeapons >= 2 dans SwitchCategory
-- bRadialUnlocked = flag narratif unique pour l'ouverture complete
-- Grisage des categories = systeme existant (LockedDeities) pour les blocages ponctuels narratifs
-- Raison : les blocages armes/magie sont rares et narratifs, pas mecaniques
-
-#### Tests valides PIE
-- Sans overlap : radial inaccessible (Triangle bloque)
-- Apres overlap : radial ouvert, Lumina visible, sorts castables
-- Sans overlap Lumina mais bRadialUnlocked=true : radial ouvert en mode Weapons, switch Magic bloque
+#### BP_Debug_UnlockDeity
+- Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
+- Simule l'evenement narratif complet
 
 #### Etat final
-Systeme de deblocage narratif radial operationnel. bRadialUnlocked + UnlockedSpells.Num() couvrent les cas du debut de jeu.
+Systeme de deblocage narratif radial operationnel.
 
 ---
 
 ### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
-
-#### BP_MagicComponent -- Nouvelles variables
-- LockedDeities (TArray<FName>) : deites temporairement verrouillee narrativement
-- SpellUsageCounts (TMap<FName, int>) : compteur d'usage par sort
-- SpellLevels (TMap<FName, int>) : niveau actuel par sort
-- TalentPoints (int) : points talent disponibles
-- CategoryThresholdsConfig (Class Reference BP_SpellCategoryThresholds) : config seuils par categorie
-
-#### BP_MagicComponent -- Nouvelles fonctions
-- IsDeityAccessible(DeityID) -> bool : Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
-- LockDeity(DeityID) : AddUnique(LockedDeities) -- pour evenements narratifs
-- IncrementSpellUsage(SpellID) : usage -> seuil effectif -> LevelUpSpell si atteint
-- LevelUpSpell(SpellID) : SpellLevels +1, reset compteur, AddTalentPoint
-- AddTalentPoint() : TalentPoints +1, debug print
-
-#### BP_MagicComponent -- CastSpell modifie
-- Verification IsDeityAccessible(DeityID) en entree, avant CanCast
-- IncrementSpellUsage(SpellID) branche apres Map_Add(SpellCooldowns)
-- BeginPlay : stub UnlockDeity("Lumina") supprime
-
-#### Systeme de progression -- formule SoM adaptee
-- Courbe inspiree Secret of Mana : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel)
-- BaseThreshold differencie par categorie (Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200)
-- Logique : Buff/Debuff (peu utilises) montent vite, Attack/Heal (spammes) montent lentement
-
-#### BP_SpellCategoryThresholds -- nouvel asset
-- Blueprint class (parent Object) dans Content/Systems/Magic/Data/
-- TMap<E_SpellCategory, int> CategoryThresholds -- keyed directement par enum
-- Acces via GetClassDefaults dans IncrementSpellUsage
 
 #### Etat final
 C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
 
 ---
 
-### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee, quetes deite
+### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee
 
 #### Etat final
 Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement.
