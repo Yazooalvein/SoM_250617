@@ -35,6 +35,7 @@ Mis à jour après chaque session de design ou de développement.
 | Effets de statut | ✅ DESIGN VALIDE | 8 effets par déité, interactions -- Combat_StatusEffects.md |
 | Corruption Magique | ✅ DESIGN VALIDE | Phase 1/2, lien Ombre, bonus Essence -- Combat_StatusEffects.md |
 | Economie & Drops | ✅ DESIGN VALIDE | Double monnaie, Seiken drops, Mana, équipement -- Economy_Drops.md |
+| Lore & Cast | ✅ DESIGN VALIDE (provisoire) | Races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites -- Lore_ShadowOfMana.md |
 | Archi armes/combo | ⚠️ Dette | ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager) -- C1-WeaponArchitecture |
 
 ---
@@ -71,13 +72,14 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
                                                   └─> DESIGN-StatusEffects ✅
                                                         └─> DESIGN-Corruption ✅
                                                               └─> DESIGN-Economy ✅
-                                                                    └─> C1-WeaponArchitecture + Refacto
-                                                                          └─> C1-SwordMoveset
-                                                                                └─> C1-SaveDesign (spec)
-                                                                                      └─> C1-BowPOC
-                                                                                            └─> C1-WeaponSwitching
-                                                                                                  └─> C2-SaveGame
-                                                                                                        └─> C1-AnimationsPass1
+                                                                    └─> DESIGN-Lore ✅ (provisoire)
+                                                                          └─> C1-WeaponArchitecture + Refacto
+                                                                                └─> C1-SwordMoveset
+                                                                                      └─> C1-SaveDesign (spec)
+                                                                                            └─> C1-BowPOC
+                                                                                                  └─> C1-WeaponSwitching
+                                                                                                        └─> C2-SaveGame
+                                                                                                              └─> C1-AnimationsPass1
 
 C1-SFXCombat : peut démarrer dès maintenant
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
@@ -109,30 +111,28 @@ C1-HitFlashEnemies : ABANDONNE (21/05/2026)
 ### ✅ DESIGN-StatsProgression — DESIGN VALIDE (28/05/2026)
 ### ✅ DESIGN-StatusEffects — DESIGN VALIDE (28/05/2026)
 ### ✅ DESIGN-Corruption — DESIGN VALIDE (28/05/2026)
-
 ### ✅ DESIGN-Economy — DESIGN VALIDE (28/05/2026)
 
-**Décisions actées :**
-- Double monnaie : Essence (progression, perdue mort) + PO (economie, stable)
-- Drops : Essence + PO toujours, consommables + materiaux + coffres Seiken en aleatoire
-- Consommables Seiken : 9 unites max par type, rechargeable Fontaine
-- Materiaux forge : 3 tiers, non lies aux elements, forge narrative jalons narratifs
-- Equipement : 3 slots (Casque, Armure, Accessoire) -- Defense + Resistance
-- ManaMax separee de Magie, base 60, +8/niveau -- pas de regen auto
-- Cout sorts : Base + (NiveauSort * Multiplicateur)
-- Corruption Phase 1 plafond 50, Phase 2 plafond 100 apres revelation Hero/Ombre
-- Corruption faiblesse a 75 = deite la plus utilisee (deterministe)
-- Respawn Fontaine : ennemis normaux oui, boss jamais
-- Sauvegarde : tout sauf Essence non depensee
+### ✅ DESIGN-Lore — DESIGN VALIDE provisoire (28/05/2026)
 
-**Spec complète :** Docs/Architecture/Economy_Drops.md
+**Décisions actées :**
+- Cast complet avec races (Humain, Celeste, Beastman Felin, Nain x2, DragonFolk, Sproutling, Beastman Loup)
+- Fee = fragment ame soeur insuffle par Ondine -- noms Fee+Soeur a trouver ensemble ⚠️
+- Sanctuaire d'Ombre = zone obligatoire milieu acte 1, revelation Corruption Phase 2
+- Suivante (Beastman Felins) ≠ tribu du Garcon Loup (Beastmen Loups) -- races differentes, elle connait les Loups par son histoire
+- Garcon Loup (sans deite) recoit Ondine en fin de jeu quand la soeur devient Deesse Mana
+- Ordre deites provisoire : Lumina -> Luna -> Gnome -> Ombre -> Salamandre -> Sylphide -> Dryade -> Ondine
+- Conflit tribu Loup / DragonFolk : origine a definir
+- 3 decisions rapides : Corruption 75 depuis derniere purge, pause complete, touchpad C4
+
+**Spec complète :** Docs/Lore_ShadowOfMana.md
 
 ### C1-WeaponArchitecture + Refacto
 - [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData, BP_ComboManagerComponent
 - [ ] Source de vérité unique arme courante
 - [ ] Périmètre HC vs Component
 - [ ] Ajouter CoeffArme + VitesseAttaque dans FWeaponData
-- [ ] Ajouter nouvelles stats dans BP_AttributeSet_Base (Level, EssenceMana, PiecesOr, Corruption, ManaMax, ManaCurrent...)
+- [ ] Ajouter nouvelles stats dans BP_AttributeSet_Base
 - [ ] Ajouter stats ennemis enrichies sur BP_Enemy_Base
 - [ ] Ajouter jauges HUD : Stamina, Mana, Essence, Corruption
 - [ ] Implem minimale du refacto
@@ -145,11 +145,7 @@ C1-HitFlashEnemies : ABANDONNE (21/05/2026)
 - [ ] BP_StatusEffectComponent (heros + ennemis)
 - ⚠️ Nécessite C1-WeaponArchitecture
 
-### C1-SaveDesign — Session design respawn & sauvegarde
-- [ ] Spec détaillée Fontaine de Fée, respawn, ce qui est sauvegardé
-- [ ] Livrable : spec SaveGame.md
-
-### C1-BowPOC / C1-WeaponSwitching / C1-SFXCombat / C1-AnimationsPass1
+### C1-SaveDesign / C1-BowPOC / C1-WeaponSwitching / C1-SFXCombat / C1-AnimationsPass1
 - Voir CLAUDE.md pour détails
 
 ---
@@ -173,6 +169,8 @@ Note : C2-EnemyTypes définira ResistanceElementaire et stats par type ennemi.
 ### C4-DialogueSystem / C4-Tutorial / C4-DeitiesSystem / C4-CorruptionSystem
 ### C4-MoralFlag / C4-HubState1/2/3 / C4-Companions / C4-QuestSystem
 ### C4-LoreCodex / C4-SisterReveal
+
+Note C4 : Touchpad PS5 (carte/journal) à définir ici.
 
 ---
 
@@ -198,6 +196,7 @@ Notes C5 :
 ### C7-HUDPolish / C7-Localization
 
 Note C7-HUDPolish : radial dedie objets consommables (ou integration radial existant).
+Note C7-PauseMenu : pause complete confirmee (pas Time Dilation).
 
 ---
 
@@ -215,7 +214,7 @@ Note C7-HUDPolish : radial dedie objets consommables (ou integration radial exis
 | ART-Enemies | Meshes ennemis (Knight + 1-2 types) |
 | ART-Weapons | Assets armes (Sword_01, 2HSword_01, Arc_01...) |
 | ART-MagicIcons | Icônes déités (8 écoles) + icônes sorts |
-| ART-NPC | Lumina, Luna, Athanor placeholders |
+| ART-NPC | Pretresse, Suivante, Forgeron placeholders |
 | MAP-Test/Hub/Start | Maps terrain UE5 |
 | MUS-1/2/3 | Thèmes musicaux (workflow Suno établi) |
 
@@ -223,31 +222,48 @@ Note C7-HUDPolish : radial dedie objets consommables (ou integration radial exis
 
 ## Points de Design Encore Ouverts
 
-| Sujet | Lié à |
-|-------|-------|
-| Source de vérité arme courante : HC ou Component ? | C1-WeaponArchitecture |
-| Périmètre EquipWeapon/DiscoveredWeapons | C1-WeaponArchitecture |
-| Switching armes : reset combo ou conservation ? | C1-WeaponSwitching |
-| Cout Essence par niveau de deite | Session Lore Deites |
-| Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes |
-| BP_StatusEffectComponent : quand créer ? | C1-SwordMoveset |
-| TenaciteEtat valeur de base heros | C1-SwordMoveset |
-| Quand debloquer Corruption Phase 2 (revelation Ombre) ? | Session Lore Ombre |
-| Effet narratif Corruption=100 (dialogue fee ?) | Session Lore Fee |
-| Aura visuelle Corruption >= 25 | ART ou C4 |
-| Faiblesse Corruption 75 : deite la plus utilisee sur quelle periode ? | A preciser |
-| Prerequis niveau pour equiper | C5-Equipment |
-| Duree buff Repas | C5-Equipment |
-| Noms definitifs consommables (lore Seiken) | Session Lore |
-| Radial dedie objets vs integration radial existant | C7-HUDPolish |
-| Calibrage PO/Essence/prix marchands | Playtest acte 1 |
-| Spec détaillée Fontaine de Fée (respawn, penalites) | C1-SaveDesign |
-| Compagnons : mort permanente possible hors choix moral ? | C4-Companions |
-| Garçon Loup : Salamandre ou Gnome ? | C4-DeitiesSystem |
-| Flammy : quel jalon narratif débloque le voyage rapide ? | C3-Flammy |
-| Menu pause : Time Dilation 0 ou pause complète ? | C7-PauseMenu |
-| Touchpad PS5 : carte, journal, ou autre ? | C7-PauseMenu |
-| Distribution future : Steam / itch.io / perso | C8-Build2 |
+| Sujet | Lié à | Statut |
+|-------|-------|--------|
+| Noms de TOUS les personnages (Soeur + Fee ensemble ⚠️) | Session Noms | ❌ Ouvert |
+| Nom de la ville hub | Session Noms | ❌ Ouvert |
+| Cout Essence par niveau de deite | Session Lore Deites | ❌ Ouvert |
+| Rituels de communion par deite | Session Lore Deites | ❌ Ouvert |
+| Origine conflit Tribu Loup / DragonFolk | Session zones acte 1 | ❌ Ouvert |
+| Structure zones acte 1 + placement Fontaines | Session zones acte 1 | ❌ Ouvert |
+| Histoire propre de Flammy | C3-Flammy | ❌ Ouvert |
+| Effet narratif Fee Corruption=100 | Session Lore Fee (complement) | ❌ Ouvert |
+| Aura visuelle Corruption >= 25 | ART ou C4 | ❌ Ouvert |
+| Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes | ❌ Ouvert |
+| BP_StatusEffectComponent : quand creer ? | C1-SwordMoveset | ❌ Ouvert |
+| TenaciteEtat valeur de base heros | C1-SwordMoveset | ❌ Ouvert |
+| Source de vérité arme courante : HC ou Component ? | C1-WeaponArchitecture | ❌ Ouvert |
+| Périmètre EquipWeapon/DiscoveredWeapons | C1-WeaponArchitecture | ❌ Ouvert |
+| Switching armes : reset combo ou conservation ? | C1-WeaponSwitching | ❌ Ouvert |
+| Prerequis niveau pour equiper | C5-Equipment | ❌ Ouvert |
+| Duree buff Repas | C5-Equipment | ❌ Ouvert |
+| Noms definitifs consommables (lore Seiken) | Session Noms/Lore | ❌ Ouvert |
+| Radial dedie objets vs integration radial existant | C7-HUDPolish | ❌ Ouvert |
+| Calibrage PO/Essence/prix marchands | Playtest acte 1 | ❌ Ouvert |
+| Spec détaillée Fontaine de Fée | C1-SaveDesign | ❌ Ouvert |
+| Compagnons : mort permanente hors choix moral ? | C4-Companions | ❌ Ouvert |
+| Distribution future : Steam / itch.io / perso | C8-Build2 | ❌ Ouvert |
+| Touchpad PS5 : carte, journal, autre ? | C4 | ⏳ Réservé C4 |
+| Menu pause : Time Dilation ou pause complète ? | C7-PauseMenu | ✅ Résolu : pause complète |
+| Corruption 75 : depuis début jeu ou dernière purge ? | Combat_StatusEffects | ✅ Résolu : depuis dernière purge |
+| Garçon Loup : Salamandre ou Gnome ? | Lore_ShadowOfMana | ✅ Résolu : sans déité, reçoit Ondine |
+| Colosse : Gnome confirmé ? | Lore_ShadowOfMana | ✅ Résolu : Gnome confirmé |
+
+---
+
+## Sessions Design à Planifier
+
+| Session | Contenu | Priorité |
+|---------|---------|---------|
+| **Session Noms** | Tous les personnages -- Soeur ET Fee ENSEMBLE ⚠️, ville hub | Haute |
+| **Session Lore Deites** | Rituels par deite, cout Essence, confirmation ordre | Haute |
+| **Session zones acte 1** | Structure zones, Fontaines, conflit Loup/DragonFolk, enchaînement narratif | Haute |
+| **Session SaveDesign** | Fontaine de Fee detaillee, respawn, penalites mort | Moyenne |
+| **Session Economie** | Calibrage PO/Essence, prix marchands, taux drops (apres playtest) | Basse |
 
 ---
 
@@ -256,4 +272,5 @@ Note C7-HUDPolish : radial dedie objets consommables (ou integration radial exis
 - Création : 11/05/2026
 - Refonte complète : 14/05/2026
 - Resynchro complète : 18/05/2026
-- MAJ 28/05/2026 : session design complete -- Stats, Effets statut, Corruption Phase 1/2, Economie Seiken, double monnaie, Mana, equipement
+- MAJ 28/05/2026 : session design complete -- Stats, Effets statut, Corruption Phase 1/2, Economie, Lore/Cast
+- MAJ 28/05/2026 (correctif) : DESIGN-Lore ajoute modules, points ouverts nettoyes, session Noms ajoutee, Suivante race clarifiee
