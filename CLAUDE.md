@@ -95,6 +95,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - `DiscoveredWeapons` (Array<FName>), `ChoosenWeapon` (FName)
 - `BP_CombatLockOnComponent`, `MagicComponent`, `BP_ComboManagerComponent` sur le Character
 - NOTE : ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) redondants -- a unifier C1-WeaponArchitecture
+- DETTE C1 : EquipWeapon logique eparpillee HC / ComboManager / UI_Radial / PC -- refonte avant cloture C1
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
@@ -174,10 +175,19 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 ### Combat -- VALIDE PIE (18/05/2026)
 - BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack
 - Flow : IA_Attack -> CanAttack -> HandleAttack -> PlayAttackMontage
+- CanAttack : source unique ComboManager (HC.CanAttack supprime -- etape 5 C1-WeaponArchitecture)
 
 ### Armes
 - FWeaponData : a enrichir CoeffArme + VitesseAttaque (C1-WeaponArchitecture)
 - DETTE : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager)
+- UpgradeWeaponLevel : implemente Option A (runtime, sans SaveGame) -- etape 6 C1-WeaponArchitecture
+
+### Radial Armes -- PARTIEL (28/05/2026)
+- Mecanique : roue tourne, curseur fixe en haut (position 0)
+- PopulateWeaponSlots : TargetRotation = -(EquippedIndex * AnglePerSlot), CurrentRotation = TargetRotation, SelectedIndex = 0
+- Guard : si CurrentWeaponID == None -> pas de modification rotation
+- Bug ouvert : reouverture apres changement arme -> mauvaise rotation (CurrentWeaponID non mis a jour ?)
+- DETTE C1 : refonte EquipWeapon necessaire pour corriger le bug
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
@@ -204,6 +214,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] C1-MagicUnlockSystem, RadialUnlock, C1-CleanupDettes (27/05/2026)
 - [x] DESIGN-StatsProgression, DESIGN-StatusEffects, DESIGN-Corruption, DESIGN-Economy (28/05/2026)
 - [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites, conflit Loup/DragonFolk (28/05/2026)
+- [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
 
 ## Dettes techniques
 
@@ -211,8 +222,10 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **Radial Armes : SelectedIndex = 0** (C1-RadialMagie)
-- **Archi armes/combo eclatee** (C1-WeaponArchitecture)
+- **Radial Armes : bug reouverture apres changement arme** (C1-WeaponArchitecture)
+- **Refonte EquipWeapon : logique eparpillee HC/ComboManager/UI_Radial/PC** (C1-WeaponArchitecture -- CRITIQUE, avant cloture C1)
+- **HandleAttack ErrorType=1 sur HC** (C1-WeaponArchitecture -- a verifier PIE)
+- **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
 - **Nouvelles stats BP_AttributeSet_Base** (C1-WeaponArchitecture)
 - **Stats ennemis BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
 - **CoeffArme + VitesseAttaque FWeaponData** (C1-WeaponArchitecture)
@@ -222,7 +235,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture + Refacto**
+1. **C1-WeaponArchitecture + Refacto** (dont refonte EquipWeapon -- CRITIQUE)
 2. **C1-SwordMoveset** + BP_StatusEffectComponent
 3. **SaveDesign** : spec Fontaine de Fee
 4. **C1-MagicTreeModule** : arbre de talents
@@ -256,6 +269,10 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon
 - LevelMin = 0 dans DT_Combo
 - HandleAttack sans parametre ChoosenWeapon
+- HC.CanAttack supprime -- source unique ComboManager.CanAttack (etape 5 C1-WeaponArchitecture)
+- UpgradeWeaponLevel : Option A runtime (etape 6 C1-WeaponArchitecture)
+- Radial roue tourne / curseur fixe haut -- TargetRotation = -(Index * AnglePerSlot) dans PopulateWeaponSlots
+- Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
 - UnlockDeity : "Set Members in FSoM_DeitySpells" NON "Make FSoM_DeitySpells"
 - UnlockDeity Map_Contains : TRUE = deja present -> return
 - search_nodes("UnlockDeity") = 0 -> chercher "Unlock Deity" (avec espace)
