@@ -31,6 +31,7 @@ Mis à jour après chaque session de design ou de développement.
 | TestBed | ✅ VALIDE PIE | Lvl_TestBed, BP_Enemy_TestBed, SFX placeholder |
 | Collisions capsule | ✅ VALIDE PIE | CapsuleComponent Pawn = Block |
 | IMC dédiés (5 contextes) | ✅ VALIDE PIE | C1-InputsUI complet -- swap OpenRadial/CloseRadial |
+| Stats & Progression | ✅ DESIGN VALIDE | 7 stats, hybride, Essence de Mana, formules, éléments -- Stats_Progression.md |
 | Archi armes/combo | ⚠️ Dette | ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager) -- C1-WeaponArchitecture |
 
 ---
@@ -63,13 +64,14 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
                           └─> C1-MagicProgressionDesign ✅ VALIDE
                                 └─> C1-MagicUnlockSystem ✅ VALIDE PIE
                                       └─> C1-CleanupDettes ✅ COMPLET
-                                            └─> C1-WeaponArchitecture + Refacto
-                                                  └─> C1-SwordMoveset
-                                                        └─> C1-SaveDesign (spec)
-                                                              └─> C1-BowPOC
-                                                                    └─> C1-WeaponSwitching
-                                                                          └─> C2-SaveGame
-                                                                                └─> C1-AnimationsPass1 (fin C1)
+                                            └─> DESIGN-StatsProgression ✅ VALIDE (28/05/2026)
+                                                  └─> C1-WeaponArchitecture + Refacto
+                                                        └─> C1-SwordMoveset
+                                                              └─> C1-SaveDesign (spec)
+                                                                    └─> C1-BowPOC
+                                                                          └─> C1-WeaponSwitching
+                                                                                └─> C2-SaveGame
+                                                                                      └─> C1-AnimationsPass1 (fin C1)
 
 C1-SFXCombat : peut démarrer dès maintenant
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
@@ -109,49 +111,44 @@ C2-EnemyMesh
 - [x] Tests PIE : gameplay bloqué pendant radial, repris après fermeture
 
 ### ✅ C1-RadialMagie — Radial magie 2 niveaux COMPLET VALIDE PIE (25/05/2026)
-
-**Décisions actées :**
-- ERadialMode : Weapons / Deity (N1) / Spell (N2)
-- Validation N2 = CastSpell direct (pas d'assignation quickslot dans le radial)
-- Source écoles = filtrage UnlockedSpells par clé Map
-- ValidateRadial = fonction dédiée sur PC (variables locales TempSchoolID / TempSpellID)
-- Condition N1/N2 dans ValidateRadial = CurrentCategory (pas CurrentMagicSchool)
-- UnlockedSpells alimenté par stub test BeginPlay BP_MagicComponent (dette C1-MagicUnlockSystem)
-- Fix bDefaultValueIsIgnored : Make FSoM_DeitySpells remplacé par Set Members in FSoM_DeitySpells
-
-**Tâches validées :**
-- [x] Variable CurrentMagicSchool (FName) dans UI_Radial_Main
-- [x] Variable MagicComponentRef + injection depuis OpenRadial (PC)
-- [x] PopulateMagicSchools complet
-- [x] PopulateMagicSpells(SchoolID) complet — 4 sorts Lumina
-- [x] SwitchCategory 3 branches (Weapons↔Deity, Spell→Deity)
-- [x] Stub BeginPlay BP_MagicComponent : UnlockDeity("Lumina") via Set Members in struct
-- [x] Reset SelectedIndex=0 + TargetRotation=0 + CurrentRotation=0 à l'entrée en Spell
-- [x] ValidateRadial (fonction PC) : Weapons / Deity→PopulateMagicSpells / Spell→CastSpell+CloseRadial
-- [x] Navigation Cancel B : Spell→PopulateMagicSchools / Deity→CloseRadial
-- [x] Rotation slots fonctionnelle en Weapons, Deity et Spell
-
-**Dettes restantes (non bloquantes) :**
-- [ ] Text_Category : "MAGIE" en N1, "MAGIE - [NomEcole]" en N2
-- [ ] Icônes déités/sorts : placeholder null → ART-MagicIcons
-- [ ] SelectedIndex radial : retour sur ChoosenWeapon → C1-CleanupDettes
-- [ ] SchoolID dynamique depuis CurrentMagicSchool (actuellement lu depuis TempSchoolID capturé au validate)
-
 ### ✅ C1-MagicProgressionDesign — DESIGN VALIDE (25/05/2026)
 ### ✅ C1-MagicUnlockSystem — COMPLET VALIDE PIE (27/05/2026)
 ### ✅ C1-CleanupDettes — COMPLET (27/05/2026)
 
+### ✅ DESIGN-StatsProgression — DESIGN VALIDE (28/05/2026)
+
+**Décisions actées :**
+- 7 stats heros : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
+- Progression hybride : niveaux globaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
+- Ressource universelle : Essence de Mana (XP + investissement deites) -- DS-like
+- Formule physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
+- Formule magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
+- Elementaire : TMap<EElement, float> sur heros ET ennemis, 8 elements / 8 deites
+- Critique : 5% de base, x1.5, heros ET ennemis
+- Stamina : coûts fixes par action, recuperation auto 1s
+- Stats ennemis : systeme simplifie dedie (PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat)
+- VitesseAttaque : multiplicateur PlayRate montage dans FWeaponData
+- Pas de regen PV auto
+
+**Spec complète :** Docs/Architecture/Stats_Progression.md
+
+**Points encore ouverts :**
+- Cout Essence par niveau de deite → Session Lore Deites
+- Valeurs ResistanceElementaire par type ennemi → C2-EnemyTypes
+- BP_StatusEffectComponent : quand creer ? → C1-SwordMoveset ou apres
+
 ### C1-WeaponArchitecture + Refacto — Audit, refacto & décision structure armes/combo
 - [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData, BP_ComboManagerComponent
-- [ ] Décision source de vérité unique pour l'arme courante (ChoosenWeapon HC vs CurrentWeaponID ComboManager — redondance actuelle)
-- [ ] Décision périmètre HC vs Component (EquipWeapon, DiscoveredWeapons : rester sur HC ou migrer ?)
+- [ ] Décision source de vérité unique pour l'arme courante
+- [ ] Décision périmètre HC vs Component
 - [ ] Évaluer pertinence d'un BP_WeaponManagerComponent dédié
-- [ ] Décision BP_WeaponType_Base (classe mère abstraite par TYPE)
-- [ ] Vérifier champs forge + talents dans FWeaponData
-- [ ] Implem minimale du refacto (pas de nouvelle feature, cleanup uniquement)
+- [ ] Ajouter CoeffArme + VitesseAttaque dans FWeaponData
+- [ ] Ajouter nouvelles stats dans BP_AttributeSet_Base
+- [ ] Ajouter stats ennemis enrichies sur BP_Enemy_Base
+- [ ] Ajouter jauges Stamina + Essence de Mana dans UI_HUD_Main
+- [ ] Implem minimale du refacto
 - [ ] Doc de décision dans Decisions.md
 - ⚠️ Conditionne C1-SwordMoveset, C1-BowPOC, C5-ForgeSystem, C5-TalentTree
-- ⚠️ Ne pas toucher avant ce jalon : combo VALIDE PIE, ne pas casser
 
 ### C1-SwordMoveset — Moveset épée complet
 - [ ] Combo 3 coups légers, finisseur, coup chargé (heavy)
@@ -187,6 +184,7 @@ C2-EnemyMesh
 
 Note : WeaponClass sur BP_Enemy_Base sera supprimée dans C2-EnemyMesh (décision 23/05).
 La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 avec C1-MagicProgressionDesign.
+ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-EnemyTypes.
 
 ---
 
@@ -251,6 +249,9 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 | Switching armes : reset combo ou conservation ? | C1-WeaponSwitching |
 | Source de vérité arme courante : HC ou Component ? | C1-WeaponArchitecture |
 | Périmètre EquipWeapon/DiscoveredWeapons : HC ou WeaponManagerComponent ? | C1-WeaponArchitecture |
+| Cout Essence par niveau de deite | Session Lore Deites |
+| Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes |
+| BP_StatusEffectComponent : quand créer ? | C1-SwordMoveset |
 | Forge : matériaux exacts (graines Mana ?) | C5-ForgeSystem |
 | Corruption : les sorts de soin corrompent-ils moins ? | C4-CorruptionSystem |
 | Compagnons : mort permanente possible hors choix moral ? | C4-Companions |
@@ -259,9 +260,7 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 | Flammy : quel jalon narratif débloque le voyage rapide ? | C3-Flammy |
 | Touchpad PS5 : carte, journal, ou autre ? | C7-PauseMenu |
 | Menu pause : Time Dilation 0 ou pause complète ? | C7-PauseMenu |
-| Quickslot switch : press = utiliser, hold = changer de page ? | C1-InputsUI |
-| Progression magies : linéaire (puissance/durée) ou arbre de talent ? | C1-MagicProgressionDesign |
-| Magie ennemie : DT_Spells partagé ou sous-ensemble dédié ? | C1-MagicProgressionDesign / C2 |
+| Magie ennemie : DT_Spells partagé ou sous-ensemble dédié ? | C2 |
 | Distribution future : Steam / itch.io / perso | C8-Build2 |
 
 ---
@@ -273,7 +272,5 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 - Resynchro complète : 18/05/2026
 - MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé
 - MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
-- MAJ 23/05/2026 : décisions C1-RadialMagie actées, C1-MagicProgressionDesign ajouté, SelectedIndex en C1-CleanupDettes
-- MAJ 23/05/2026 : ART-MagicIcons ajouté, C1-MagicUnlockSystem ajouté, tâches C1-RadialMagie mises à jour
-- MAJ 25/05/2026 : C1-RadialMagie VALIDE PIE — navigation 3 niveaux + CastSpell + fix bDefaultValueIsIgnored
-- MAJ 28/05/2026 : C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto", jalons completes mis a jour, dette archi armes/combo tracee
+- MAJ 25/05/2026 : C1-RadialMagie VALIDE PIE
+- MAJ 28/05/2026 : C1-WeaponArchitecture elargi + refacto, DESIGN-StatsProgression valide, chaine dependances mise a jour
