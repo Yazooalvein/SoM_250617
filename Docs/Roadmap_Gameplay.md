@@ -31,7 +31,10 @@ Mis à jour après chaque session de design ou de développement.
 | TestBed | ✅ VALIDE PIE | Lvl_TestBed, BP_Enemy_TestBed, SFX placeholder |
 | Collisions capsule | ✅ VALIDE PIE | CapsuleComponent Pawn = Block |
 | IMC dédiés (5 contextes) | ✅ VALIDE PIE | C1-InputsUI complet -- swap OpenRadial/CloseRadial |
-| Stats & Progression | ✅ DESIGN VALIDE | 7 stats, hybride, Essence de Mana, formules, éléments -- Stats_Progression.md |
+| Stats & Progression | ✅ DESIGN VALIDE | 7 stats, hybride, Essence+PO, formules, éléments -- Stats_Progression.md |
+| Effets de statut | ✅ DESIGN VALIDE | 8 effets par déité, interactions -- Combat_StatusEffects.md |
+| Corruption Magique | ✅ DESIGN VALIDE | Phase 1/2, lien Ombre, bonus Essence -- Combat_StatusEffects.md |
+| Economie & Drops | ✅ DESIGN VALIDE | Double monnaie, Seiken drops, Mana, équipement -- Economy_Drops.md |
 | Archi armes/combo | ⚠️ Dette | ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager) -- C1-WeaponArchitecture |
 
 ---
@@ -58,44 +61,39 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
 ```
 [FAIT] J-LockOn -> J-Camera -> J-LockMove -> J-TestBed -> J-ComboFix
   └─> C1-CollisionFix ✅
-        └─> C1-HitFeel (partiel : knockback ✅, shake ✅, gamepad ❌, hitstop reporté)
+        └─> C1-HitFeel (partiel)
               └─> C1-InputsUI ✅ VALIDE PIE
-                    └─> C1-RadialMagie ✅ VALIDE PIE (25/05/2026)
-                          └─> C1-MagicProgressionDesign ✅ VALIDE
+                    └─> C1-RadialMagie ✅ VALIDE PIE
+                          └─> C1-MagicProgressionDesign ✅
                                 └─> C1-MagicUnlockSystem ✅ VALIDE PIE
-                                      └─> C1-CleanupDettes ✅ COMPLET
-                                            └─> DESIGN-StatsProgression ✅ VALIDE (28/05/2026)
-                                                  └─> C1-WeaponArchitecture + Refacto
-                                                        └─> C1-SwordMoveset
-                                                              └─> C1-SaveDesign (spec)
-                                                                    └─> C1-BowPOC
-                                                                          └─> C1-WeaponSwitching
-                                                                                └─> C2-SaveGame
-                                                                                      └─> C1-AnimationsPass1 (fin C1)
+                                      └─> C1-CleanupDettes ✅
+                                            └─> DESIGN-StatsProgression ✅
+                                                  └─> DESIGN-StatusEffects ✅
+                                                        └─> DESIGN-Corruption ✅
+                                                              └─> DESIGN-Economy ✅
+                                                                    └─> C1-WeaponArchitecture + Refacto
+                                                                          └─> C1-SwordMoveset
+                                                                                └─> C1-SaveDesign (spec)
+                                                                                      └─> C1-BowPOC
+                                                                                            └─> C1-WeaponSwitching
+                                                                                                  └─> C2-SaveGame
+                                                                                                        └─> C1-AnimationsPass1
 
 C1-SFXCombat : peut démarrer dès maintenant
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
-
-C2-EnemyMesh
-  └─> C2-EnemyAI
-        └─> C2-EnemyTypes
-              └─> C2-Boss1
-...
 ```
 
 ---
 
 ## COUCHE 1 — Fondations gameplay
 
-### ✅ J-LockOn — Lock-On COMPLET VALIDE PIE (15/05/2026)
-### ✅ J-Camera — Caméra & Feel COMPLET VALIDE PIE (17/05/2026)
-### ✅ J-LockMove — Déplacement en lock-on COMPLET VALIDE PIE (18/05/2026)
-### ✅ J-TestBed — Zone de test COMPLET VALIDE PIE (18/05/2026)
-### ✅ J-ComboFix — Fix attaque + combo COMPLET VALIDE PIE (18/05/2026)
-### ✅ C1-CollisionFix — Fix collisions capsule COMPLET VALIDE PIE (18/05/2026)
-
+### ✅ J-LockOn — COMPLET VALIDE PIE (15/05/2026)
+### ✅ J-Camera — COMPLET VALIDE PIE (17/05/2026)
+### ✅ J-LockMove — COMPLET VALIDE PIE (18/05/2026)
+### ✅ J-TestBed — COMPLET VALIDE PIE (18/05/2026)
+### ✅ J-ComboFix — COMPLET VALIDE PIE (18/05/2026)
+### ✅ C1-CollisionFix — COMPLET VALIDE PIE (18/05/2026)
 ### ❌ C1-HitFlashEnemies — ABANDONNE (21/05/2026)
-- Décision : CS_EnemyDeath (screen shake) + animation dédiée suffisent
 
 ### 🔧 C1-HitFeel — Feedback physique des coups (partiel)
 - [x] Knockback VALIDE PIE
@@ -103,49 +101,40 @@ C2-EnemyMesh
 - [ ] Vibration gamepad
 - [ ] Hitstop : reporté après C2-EnemyMesh + C1-SFXCombat
 
-### ✅ C1-InputsUI — IMC dédiés COMPLET VALIDE PIE (23/05/2026)
-- [x] IMC_Gameplay (ex IMC_Prototype) : charge au ReceivePossessed HeroCharacter
-- [x] IMC_Radial : 4 IA, swap dans OpenRadial/CloseRadial
-- [x] Stubs vides : IMC_Menu (C7), IMC_Dialogue (C4), IMC_Cutscene (C3)
-- [x] Fix rotation : trigger Pressed threshold 0.5 + Modifier Negate X direction gauche
-- [x] Tests PIE : gameplay bloqué pendant radial, repris après fermeture
-
-### ✅ C1-RadialMagie — Radial magie 2 niveaux COMPLET VALIDE PIE (25/05/2026)
+### ✅ C1-InputsUI — COMPLET VALIDE PIE (23/05/2026)
+### ✅ C1-RadialMagie — COMPLET VALIDE PIE (25/05/2026)
 ### ✅ C1-MagicProgressionDesign — DESIGN VALIDE (25/05/2026)
 ### ✅ C1-MagicUnlockSystem — COMPLET VALIDE PIE (27/05/2026)
 ### ✅ C1-CleanupDettes — COMPLET (27/05/2026)
-
 ### ✅ DESIGN-StatsProgression — DESIGN VALIDE (28/05/2026)
+### ✅ DESIGN-StatusEffects — DESIGN VALIDE (28/05/2026)
+### ✅ DESIGN-Corruption — DESIGN VALIDE (28/05/2026)
+
+### ✅ DESIGN-Economy — DESIGN VALIDE (28/05/2026)
 
 **Décisions actées :**
-- 7 stats heros : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Progression hybride : niveaux globaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
-- Ressource universelle : Essence de Mana (XP + investissement deites) -- DS-like
-- Formule physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
-- Formule magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
-- Elementaire : TMap<EElement, float> sur heros ET ennemis, 8 elements / 8 deites
-- Critique : 5% de base, x1.5, heros ET ennemis
-- Stamina : coûts fixes par action, recuperation auto 1s
-- Stats ennemis : systeme simplifie dedie (PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat)
-- VitesseAttaque : multiplicateur PlayRate montage dans FWeaponData
-- Pas de regen PV auto
+- Double monnaie : Essence (progression, perdue mort) + PO (economie, stable)
+- Drops : Essence + PO toujours, consommables + materiaux + coffres Seiken en aleatoire
+- Consommables Seiken : 9 unites max par type, rechargeable Fontaine
+- Materiaux forge : 3 tiers, non lies aux elements, forge narrative jalons narratifs
+- Equipement : 3 slots (Casque, Armure, Accessoire) -- Defense + Resistance
+- ManaMax separee de Magie, base 60, +8/niveau -- pas de regen auto
+- Cout sorts : Base + (NiveauSort * Multiplicateur)
+- Corruption Phase 1 plafond 50, Phase 2 plafond 100 apres revelation Hero/Ombre
+- Corruption faiblesse a 75 = deite la plus utilisee (deterministe)
+- Respawn Fontaine : ennemis normaux oui, boss jamais
+- Sauvegarde : tout sauf Essence non depensee
 
-**Spec complète :** Docs/Architecture/Stats_Progression.md
+**Spec complète :** Docs/Architecture/Economy_Drops.md
 
-**Points encore ouverts :**
-- Cout Essence par niveau de deite → Session Lore Deites
-- Valeurs ResistanceElementaire par type ennemi → C2-EnemyTypes
-- BP_StatusEffectComponent : quand creer ? → C1-SwordMoveset ou apres
-
-### C1-WeaponArchitecture + Refacto — Audit, refacto & décision structure armes/combo
+### C1-WeaponArchitecture + Refacto
 - [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData, BP_ComboManagerComponent
-- [ ] Décision source de vérité unique pour l'arme courante
-- [ ] Décision périmètre HC vs Component
-- [ ] Évaluer pertinence d'un BP_WeaponManagerComponent dédié
+- [ ] Source de vérité unique arme courante
+- [ ] Périmètre HC vs Component
 - [ ] Ajouter CoeffArme + VitesseAttaque dans FWeaponData
-- [ ] Ajouter nouvelles stats dans BP_AttributeSet_Base
+- [ ] Ajouter nouvelles stats dans BP_AttributeSet_Base (Level, EssenceMana, PiecesOr, Corruption, ManaMax, ManaCurrent...)
 - [ ] Ajouter stats ennemis enrichies sur BP_Enemy_Base
-- [ ] Ajouter jauges Stamina + Essence de Mana dans UI_HUD_Main
+- [ ] Ajouter jauges HUD : Stamina, Mana, Essence, Corruption
 - [ ] Implem minimale du refacto
 - [ ] Doc de décision dans Decisions.md
 - ⚠️ Conditionne C1-SwordMoveset, C1-BowPOC, C5-ForgeSystem, C5-TalentTree
@@ -153,28 +142,15 @@ C2-EnemyMesh
 ### C1-SwordMoveset — Moveset épée complet
 - [ ] Combo 3 coups légers, finisseur, coup chargé (heavy)
 - [ ] RotateTowardLockTarget câblé avec lock-on
-- [ ] Épée Mana placeholder
+- [ ] BP_StatusEffectComponent (heros + ennemis)
 - ⚠️ Nécessite C1-WeaponArchitecture
 
 ### C1-SaveDesign — Session design respawn & sauvegarde
-- [ ] Modèle respawn, ce qui est sauvegardé, granularité
+- [ ] Spec détaillée Fontaine de Fée, respawn, ce qui est sauvegardé
 - [ ] Livrable : spec SaveGame.md
 
-### C1-BowPOC — Arc POC
-- [ ] Munitions illimitées, visée, projectile
-- ⚠️ Nécessite C1-WeaponArchitecture
-
-### C1-WeaponSwitching — Switching d'armes en combat
-- [ ] Via radial, conservation ou reset combo ?
-
-### C1-SFXCombat — Sons de combat de base
-- [ ] Attaques, esquive, dégâts, mort, sons UI
-- Peut démarrer maintenant
-
-### C1-AnimationsPass1 — Premier pass animations (fin de Couche 1)
-- [ ] Strafe gauche/droite distincts
-- [ ] Roll sans Root Motion en lock-on
-- [ ] Rename ABP_Manny_Platforming -> ABP_Hero
+### C1-BowPOC / C1-WeaponSwitching / C1-SFXCombat / C1-AnimationsPass1
+- Voir CLAUDE.md pour détails
 
 ---
 
@@ -182,9 +158,7 @@ C2-EnemyMesh
 
 ### C2-SaveGame / C2-EnemyMesh / C2-EnemyAI / C2-EnemyTypes / C2-Boss1
 
-Note : WeaponClass sur BP_Enemy_Base sera supprimée dans C2-EnemyMesh (décision 23/05).
-La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 avec C1-MagicProgressionDesign.
-ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-EnemyTypes.
+Note : C2-EnemyTypes définira ResistanceElementaire et stats par type ennemi.
 
 ---
 
@@ -206,6 +180,10 @@ ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-Enem
 
 ### C5-ForgeSystem / C5-Equipment / C5-TalentTree
 
+Notes C5 :
+- C5-Equipment : prerequis niveau equipement, calibrage prix PO, duree buff Repas
+- C5-ForgeSystem : materiaux exacts, prix forge, integration jalons narratifs
+
 ---
 
 ## COUCHE 6 — Audio & Feedback
@@ -218,6 +196,8 @@ ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-Enem
 
 ### C7-MainMenu / C7-OptionsMenu / C7-PauseMenu / C7-DeathScreen / C7-LoadingScreen
 ### C7-HUDPolish / C7-Localization
+
+Note C7-HUDPolish : radial dedie objets consommables (ou integration radial existant).
 
 ---
 
@@ -234,7 +214,7 @@ ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-Enem
 | ART-Hero | LODs + correction 6 doigts + sockets (retopo 246K -> 10-15K) |
 | ART-Enemies | Meshes ennemis (Knight + 1-2 types) |
 | ART-Weapons | Assets armes (Sword_01, 2HSword_01, Arc_01...) |
-| ART-MagicIcons | Icônes déités (8 écoles) + icônes sorts — placeholder null en PIE jusqu'alors |
+| ART-MagicIcons | Icônes déités (8 écoles) + icônes sorts |
 | ART-NPC | Lumina, Luna, Athanor placeholders |
 | MAP-Test/Hub/Start | Maps terrain UE5 |
 | MUS-1/2/3 | Thèmes musicaux (workflow Suno établi) |
@@ -245,22 +225,28 @@ ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-Enem
 
 | Sujet | Lié à |
 |-------|-------|
-| Modèle respawn : sanctuaires DS / checkpoints Seiken-KH / hybride | C1-SaveDesign |
-| Switching armes : reset combo ou conservation ? | C1-WeaponSwitching |
 | Source de vérité arme courante : HC ou Component ? | C1-WeaponArchitecture |
-| Périmètre EquipWeapon/DiscoveredWeapons : HC ou WeaponManagerComponent ? | C1-WeaponArchitecture |
+| Périmètre EquipWeapon/DiscoveredWeapons | C1-WeaponArchitecture |
+| Switching armes : reset combo ou conservation ? | C1-WeaponSwitching |
 | Cout Essence par niveau de deite | Session Lore Deites |
 | Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes |
 | BP_StatusEffectComponent : quand créer ? | C1-SwordMoveset |
-| Forge : matériaux exacts (graines Mana ?) | C5-ForgeSystem |
-| Corruption : les sorts de soin corrompent-ils moins ? | C4-CorruptionSystem |
+| TenaciteEtat valeur de base heros | C1-SwordMoveset |
+| Quand debloquer Corruption Phase 2 (revelation Ombre) ? | Session Lore Ombre |
+| Effet narratif Corruption=100 (dialogue fee ?) | Session Lore Fee |
+| Aura visuelle Corruption >= 25 | ART ou C4 |
+| Faiblesse Corruption 75 : deite la plus utilisee sur quelle periode ? | A preciser |
+| Prerequis niveau pour equiper | C5-Equipment |
+| Duree buff Repas | C5-Equipment |
+| Noms definitifs consommables (lore Seiken) | Session Lore |
+| Radial dedie objets vs integration radial existant | C7-HUDPolish |
+| Calibrage PO/Essence/prix marchands | Playtest acte 1 |
+| Spec détaillée Fontaine de Fée (respawn, penalites) | C1-SaveDesign |
 | Compagnons : mort permanente possible hors choix moral ? | C4-Companions |
 | Garçon Loup : Salamandre ou Gnome ? | C4-DeitiesSystem |
-| Colosse : Gnome confirmé ? | C4-DeitiesSystem |
 | Flammy : quel jalon narratif débloque le voyage rapide ? | C3-Flammy |
-| Touchpad PS5 : carte, journal, ou autre ? | C7-PauseMenu |
 | Menu pause : Time Dilation 0 ou pause complète ? | C7-PauseMenu |
-| Magie ennemie : DT_Spells partagé ou sous-ensemble dédié ? | C2 |
+| Touchpad PS5 : carte, journal, ou autre ? | C7-PauseMenu |
 | Distribution future : Steam / itch.io / perso | C8-Build2 |
 
 ---
@@ -270,7 +256,4 @@ ResistanceElementaire et valeurs stats ennemis par type : à définir en C2-Enem
 - Création : 11/05/2026
 - Refonte complète : 14/05/2026
 - Resynchro complète : 18/05/2026
-- MAJ 21/05/2026 : C1-HitFlashEnemies abandonné, C1-RadialMagie ajouté, C1-InputsUI priorisé
-- MAJ 23/05/2026 : C1-InputsUI VALIDE PIE, C1-RadialMagie prochain, ordre jalons révisé
-- MAJ 25/05/2026 : C1-RadialMagie VALIDE PIE
-- MAJ 28/05/2026 : C1-WeaponArchitecture elargi + refacto, DESIGN-StatsProgression valide, chaine dependances mise a jour
+- MAJ 28/05/2026 : session design complete -- Stats, Effets statut, Corruption Phase 1/2, Economie Seiken, double monnaie, Mana, equipement
