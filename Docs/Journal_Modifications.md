@@ -5,76 +5,72 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
-### 28/05/2026 -- Session design -- Effets de statut & Corruption Magique -- DESIGN VALIDE
+### 28/05/2026 -- Session design -- Economie, Drops, Consommables, Mana -- DESIGN VALIDE
 
-#### Effets de statut par deite
+#### Double monnaie
+- Essence de Mana : progression (niveaux, deites, forge armes) -- perdue a la mort, recuperable DS-like
+- Pieces d'Or (PO) : economie du monde (marchands, objets, armures) -- jamais perdues
 
-Table complete validee -- 8 deites, 8 effets signatures :
-- Lumina : Eblouissement (reduit precision ennemie + revele invisibles)
-- Luna : Sommeil (bloque actions, reveil x1.5 degats si touche)
-- Ombre : Malediction (-75% soins recus)
-- Sylphide : Desequilibre (-Defense + bloque sprint)
-- Gnome : Alourdi (-Vitesse et -VitesseAttaque severe)
-- Salamandre : Brulure (drain PV + -Resistance Feu)
-- Ondine : Gele (ralentissement severe, Fige si deja Ralenti)
-- Dryade : Empoisonne (drain PV lent, 3 stacks max)
+#### Drops ennemis
+- Toujours : Essence + PO (quantites variables par type)
+- Aleatoire : objets consommables (15-25%), materiaux de forge (8-18%), coffres Seiken
+- Boss : drop garanti x1 objet + x1 materiau
 
-Interactions cles : Sommeil+attaque=x1.5, Desequilibre+Gele=Fige, Malediction+Drain=combo punitif
+#### Consommables style Secret of Mana
+- Bonbon/Noix/Miel (PV), Plante (Mana), Herbe (statut), Essence Purifiee (Corruption -15), Repas (+% drop temp)
+- Stock max 9 unites par type, rechargeable Fontaine depuis stock mondial
+- Utilisables en combat, via quickslot ou radial dedie (C7-HUDPolish)
+- Taux de drop augmente uniquement via Repas -- pas de stat permanente
 
-Implementation : BP_StatusEffectComponent sur HC et Enemy_Base -- a creer en C1-SwordMoveset
+#### Materiaux de forge
+- 3 tiers : Graine de Mana (commun), Cristal de Mana (rare), Essence Cristallisee (special)
+- Non lies aux elements -- universels
+- Forge narrative style Seiken : upgrade N+1 debloque par jalon narratif + materiaux requis
 
-#### Corruption Magique -- systeme risque/recompense
+#### Equipement
+- 3 slots : Casque, Armure, Accessoire
+- Stats : Defense + Resistance uniquement
+- Achat PO ou drop coffres/boss
 
-- Generation : Attaque+3, Debuff+2, Buff+1, Heal+0
-- Modificateurs par deite : Ombre x0.5, Lumina x1.5, Salamandre x1.25, Dryade x0.75
-- Seuils negatifs : 25 (aura), 50 (-20% resistances), 75 (faiblesse element + drain stamina), 100 (statut aleatoire /30s)
-- Bonus Essence ennemis par seuil : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond a 100)
-- Sorts Heal : 0 Corruption mais reduisent legerement le bonus Essence actif
-- Purge Fontaine : Corruption=0. Si >=75 : fee epuisee (pas de montee deite cette visite). Si 100 : fee gronde
-- Tension centrale : purger souvent = securite, rester haut = farming rapide mais risque
+#### Cout sorts Mana
+- Formule : Base + (NiveauSort * Multiplicateur)
+- ManaMax separee de Magie, monte avec Level global (+8/niveau, base 60)
+- Cles : "ManaMax" / "ManaCurrent"
+- Pas de regen Mana auto
+
+#### Sauvegarde & respawn
+- Sauvegarde tout sauf Essence non depensee
+- Respawn : ennemis normaux oui, boss jamais
+- Double mort = Essence definitivement perdue
+
+#### Corruption Phase 1/2
+- Phase 1 (debut jeu) : plafond 50, effets limites
+- Phase 2 (apres revelation Hero/Ombre) : plafond 100, faiblesse = deite la plus utilisee au franchissement 75, effet statut = meme deite a 100
+- Narrativement : Ombre leve involontairement le voile protecteur suite a la decheance de la Mana
 
 #### Points encore ouverts
-- Duree effets de statut + TenaciteEtat base heros -> C1-SwordMoveset
-- Element faiblesse a 75 : aleatoire ou fixe par run -> a trancher
-- Aura visuelle Corruption >= 25 -> ART ou C4
-- Effet narratif Corruption=100 (dialogue fee ?) -> Session Lore Fee
+- Duree buff Repas -> C5-Equipment
+- Prerequis niveau equipement -> C5-Equipment
+- Quand exactement debloquer Corruption Phase 2 -> Session Lore Ombre
+- Radial dedie objets vs integration radial existant -> C7-HUDPolish
+- Prix PO + taux drops calibres -> Playtest acte 1
 
 #### Etat final
-DESIGN-StatusEffects + DESIGN-Corruption VALIDES. Spec dans Docs/Architecture/Combat_StatusEffects.md.
+DESIGN-Economy VALIDE. Spec dans Docs/Architecture/Economy_Drops.md.
+
+---
+
+### 28/05/2026 -- Session design -- Effets de statut & Corruption Magique -- DESIGN VALIDE
+
+#### Etat final
+8 effets par deite valides, Corruption systeme risque/recompense valide. Spec dans Combat_StatusEffects.md.
 
 ---
 
 ### 28/05/2026 -- Session design -- Stats & Progression personnage -- DESIGN VALIDE
 
-#### Decisions actees
-
-**Stats heros (7) :** Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Toutes via SetStatValue / OnStatChanged (architecture existante)
-- Nouvelles cles BP_AttributeSet_Base : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique
-
-**Progression hybride :**
-- Niveaux globaux 1-10 (acte 1) : stats auto + 2 points libres a distribuer
-- Courbe exponentielle XP : 100 * 1.5^(N-1) par niveau
-- Progression par usage armes/magie : inchangee (systeme existant)
-
-**Ressource universelle -- Essence de Mana :**
-- Remplace XP : sert a monter de niveau global ET a investir dans les deites
-- Perdue a la mort, recuperable en retournant sur le lieu de la mort (DS-like)
-- Double mort = Essence definitivement perdue
-
-**Formules degats :**
-- Physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
-- Magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
-- Elementaire : * (1 - ResistanceElementaire[Element])
-- 8 elements correspondant aux 8 deites
-
-**Critique :** 5% de base, x1.5, heros ET ennemis
-**Stamina :** -10 att legere, -20 att lourde, -25 esquive, -5/s sprint -- recuperation auto 1s
-**Stats ennemis (systeme simplifie dedie) :** PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat + ResistanceElementaire TMap
-**VitesseAttaque armes :** multiplicateur PlayRate montage dans FWeaponData
-
 #### Etat final
-DESIGN-StatsProgression VALIDE. Spec complete dans Docs/Architecture/Stats_Progression.md.
+7 stats heros, progression hybride, Essence de Mana, formules degats. Spec dans Stats_Progression.md.
 
 ---
 
@@ -87,27 +83,22 @@ C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto". Note enregist
 
 ### 27/05/2026 -- C1-CleanupDettes COMPLET
 
-#### Suppressions effectuees
-- LockOnSwitchCooldown dans BP_SoM_PlayerController : supprime
-- UsageThreshold dans FSoM_SpellData : supprime, remplace par BP_SpellCategoryThresholds
-- Fix Up Redirectors execute, compilation OK
-
 #### Etat final
-C1-CleanupDettes COMPLET.
+LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime. Compilation OK.
 
 ---
 
 ### 27/05/2026 -- RadialUnlock + blocages narratifs radial -- VALIDE PIE
 
 #### Etat final
-Systeme de deblocage narratif radial operationnel (bRadialUnlocked + BP_Debug_UnlockDeity).
+bRadialUnlocked + BP_Debug_UnlockDeity operationnels.
 
 ---
 
 ### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
 
 #### Etat final
-C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle.
+Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
 
 ---
 
@@ -249,6 +240,7 @@ Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
 Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
 Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
 Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
+Pour l'economie et les drops : voir Docs/Architecture/Economy_Drops.md
 Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
