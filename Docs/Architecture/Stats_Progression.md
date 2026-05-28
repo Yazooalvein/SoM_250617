@@ -1,5 +1,5 @@
 # Stats & Progression — Shadow of Mana
-# Spec design validee le 28/05/2026
+# Spec design validee le 28/05/2026 -- MAJ 28/05/2026
 
 ---
 
@@ -15,8 +15,11 @@
 | Endurance | Jauge stamina max | 100 | "EnduranceMax" / "EnduranceCurrent" |
 | Vitesse | Deplacement + recuperation stamina | 10 | "Vitesse" |
 
+Stats supplementaires (cles a ajouter dans BP_AttributeSet_Base) :
+- "Level", "EssenceMana", "EssenceManaDropped", "PiecesOr", "ChanceCritique", "Corruption"
+- "ManaMax", "ManaCurrent" (separees de Magie -- voir section 8)
+
 Toutes les stats passent par SetStatValue / OnStatChanged (architecture existante).
-Nouvelles cles a ajouter dans BP_AttributeSet_Base.
 
 ---
 
@@ -62,7 +65,7 @@ Courbe automatique par niveau :
 | 9 | 235 | 21 | 13 | 21 | 13 | 140 | 14 |
 | 10 | 250 | 22 | 14 | 22 | 14 | 145 | 15 |
 
-Valeurs a ajuster au playtest -- courbe lineaire legerement acceleree.
+Valeurs a ajuster au playtest.
 
 ### 3b. Progression par usage (deja implementee)
 
@@ -75,18 +78,15 @@ Valeurs a ajuster au playtest -- courbe lineaire legerement acceleree.
 ## 4. Ressource universelle -- Essence de Mana
 
 ### Concept lore
-Energie vitale du monde de Mana, circulant dans les etres vivants, les armes et les esprits des deites.
-Liberee en tuant des ennemis. Dispersee a la mort du heros -- mais recuperable.
+Energie vitale du monde de Mana, liberee en tuant des ennemis.
+Dispersee a la mort du heros -- recuperable sur le lieu de la mort (DS-like).
+Double mort avant recuperation = Essence definitivement perdue.
 
 ### Mecanique
-- Une seule ressource : Essence de Mana (float, cle "EssenceMana")
-- Utilisations :
-  - Monter de niveau global (stats physiques)
-  - Investir dans un niveau de deite (puissance magique d'une ecole)
-- Couts croissants dans les deux cas (courbes exponentielles)
-- Perdue a la mort du heros
-- Recuperable en retournant physiquement a l'endroit de la mort (style Dark Souls)
-- Si le heros meurt une deuxieme fois avant recuperation : Essence definitivement perdue
+- Cle SetStatValue : "EssenceMana"
+- Utilisations : monter de niveau global + investir dans une deite
+- Couts croissants (courbes exponentielles)
+- Bonus selon Corruption : x1.0 / x1.15 / x1.35 / x1.60 selon seuil
 
 ### Courbe XP / Essence niveau global
 ```
@@ -103,12 +103,18 @@ Niv 9->10: 2563 Essence
 Total acte 1 : ~7488 Essence a distribuer via ennemis + quetes
 ```
 
-### Cout investissement deite (a calibrer)
-Courbe similaire mais par deite -- a definir en session Lore Deites.
+---
+
+## 5. Pieces d'Or (PO)
+
+Monnaie secondaire stable -- jamais perdue a la mort.
+Cle SetStatValue : "PiecesOr"
+Utilisee pour : marchands (objets consommables, armures, equipement).
+Voir Docs/Architecture/Economy_Drops.md pour calibrage et prix.
 
 ---
 
-## 5. Formule de degats
+## 6. Formule de degats
 
 ### Degats physiques
 ```
@@ -120,46 +126,68 @@ Degats = Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
 Degats = Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
 ```
 
-### Variables
-- **CoeffArme** : float dans FWeaponData (Epee 1M=1.0, Epee 2H=1.4, Arc=0.8, Hache=1.6)
-- **CoeffSort** : float dans FSoM_SpellData par sort
-- **CoeffCritique** : 1.0 par defaut, 1.5 si coup critique
-- Plancher a 1 degat minimum (Max(1, ...))
-
 ### Degats elementaires
 ```
 Degats finaux = Degats * (1 - ResistanceElementaire[Element])
 ```
 ResistanceElementaire : TMap<EElement, float> sur le heros ET les ennemis.
-Valeurs negatives = faiblesse (ex. -0.5 = +50% de degats recus).
-8 elements correspondant aux 8 deites : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade.
+Valeurs negatives = faiblesse. 8 elements / 8 deites.
 
 ### Coups critiques
-- Chance critique : stat flottante sur le heros (default 5%, soit 0.05)
-- S'applique aux degats physiques ET magiques
-- Les ennemis peuvent aussi critter (chance configurable par type)
-- Cle SetStatValue : "ChanceCritique"
+- Chance critique : 5% de base (cle "ChanceCritique")
+- x1.5 degats -- heros ET ennemis
 
 ---
 
-## 6. Vitesse d'attaque -- stat d'arme
+## 7. Vitesse d'attaque -- stat d'arme
 
-VitesseAttaque est un multiplicateur dans FWeaponData, applique au PlayRate du montage d'animation.
-Ne pas confondre avec la stat Vitesse du heros (deplacement + stamina).
+VitesseAttaque = multiplicateur PlayRate montage dans FWeaponData.
+Ne pas confondre avec la stat Vitesse du heros.
 
-| Arme | CoeffArme | VitesseAttaque | Feeling |
-|------|-----------|----------------|---------|
-| Epee 1M | 1.0 | 1.2 | Rapide, polyvalent |
-| Epee 2M | 1.4 | 0.75 | Lent, lourd |
-| Arc | 0.8 | 1.0 | Moyen, distance |
-| Hache (futur) | 1.6 | 0.6 | Tres lent, tres fort |
-
-Implementation : PlayAttackMontage -> PlayRate = WeaponData.VitesseAttaque
-A ajouter dans FWeaponData lors de C1-WeaponArchitecture.
+| Arme | CoeffArme | VitesseAttaque |
+|------|-----------|----------------|
+| Epee 1M | 1.0 | 1.2 |
+| Epee 2M | 1.4 | 0.75 |
+| Arc | 0.8 | 1.0 |
+| Hache (futur) | 1.6 | 0.6 |
 
 ---
 
-## 7. Stamina (Endurance)
+## 8. Mana (jauge de sorts)
+
+### ManaMax -- stat separee de Magie
+
+- Magie = puissance des sorts (deja en place)
+- ManaMax = taille de la jauge (nouvelle stat)
+- Monte avec le niveau global (+8/niveau)
+- Cles : "ManaMax" / "ManaCurrent"
+- Pas de regen auto -- restauration via Fontaine de Fee ou Plante consommable
+
+| Niveau | ManaMax |
+|--------|---------|
+| 1 | 60 |
+| 2 | 68 |
+| 3 | 76 |
+| 5 | 92 |
+| 10 | 132 |
+
+### Formule cout sorts
+```
+Cout Mana = Base + (NiveauSort * Multiplicateur)
+```
+
+| Categorie | Base | Multiplicateur | Niv 1 | Niv 5 | Niv 8 |
+|-----------|------|----------------|-------|-------|-------|
+| Attaque | 5 | 2 | 7 | 15 | 21 |
+| Debuff | 4 | 2 | 6 | 14 | 20 |
+| Heal | 4 | 1.5 | 6 | 12 | 16 |
+| Buff | 3 | 1 | 4 | 8 | 11 |
+
+Ultimes : a definir quand disponibles.
+
+---
+
+## 9. Stamina (Endurance)
 
 - Jauge visible HUD (a ajouter a UI_HUD_Main via OnStatChanged)
 - Couts :
@@ -172,45 +200,35 @@ A ajouter dans FWeaponData lors de C1-WeaponArchitecture.
 
 ---
 
-## 8. Effets de statut
+## 10. Equipement (slots hors armes)
 
-Le heros ET les ennemis peuvent subir des effets de statut.
-
-| Effet | Mechanique | Cible stat |
-|-------|-----------|------------|
-| Poison | Drain PV periodique (% PV / seconde) | PV |
-| Ralentissement | Reduit Vitesse temporairement | Vitesse |
-| Affaiblissement | Reduit Attaque ou Magie temporairement | Attaque / Magie |
-| Etourdi | Bloque les actions pendant X secondes | -- (flag) |
-| Brule | Drain PV + -Resistance Fire | PV + Resistance |
-
-**TenaciteEtat** (float 0.0 a 1.0) : reduit la duree des effets subis.
-Ex. TenaciteEtat=0.5 -> durees de tous les debuffs reduites de 50%.
-
-Implementation recommandee : composant BP_StatusEffectComponent sur Character et Enemy_Base.
-A creer lors de C1-SwordMoveset ou apres (les sorts Debuff Lumina existants peuvent utiliser un stub).
+3 slots : Casque, Armure, Accessoire.
+Stats apportees : Defense + Resistance uniquement (additifs aux stats de base).
+Achat PO chez marchands ou trouve en coffres/drops boss.
+Prerequis de niveau pour equiper : a definir en C5-Equipment.
+Pas de gestion de poids.
 
 ---
 
-## 9. Pas de regeneration PV auto
+## 11. Pas de regeneration PV auto
 
-Le heros ne regenere pas de PV naturellement hors combat.
-Seules sources de soin : sorts Heal, objets consommables (futur), Fontaine de Fee.
+Seules sources de soin : sorts Heal, consommables (Bonbon/Noix/Miel), Fontaine de Fee.
 
 ---
 
-## 10. Points encore ouverts
+## 12. Points encore ouverts
 
-| Sujet | Lié a |
+| Sujet | Lie a |
 |-------|-------|
 | Cout Essence par niveau de deite | Session Lore Deites |
-| Ennemis peuvent-ils critter ? Quelle chance ? | C2-EnemyTypes |
 | Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes |
-| TenaciteEtat heros : valeur de base | C1-SwordMoveset |
-| BP_StatusEffectComponent : quand creer ? | C1-SwordMoveset ou apres |
-| Vitesse influe-t-elle sur vitesse d'anim de recuperation stamina ? | C1-WeaponArchitecture |
+| TenaciteEtat heros valeur de base | C1-SwordMoveset |
+| BP_StatusEffectComponent : quand creer ? | C1-SwordMoveset |
+| Vitesse influe-t-elle sur vitesse anim recuperation stamina ? | C1-WeaponArchitecture |
+| Prerequis niveau equipement | C5-Equipment |
+| Calibrage prix PO et drops | Playtest acte 1 |
 
 ---
 
-*Cree le 28/05/2026 -- session design Stats/Progression*
-*Prochaine mise a jour prevue : C1-WeaponArchitecture (ajout CoeffArme + VitesseAttaque dans FWeaponData)*
+*Cree le 28/05/2026 -- MAJ 28/05/2026 : ajout ManaMax, PO, equipement, formule cout sorts*
+*Prochaine mise a jour prevue : C1-WeaponArchitecture*
