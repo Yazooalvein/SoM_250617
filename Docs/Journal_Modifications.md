@@ -5,6 +5,48 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 28/05/2026 -- Session design -- Stats & Progression personnage -- DESIGN VALIDE
+
+#### Decisions actees
+
+**Stats heros (7) :** Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
+- Toutes via SetStatValue / OnStatChanged (architecture existante)
+- Nouvelles cles BP_AttributeSet_Base : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique
+
+**Progression hybride :**
+- Niveaux globaux 1-10 (acte 1) : stats auto + 2 points libres a distribuer
+- Courbe exponentielle XP : 100 * 1.5^(N-1) par niveau
+- Progression par usage armes/magie : inchangee (systeme existant)
+
+**Ressource universelle -- Essence de Mana :**
+- Remplace XP : sert a monter de niveau global ET a investir dans les deites
+- Perdue a la mort, recuperable en retournant sur le lieu de la mort (DS-like)
+- Double mort = Essence definitivement perdue
+
+**Formules degats :**
+- Physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
+- Magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
+- Elementaire : * (1 - ResistanceElementaire[Element])
+- 8 elements correspondant aux 8 deites
+
+**Critique :** 5% de base, x1.5, heros ET ennemis
+
+**Stamina :** -10 att legere, -20 att lourde, -25 esquive, -5/s sprint -- recuperation auto 1s
+
+**Stats ennemis (systeme simplifie dedie) :** PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat + ResistanceElementaire TMap
+
+**VitesseAttaque armes :** multiplicateur PlayRate montage dans FWeaponData (distinct de stat Vitesse heros)
+
+#### Points encore ouverts
+- Cout Essence par niveau de deite -> Session Lore Deites
+- Valeurs ResistanceElementaire par type ennemi -> C2-EnemyTypes
+- BP_StatusEffectComponent : quand creer ? -> C1-SwordMoveset ou apres
+
+#### Etat final
+DESIGN-StatsProgression VALIDE. Spec complete dans Docs/Architecture/Stats_Progression.md.
+
+---
+
 ### 28/05/2026 -- Session planning -- Refacto armes/combo note
 
 #### Constat identifie
@@ -197,6 +239,7 @@ Pour les decisions architecturales : voir Docs/Architecture/Decisions.md
 Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
 Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
 Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
+Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
 Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
