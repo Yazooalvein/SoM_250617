@@ -48,8 +48,6 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 - `Docs/Journal_Modifications.md` : historique des sessions, derniers changements
 
 ### Fichiers a maintenir apres chaque session
-Claude.ai est responsable de la coherence de toute la documentation.
-Apres chaque decision, implementation ou changement de cap, mettre a jour :
 
 | Fichier | Quand le mettre a jour |
 |---|---|
@@ -57,22 +55,16 @@ Apres chaque decision, implementation ou changement de cap, mettre a jour :
 | `Docs/Journal_Modifications.md` | A chaque session : entree datee avec ce qui a ete fait |
 | `Docs/Roadmap_Gameplay.md` | Quand un jalon change de statut ou qu'un nouveau jalon est cree |
 | `Docs/Architecture/Decisions.md` | A chaque decision importante (abandon, choix archi, gotcha) |
-| `Docs/Architecture/[Systeme].md` | Quand l'architecture d'un systeme change |
-| `Docs/Architecture/Input_Architecture.md` | Quand les inputs ou IMC changent |
-| `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial menu evolue |
 | `Docs/Architecture/Stats_Progression.md` | Quand les stats ou la progression changent |
 | `Docs/Architecture/Combat_StatusEffects.md` | Quand les effets de statut ou la Corruption changent |
+| `Docs/Architecture/Economy_Drops.md` | Quand l'economie, les drops ou les consommables changent |
+| `Docs/Architecture/Input_Architecture.md` | Quand les inputs ou IMC changent |
+| `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial menu evolue |
 | `Docs/Project_Architecture_Index.md` | Quand un nouveau fichier doc est cree |
 
 ### Fichier decisions -- IMPORTANT
-`Docs/Architecture/Decisions.md` centralise toutes les decisions architecturales importantes :
-abandon de features, choix de source de verite, changements d'approche, gotchas identifes.
+`Docs/Architecture/Decisions.md` centralise toutes les decisions architecturales importantes.
 Objectif : retrouver en 30 secondes POURQUOI une chose a ete faite, sans fouiller le journal.
-Toute decision non triviale doit y etre loguee avec : contexte, decision, raison, consequences.
-
-### Regle generale
-La documentation doit rester coherente avec le code. Si quelque chose change dans le projet,
-la doc change dans la meme session. Une doc perimee est pire qu'une doc inexistante.
 
 ---
 
@@ -82,14 +74,11 @@ la doc change dans la meme session. Une doc perimee est pire qu'une doc inexista
 ```
 CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Claude Assistant", tu as acces a 28 MCP Tools.
 ```
-Sans cette ligne, l'agent se croit dans Claude Code CLI et n'utilise pas ses outils MCP.
 
 ### Regles agent
 - blueprint_query UNIQUEMENT. Jamais blueprint_modify, jamais execute_script.
 - JAMAIS creer d'assets AnimGraph via MCP (add_state produit des shells corrompus)
-- Toute creation d'etat AnimGraph = manuelle dans l'editeur
-- Agent = discovery/audit uniquement. Pas de creation, pas de modification.
-- Ouvrir une NOUVELLE session a chaque fois (pas continuer une ancienne)
+- Agent = discovery/audit uniquement. Ouvrir une NOUVELLE session a chaque fois.
 
 ### Logging obligatoire
 Format dans Docs/Session_UnrealClaude.md :
@@ -128,198 +117,118 @@ Format dans Docs/Session_UnrealClaude.md :
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Nouvelles cles a ajouter dans BP_AttributeSet_Base : "Magie", "Resistance", "EnduranceMax", "EnduranceCurrent", "Vitesse", "Level", "EssenceMana", "EssenceManaDropped", "ChanceCritique", "Corruption"
+- Stats supplementaires cles BP_AttributeSet_Base : "Level", "EssenceMana", "EssenceManaDropped", "PiecesOr", "ChanceCritique", "Corruption", "ManaMax", "ManaCurrent"
 - Progression hybride : niveaux globaux 1-10 (stats auto + 2 points libres) + progression par usage armes/magie
-- Ressource universelle : Essence de Mana (XP + investissement deites) -- perdue a la mort, recuperable sur place DS-like
-- Formule degats physiques : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
-- Formule degats magiques : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
-- Degats elementaires : * (1 - ResistanceElementaire[Element]) -- TMap<EElement, float> sur heros ET ennemis
-- 8 elements correspondant aux 8 deites
-- Coups critiques : 5% de base, x1.5 degats, heros ET ennemis
-- Stamina : -10 attaque legere, -20 attaque lourde, -25 esquive, -5/s sprint -- recuperation auto apres 1s
-- Pas de regen PV auto -- soin via sorts/Fontaine de Fee uniquement
+- Essence de Mana : ressource progression (niveaux + deites) -- perdue a la mort, recuperable DS-like
+- Pieces d'Or (PO) : ressource economie (marchands) -- jamais perdues
+- Formule physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
+- Formule magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
+- Elementaire : * (1 - ResistanceElementaire[Element]) -- TMap<EElement, float>, 8 elements / 8 deites
+- Critique : 5% de base, x1.5, heros ET ennemis
+- Stamina : -10 legere, -20 lourde, -25 esquive, -5/s sprint -- recuperation auto 1s
+- ManaMax separee de Magie : base 60, +8/niveau -- pas de regen auto
+- Cout sorts : Base + (NiveauSort * Multiplicateur) -- voir Economy_Drops.md
+- Equipement : 3 slots (Casque, Armure, Accessoire) -- Defense + Resistance uniquement
+- Pas de regen PV auto
 - Voir Docs/Architecture/Stats_Progression.md pour spec complete
 
 ### Stats ennemis -- DESIGN VALIDE (28/05/2026)
 - Systeme simplifie dedie : PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat
-- Pas de stamina, pas de niveau global, pas de progression par usage
 - ResistanceElementaire : TMap<EElement, float> comme le heros
 - A ajouter sur BP_Enemy_Base lors de C1-WeaponArchitecture ou C2-EnemyTypes
 
 ### Effets de statut -- DESIGN VALIDE (28/05/2026)
-- 8 effets signatures, un par deite :
-  - Lumina : Eblouissement (-precision ennemie, revele invisibles)
-  - Luna : Sommeil (bloque actions, reveil x1.5 degats)
-  - Ombre : Malediction (-75% soins recus)
-  - Sylphide : Desequilibre (-Defense, bloque sprint)
-  - Gnome : Alourdi (-Vitesse, -VitesseAttaque severe)
-  - Salamandre : Brulure (drain PV + -Resistance Feu)
-  - Ondine : Gele (ralentissement severe -> Fige si deja Ralenti)
-  - Dryade : Empoisonne (drain PV lent, 3 stacks max)
+- 8 effets signatures un par deite (Eblouissement, Sommeil, Malediction, Desequilibre, Alourdi, Brulure, Gele, Empoisonne)
 - Heros ET ennemis peuvent subir les effets
-- TenaciteEtat : float 0.0-1.0, reduit duree des effets subis
 - BP_StatusEffectComponent a creer en C1-SwordMoveset
 - Voir Docs/Architecture/Combat_StatusEffects.md pour spec complete
 
 ### Corruption Magique -- DESIGN VALIDE (28/05/2026)
-- Float 0-100 sur heros, cle "Corruption" via SetStatValue
-- Generation : Attaque+3, Debuff+2, Buff+1, Heal+0
-- Modificateurs deite : Ombre x0.5, Lumina x1.5, Salamandre x1.25, Dryade x0.75
-- Seuils negatifs : 25 (aura), 50 (-20% resistances), 75 (faiblesse element + drain stamina), 100 (statut /30s)
-- Bonus Essence ennemis : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond a 100)
-- Sorts Heal : 0 Corruption mais reduisent legerement le bonus Essence actif
-- Purge Fontaine : Corruption=0. Si >=75 : fee epuisee (pas de montee deite). Si 100 : fee gronde
+- Phase 1 (debut jeu) : plafond 50, effets limites (aura + resistances)
+- Phase 2 (apres revelation Hero/Ombre) : plafond 100, faiblesse = deite la plus utilisee au franchissement 75, effet statut = meme deite a 100
+- Bonus Essence ennemis : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond)
+- Purge Fontaine : si >=75 fee epuisee (pas de montee deite) ; si 100 fee gronde
 - Voir Docs/Architecture/Combat_StatusEffects.md pour spec complete
+
+### Economie & Drops -- DESIGN VALIDE (28/05/2026)
+- Double monnaie : Essence (perdue a la mort) + PO (stable)
+- Drops ennemis : Essence + PO toujours, consommables + materiaux + coffres Seiken en aleatoire
+- Consommables style Seiken : Bonbon/Noix/Miel/Plante/Herbe/Essence Purifiee/Repas -- 9 unites max par type
+- Materiaux forge : 3 tiers (Graine/Cristal/Essence Cristallisee) -- non lies aux elements
+- Forge narrative : upgrade N+1 debloque par jalon narratif + materiaux requis
+- Respawn : ennemis normaux oui, boss jamais
+- Sauvegarde : tout sauf Essence non depensee
+- Voir Docs/Architecture/Economy_Drops.md pour spec complete
 
 ### Hero 3D
 - ABP actif : **ABP_Manny_Platforming** (pas ABP_Unarmed qui est pour les ennemis)
 - Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture (Content/Characters/Players/Hero_Test/)
 - Retargeting : Mannequin source -> Hero target (Compatible Skeletons)
-- Variables ABP_Manny_Platforming : Character, MovementComponent, Velocity, GroundSpeed,
-  ShouldMove, IsFalling, WeaponType, Strafe, Can Strafe, Double/Wall Jump...
 - Rotation Rate Z = -1 (pivot instantane hors lock-on)
 - Variables LastAxisX, LastAxisY (double) : stockees au Triggered de IA_Move
 - 246K triangles LOD0 -> retopo (cible 10-15K) -- ART-Hero
-- 6 doigts par main (artefact Meshy) -- ART-Hero
 
 ### Camera -- J-Camera COMPLET VALIDE PIE (17/05/2026)
-
-#### SpringArm (BP_SoM_HeroCharacter)
-- Target Arm Length : 350, Socket Offset Z : 60
-- Camera Lag Speed : 8, Camera Lag Max Distance : 200
-
-#### Screen Shake
+- SpringArm : Target Arm Length 350, Socket Offset Z 60, Camera Lag Speed 8
 - CS_HitReceived + CS_EnemyDeath dans Content/Systems/Camera/
-- Appeles depuis ReceiveDamage (HeroCharacter) et KillMeNow (Enemy_Base)
-
-#### IA_Look dans BP_SoM_PlayerController
-- Fonction `Aim(Axis X, Axis Y)` dans le PC
-- IA_Look RETIRE de BP_SoM_HeroCharacter
-
-#### UpdateLockOnRotation V2
-- Variables PC : bPlayerIsLooking (bool), LookIdleTime (float), LookReturnDelay (float, 1.5), LockOnReturnSpeed (float, 3.0)
-- Guard supplementaire : Branch(Is Rolling) avant SetControlRotation -> si rolling, exit sans modifier
-- Flow : DynamicCast -> Branch(IsRolling) -> Branch(bPlayerIsLooking) -> Branch(LookIdleTime >= LookReturnDelay) -> SetControlRotation
+- IA_Look dans PC -- UpdateLockOnRotation V2 (conditionnel, guard IsRolling)
 
 ### LockMove COMPLET VALIDE PIE (18/05/2026)
-
-#### Fix Move() en lock-on
-- Probleme : en lock-on, deplacement partait vers l'ennemi (Control Rotation = direction ennemi)
-- Solution : Branch(bisLockOnActive) dans Move() :
-  - Lock-on actif : GetPlayerCameraManager -> GetCameraRotation -> Yaw -> MakeRotator(0,Yaw,0) -> GetForward/RightVector
-  - Hors lock-on : comportement original (GetControlRotation)
-- ScaleValues : branches sur LastAxisX/LastAxisY (stockees au Triggered de IA_Move)
-- Deplacement en lock-on VALIDE PIE
-
-#### Fix rotation de base
-- CharacterMovement -> Rotation Rate Z = -1 -> pivot instantane hors lock-on
-
-#### Roll en lock-on -- DETTE -> C1-AnimationsPass1
-- Probleme : roll en lock-on part toujours vers l'ennemi
-- Cause racine : Root Motion en World Space + UseControllerRotationYaw=true force
-  le character a regarder l'ennemi chaque frame, annulant SetActorRotation
-- Solution propre : LaunchCharacter dans direction stick+camera + animation visuelle sans Root Motion
-  (architecture DS/KH) -- A traiter en C1-AnimationsPass1
-- En attendant : roll hors lock-on fonctionne correctement
+- Move() en lock-on : GetPlayerCameraManager -> GetCameraRotation (pas GetControlRotation)
+- Rotation Rate Z = -1 hors lock-on
 
 ### Lock-On -- COMPLET VALIDE PIE (15/05/2026)
-- `BP_CombatLockOnComponent` : sur le Character
-  - bisLockOnActive, CurrentTarget, AvailableTargets, LockOnRange, SwitchCooldown
-  - OnLockOnActivated / OnLockOnDeactivated (dispatchers custom)
-  - **SwitchCooldown** : source de verite UNIQUE pour le cooldown de switch cible
-- `BP_SoM_HeroCharacter` bindings (au BeginPlay) :
-  - OnLockOnActivated_Handler : bOrientRotationToMovement=false + UseControllerRotationYaw=true
-  - OnLockOnDeactivated_Handler : bOrientRotationToMovement=true + UseControllerRotationYaw=false
-- Strafe VALIDE PIE : BS_Unarmed_Strafe (Forward x Strafe [-1,1]), animations placeholder
+- BP_CombatLockOnComponent sur le Character
+- SwitchCooldown = source de verite UNIQUE dans le Component
+- Strafe VALIDE PIE : BS_Unarmed_Strafe (Forward x Strafe [-1,1])
 
 ### Ennemis
 - `BP_Enemy_Base` : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
-  - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
-  - Implements BPI_TakeDamage
-  - Variables stats actuelles : MaxHealth, CurrentHealth, AttackRadius
-  - Stats a ajouter (C1-WeaponArchitecture ou C2-EnemyTypes) : Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat, ResistanceElementaire
-  - Hit Flash ennemi : ABANDONNE (voir Decisions.md)
-- `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
-  - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
-  - Utilise BP_AIController_Enemy_Base + BT_Enemy_Base (pas de BT dedie)
-  - Place dans Lvl_TestBed pour tests
-- `BP_AIController_Enemy_Base` : Behavior Tree + PawnSensing
+  - WeaponClass hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh
+  - Stats a ajouter : Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat, ResistanceElementaire
+- `BP_Enemy_TestBed` : stats Instance Editable, utilise BT_Enemy_Base
 - ABP_Unarmed : pour les ENNEMIS SANS ARME (pas le hero)
 
 ### TestBed -- COMPLET VALIDE PIE (18/05/2026)
-- Map : `Content/Maps/Lvl_TestBed`
-  - Sol BSP checker 4000x4000, obstacles BSP + cubes StaticMesh, plateforme sureleve
-  - NavMeshBoundsVolume couvrant toute la zone
-  - Lighting Movable (DirectionalLight + SkyLight + SkyAtmosphere) -- zero bake
-  - GameMode Override : BP_SoM_GameMode
-- `BP_Enemy_TestBed` : stats configurables en map sans ouvrir le BP
-- SFX placeholder dans Content/Audio/SFX/Combat/
-- `BP_Debug_UnlockDeity` : Content/Systems/Magic/Debug/
-  - Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
+- Map : Content/Maps/Lvl_TestBed -- sol BSP, NavMesh, Lighting Movable, GameMode Override
+- BP_Debug_UnlockDeity : Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
 
 ### Combat -- ComboFix VALIDE PIE (18/05/2026)
-- `BP_ComboManagerComponent` : architecture TMap<Name, FComboStep> -- a conserver
-  - `CurrentWeaponID` (Name) + `CurrentWeaponLevel` (int) : source de verite combo
-  - `InitComboTree(WeaponID, WeaponLevel)` : charge ComboStepMap depuis DT_Combo de l'arme
-  - `HandleAttack(AttackType)` : plus de parametre ChoosenWeapon (lit CurrentWeaponID en interne)
-  - `CanAttack` (bool) : gere uniquement par le ComboManager
-- `BPI_TakeDamage` : interface implementee par Character et Enemy_Base
-- ReceiveDamage : bIsInvincible? -> IsDead? -> SetStatValue("HealthCurrent") -> screen shake -> mort?
-- Flow equipement : EquipWeapon -> SET ChoosenWeapon -> AddUnique(DiscoveredWeapons) -> InitComboTree
+- BP_ComboManagerComponent : TMap<Name, FComboStep>, CurrentWeaponID, InitComboTree, HandleAttack, CanAttack
 - Flow attaque : IA_Attack -> Branch(CanAttack) -> HandleAttack(AttackType) -> PlayAttackMontage
+- Flow equipement : EquipWeapon -> SET ChoosenWeapon -> AddUnique(DiscoveredWeapons) -> InitComboTree
 
 ### Armes
-- `BP_Weapon_Base` : WeaponData, OwnerCharacter, bIsEquipped, bCanDealDamage, TouchedActors
-- `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
-  - FWeaponData contient : Name, Type, Level, Mesh, Stats, Socket, BP_Weapon, icons, DT_Combo, IdleAnim
-  - A ajouter en C1-WeaponArchitecture : CoeffArme (float), VitesseAttaque (float)
-- `DT_Combo` par arme : rows avec StepID, InputType, AnimMontage, NextSteps, WeaponID, LevelMin=0
-- `LevelMin = 0` sur toutes les rows DT_Combo (niveau de base)
-- DETTE ARCHI : logique armes eclatee entre HC (ChoosenWeapon, DiscoveredWeapons, EquipWeapon) et ComboManager (CurrentWeaponID) -- a consolider en C1-WeaponArchitecture
+- FWeaponData : Name, Type, Level, Mesh, Stats, Socket, BP_Weapon, icons, DT_Combo, IdleAnim
+- A ajouter en C1-WeaponArchitecture : CoeffArme (float), VitesseAttaque (float)
 - VitesseAttaque : multiplicateur PlayRate montage -- Epee1M=1.2, Epee2H=0.75, Arc=1.0, Hache=0.6
+- DETTE : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager) -- C1-WeaponArchitecture
 
 ### GameMode / Controllers
-- `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
-- `BP_SoM_PlayerController` :
-  - PlayerCharacterRef : SET au OnPossess
-  - Lock-On : GetBP_CombatLockOnComponent, UpdateLockOnRotation V2, UpdateLockOnUIIndicator
-  - Aim(Axis X, Axis Y) : gestion camera
-  - OpenRadial : Branch(bRadialUnlocked) en entree -- FALSE -> Return
+- BP_SoM_GameMode : Player Controller Class = BP_SoM_PlayerController
+- BP_SoM_PlayerController : PlayerCharacterRef au OnPossess, Lock-On, Aim, OpenRadial
 
 ### Radial Menu -- COMPLET VALIDE PIE
-- `ERadialMode` (enum) : Weapons / Magic
-- `CurrentCategory` (ERadialMode) dans UI_Radial_Main : categorie active
-- `SwitchCategory(Direction)` : toggle Weapons<->Magic, recharge les slots
-  - Switch vers Magic : Branch(UnlockedSpells.Num() > 0) -- bloque si aucune deite
-- Radial Magie 2 niveaux : N1 (Deity) -> N2 (Spell) -> CastSpell VALIDE PIE
+- ERadialMode : Weapons / Magic -- SwitchCategory, ValidateRadial
+- Radial Magie 2 niveaux : N1 Deity -> N2 Spell -> CastSpell
 - Deblocage narratif : bRadialUnlocked (Hero) + UnlockDeity()
-- Voir Docs/Architecture/RadialMenu_Architecture.md pour details
+- Voir Docs/Architecture/RadialMenu_Architecture.md
 
 ### Magie -- C1-MagicUnlockSystem VALIDE PIE (27/05/2026)
-- `BP_MagicComponent` : UnlockedSpells, LockedDeities, SpellUsageCounts, SpellLevels, TalentPoints,
-  QuickslotSlots, SpellCooldowns, CategoryThresholdsConfig
+- BP_MagicComponent : UnlockedSpells, LockedDeities, SpellUsageCounts, SpellLevels, TalentPoints, ManaMax/Current
 - Fonctions : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell, AddTalentPoint
-- `BP_SpellBase` + 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
-- Radial 2 niveaux : N1 Deity -> N2 Spell -> CastSpell VALIDE PIE
-- Etats deite : Non debloquee (invisible) / Debloquee+lockee (grisee, non castable) / Accessible (normal)
-- Progression sorts : usage -> seuil effectif -> LevelUpSpell -> TalentPoints
-- Formule seuil : EffectiveThreshold = BaseThreshold / Max(1, 9 - CurrentSpellLevel) -- inspire SoM
-- Seuils par categorie (BP_SpellCategoryThresholds) : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
-- Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
-- Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
+- 4 sorts Lumina valides PIE (Heal, Attack, Buff, Debuff)
+- Progression sorts : usage -> EffectiveThreshold = BaseThreshold / Max(1, 9-NiveauSort) -> LevelUpSpell
+- Seuils categories : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
 
 ### UI / HUD
-- `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
-- `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC, ZOrder=10
-- A ajouter (C1-WeaponArchitecture) : jauge Stamina, jauge Essence de Mana, jauge Corruption
+- UI_HUD_Main : event-driven via OnStatChanged, zero polling -- FINALISE
+- A ajouter (C1-WeaponArchitecture) : jauges Stamina, Mana, Essence, PO, Corruption
 
-### Inputs -- etat actuel (C1-InputsUI COMPLET VALIDE PIE 23/05/2026)
-- `IMC_Gameplay` (ex IMC_Prototype renomme) : inputs gameplay, charge au ReceivePossessed
-- `IMC_Radial` : 4 IA navigation radial, actif pendant ouverture radial
-- `IMC_Menu`, `IMC_Dialogue`, `IMC_Cutscene` : stubs vides
-- Swap IMC dans PC : OpenRadial (Remove Gameplay + Add Radial) / CloseRadial (inverse)
-- Voir Docs/Architecture/Input_Architecture.md pour details
+### Inputs -- COMPLET VALIDE PIE (23/05/2026)
+- IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
+- Voir Docs/Architecture/Input_Architecture.md
 
 ### Mapping Gamepad PS5 (ACTE)
 ```
@@ -341,62 +250,65 @@ Options=Menu Global
 - [x] J-Cleanup : Suppression assets obsoletes
 - [x] ART-Hero (partiel) : Hero placeholder PIE, workflow etabli
 - [x] MUS-Workflow (exploration) : Workflow Suno etabli
-- [x] J-LockOn COMPLET : Strafe VALIDE PIE, fix IsLockOnActive, edge cases valides (15/05/2026)
-- [x] J-Renommage : Convention de nommage unifiee (15/05/2026)
-- [x] J-Camera COMPLET : UpdateLockOnRotation V2, bPlayerIsLooking, screen shake, IA_Look dans PC (17/05/2026)
-- [x] J-LockMove COMPLET : Move() en lock-on corrige, Rotation Rate -1, LastAxisX/Y (18/05/2026)
-- [x] J-TestBed COMPLET : Lvl_TestBed BSP, BP_Enemy_TestBed, SFX placeholder (18/05/2026)
-- [x] J-ComboFix COMPLET : ChoosenWeapon, InitComboTree, LevelMin=0 DT_Combo (18/05/2026)
-- [x] C1-CollisionFix COMPLET : capsules Block, weapon collision audit (18/05/2026)
-- [x] C1-HitFeel PARTIEL : knockback + screen shake VALIDES PIE, hitstop reporte, gamepad manque (18/05/2026)
-- [x] C1-HitFlashEnemies ABANDONNE : Decision 21/05 -- voir Decisions.md
-- [x] C1-InputsUI COMPLET VALIDE PIE : IMC_Gameplay/Radial/Menu/Dialogue/Cutscene, swap IMC, fix rotation radial (23/05/2026)
-- [x] C1-RadialMagie COMPLET VALIDE PIE : radial 2 niveaux Deity->Spell, CastSpell, fix bDefaultValueIsIgnored (25/05/2026)
-- [x] C1-MagicProgressionDesign DESIGN VALIDE : boucle usage->niveau->points->arbre, structure arbre, gestion deites (25/05/2026)
-- [x] C1-MagicDataLayer VALIDE PIE : E_SpellTier, E_NodeType, FSoM_TalentNode, FSoM_DeityData, DT_Deities, DT_TalentNodes, UnlockDeity + PopulateMagicSchools data-driven (25/05/2026)
-- [x] DESIGN-MagicProgression : structure 4 paliers quetes deite, Corruption Magique, Fontaine de Fee, fee liee au heros (26/05/2026)
-- [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
-- [x] RadialUnlock VALIDE PIE : bRadialUnlocked, blocage OpenRadial, blocage SwitchCategory Magic, BP_Debug_UnlockDeity (27/05/2026)
-- [x] C1-CleanupDettes COMPLET : LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime (27/05/2026)
-- [x] DESIGN-StatsProgression VALIDE : 7 stats heros, progression hybride, Essence de Mana, formules degats, elements, critiques, stamina (28/05/2026)
-- [x] DESIGN-StatusEffects VALIDE : 8 effets par deite, interactions, BP_StatusEffectComponent prevu (28/05/2026)
-- [x] DESIGN-Corruption VALIDE : systeme risque/recompense, bonus Essence, seuils negatifs, purge Fontaine (28/05/2026)
+- [x] J-LockOn COMPLET VALIDE PIE (15/05/2026)
+- [x] J-Renommage COMPLET (15/05/2026)
+- [x] J-Camera COMPLET VALIDE PIE (17/05/2026)
+- [x] J-LockMove COMPLET VALIDE PIE (18/05/2026)
+- [x] J-TestBed COMPLET VALIDE PIE (18/05/2026)
+- [x] J-ComboFix COMPLET VALIDE PIE (18/05/2026)
+- [x] C1-CollisionFix COMPLET VALIDE PIE (18/05/2026)
+- [x] C1-HitFeel PARTIEL VALIDE PIE (18/05/2026)
+- [x] C1-HitFlashEnemies ABANDONNE (21/05/2026)
+- [x] C1-InputsUI COMPLET VALIDE PIE (23/05/2026)
+- [x] C1-RadialMagie COMPLET VALIDE PIE (25/05/2026)
+- [x] C1-MagicProgressionDesign DESIGN VALIDE (25/05/2026)
+- [x] C1-MagicDataLayer VALIDE PIE (25/05/2026)
+- [x] DESIGN-MagicProgression VALIDE (26/05/2026)
+- [x] C1-MagicUnlockSystem COMPLET VALIDE PIE (27/05/2026)
+- [x] RadialUnlock VALIDE PIE (27/05/2026)
+- [x] C1-CleanupDettes COMPLET (27/05/2026)
+- [x] DESIGN-StatsProgression VALIDE : 7 stats, hybride, Essence, formules, elements, critique, stamina (28/05/2026)
+- [x] DESIGN-StatusEffects VALIDE : 8 effets par deite, interactions (28/05/2026)
+- [x] DESIGN-Corruption VALIDE : Phase 1/2, lien narratif Ombre, bonus Essence, seuils (28/05/2026)
+- [x] DESIGN-Economy VALIDE : double monnaie, drops, consommables Seiken, forge narrative, Mana, equipement (28/05/2026)
 
 ## Dettes techniques
 
-- **Roll en lock-on** (C1-AnimationsPass1) -- voir Decisions.md
+- **Roll en lock-on** (C1-AnimationsPass1)
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **Archi armes/combo eclatee** (C1-WeaponArchitecture) : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager)
-- **Nouvelles stats a ajouter dans BP_AttributeSet_Base** (C1-WeaponArchitecture) : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique, Corruption
-- **Stats ennemis enrichies a ajouter sur BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
-- **CoeffArme + VitesseAttaque a ajouter dans FWeaponData** (C1-WeaponArchitecture)
-- **Jauges Stamina + Essence de Mana + Corruption a ajouter dans UI_HUD_Main** (C1-WeaponArchitecture)
-- **BP_StatusEffectComponent a creer** (C1-SwordMoveset)
+- **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie)
+- **Archi armes/combo eclatee** (C1-WeaponArchitecture)
+- **Nouvelles stats BP_AttributeSet_Base** (C1-WeaponArchitecture) : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent
+- **Stats ennemis enrichies BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
+- **CoeffArme + VitesseAttaque dans FWeaponData** (C1-WeaponArchitecture)
+- **Jauges HUD** (C1-WeaponArchitecture) : Stamina, Mana, Essence, Corruption
+- **BP_StatusEffectComponent** (C1-SwordMoveset)
+- **Radial dedie objets consommables** (C7-HUDPolish)
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique, CoeffArme/VitesseAttaque, nouvelles stats BP_AttributeSet_Base, stats ennemis, HUD Stamina/Essence/Corruption
+1. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique, CoeffArme/VitesseAttaque, nouvelles stats, stats ennemis, HUD jauges, doc decisions
 2. **C1-SwordMoveset** : moveset epee complet + BP_StatusEffectComponent
 3. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
-4. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
-5. **C2-SaveGame** : implementation apres spec SaveDesign validee
-6. **Economie** : forge, monnaie narrative
-7. **C1-BowPOC** : arc
-8. **C1-WeaponSwitching** : switching armes en combat
-9. **C1-SFXCombat** : sons combat de base
-10. **Lore Deites** : ordre deblocage, structure rituel, cout Essence par deite
-11. **Lore Fee** : nom, personnalite, histoire, lien Corruption
-12. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
+4. **Arbre de talents** : C1-MagicTreeModule
+5. **C2-SaveGame** : apres SaveDesign validee
+6. **C1-BowPOC** : arc
+7. **C1-WeaponSwitching** : switching armes en combat
+8. **C1-SFXCombat** : sons de base
+9. **Lore Deites** : ordre deblocage, cout Essence, structure rituel
+10. **Lore Fee** : nom, personnalite, histoire, effet Corruption=100
+11. **Session Lore Ombre** : quand debloquer Corruption Phase 2
+12. **C1-AnimationsPass1** : strafe + roll sans root motion + rename ABP_Hero
 
 ## Sessions design a planifier
 
-- **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption, effet narratif Corruption=100
-- **Session Lore Deites** : ordre deblocage, structure rituel par deite, cout Essence, cas Ondine
+- **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption, effet Corruption=100
+- **Session Lore Deites** : ordre deblocage, structure rituel par deite, cout Essence
+- **Session Lore Ombre** : moment revelation Hero/Ombre, deblocage Corruption Phase 2
 - **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
-- **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
+- **Session Economie** : calibrage PO/Essence, prix marchands, taux drops (apres playtest)
 
 ---
 
@@ -404,64 +316,56 @@ Options=Menu Global
 
 - SetStatValue = unique point de modification stats
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
-- UpdateLockOnRotation dans PC = suivi camera vers cible V2 (conditionnel)
-- Bind "On Lock on Activated/Deactivated" = dispatchers CUSTOM du Component
-- SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT (LockOnSwitchCooldown PC supprime)
-- T3D export (clic droit -> Asset Actions -> Export) = meilleur outil d'audit
-- add_state MCP dans AnimGraph = shell corrompu garanti -> toujours creer manuellement
+- SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT
+- T3D export = meilleur outil d'audit Blueprint
+- add_state MCP dans AnimGraph = shell corrompu -> toujours creer manuellement
 - IA_Look est dans le PC (pas dans HeroCharacter) depuis J-Camera
-- Move() en lock-on : utilise GetPlayerCameraManager -> GetCameraRotation (pas GetControlRotation)
+- Move() en lock-on : GetPlayerCameraManager -> GetCameraRotation (pas GetControlRotation)
 - LastAxisX/LastAxisY : variables double sur HeroCharacter, SET au Triggered de IA_Move
-- BP_Enemy_TestBed : pas de BT dedie, utilise BT_Enemy_Base via BP_AIController_Enemy_Base
-- InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon, charge ComboStepMap
+- InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon
 - LevelMin = 0 dans DT_Combo = niveau de base (pas 1)
-- HandleAttack n'a plus de parametre ChoosenWeapon -- le ComboManager lit CurrentWeaponID en interne
-- SwitchCategory : toggle ERadialMode, recharge slots, reset SelectedIndex/TargetRotation/CurrentRotation
-- SwitchCategory vers Magic : bloque si UnlockedSpells.Num() == 0
-- OpenRadial dans PC : bloque si bRadialUnlocked == false sur HeroCharacter
-- bRadialUnlocked = flag narratif UNIQUE pour l'ouverture radial
-- UnlockDeity : utiliser "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells" (bDefaultValueIsIgnored=True sur Make)
-- UnlockDeity Map_Contains : TRUE = deja present -> return, FALSE = absent -> debloquer (logique contre-intuitive, source de bug)
-- UnlockDeity hardcode dans BeginPlay HeroCharacter : SUPPRIME
-- search_nodes("UnlockDeity") MCP trouve 0 resultats car le noeud s'appelle "Unlock Deity" (avec espace)
+- HandleAttack n'a plus de parametre ChoosenWeapon
+- UnlockDeity : "Set Members in FSoM_DeitySpells" et NON "Make FSoM_DeitySpells"
+- UnlockDeity Map_Contains : TRUE = deja present -> return (logique contre-intuitive)
+- search_nodes("UnlockDeity") MCP = 0 resultats -> chercher "Unlock Deity" (avec espace)
 - IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
-- LockDeity(DeityID) : AddUnique(LockedDeities) -- deite visible dans radial mais non castable
-- IncrementSpellUsage -> EffectiveThreshold = BaseThreshold / Max(1, 9-CurrentSpellLevel) -> LevelUpSpell
-- BP_SpellCategoryThresholds : TMap<E_SpellCategory, int> keyed par enum, acces via GetClassDefaults
-- Seuils categories : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
-- UsageThreshold dans FSoM_SpellData : SUPPRIME -- remplace par BP_SpellCategoryThresholds
-- DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
-- Athanor = Salamandre : meme deite, deux noms selon localisation
-- Fontaine de Fee = feu de camp DS : repos -> purge Corruption + fee restauree + mobs respawn
-- ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- source de verite a unifier en C1-WeaponArchitecture
-- Essence de Mana = ressource universelle XP + investissement deites -- perdue a la mort, recuperable sur place (DS-like)
-- ResistanceElementaire = TMap<EElement, float> sur heros ET ennemis -- valeurs negatives = faiblesse
-- VitesseAttaque = multiplicateur PlayRate montage dans FWeaponData -- pas la stat Vitesse du heros
-- Formule degats : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
-- Pas de regen PV auto -- soin via sorts/objets/Fontaine de Fee uniquement
-- Corruption bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 -- plafond a 100, pas de bonus supplementaire
-- Corruption Heal : 0 generation mais reduit legerement le bonus Essence actif
-- Corruption purge >= 75 : fee epuisee, impossible de monter niveau deite lors de cette visite
+- BP_SpellCategoryThresholds : TMap<E_SpellCategory, int> acces via GetClassDefaults
+- DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
+- Athanor = Salamandre : meme deite, deux noms
+- ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) redondants -- a unifier C1-WeaponArchitecture
+- Essence de Mana = perdue a la mort, recuperable sur place (DS-like) -- double mort = perdue definitivement
+- PiecesOr = jamais perdues a la mort
+- ManaMax separee de Magie -- pas de regen Mana auto
+- Cout sorts : Base + (NiveauSort * Multiplicateur)
+- ResistanceElementaire = TMap<EElement, float> -- valeurs negatives = faiblesse
+- VitesseAttaque = multiplicateur PlayRate montage dans FWeaponData
+- Corruption Phase 1 : plafond 50 ; Phase 2 : plafond 100 apres revelation Hero/Ombre
+- Corruption faiblesse a 75 = element de la deite la plus utilisee au franchissement (deterministe)
+- Corruption bonus Essence plafonne a x1.60 (seuil 75+)
 - BP_StatusEffectComponent : a creer en C1-SwordMoveset sur HC et Enemy_Base
-- Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
-- Pour le design progression magique : voir Docs/Architecture/Magic_Progression.md
-- Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
-- Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
-- Pour le lore complet : voir Docs/Lore_ShadowOfMana.md
+- Forge narrative Seiken : upgrade N+1 conditionne par jalon narratif + materiaux
+- Coffres ennemis : gimmick Seiken, drop aleatoire
+- Respawn Fontaine : ennemis normaux oui, boss jamais
+- Pour stats et progression : voir Docs/Architecture/Stats_Progression.md
+- Pour effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
+- Pour economie et drops : voir Docs/Architecture/Economy_Drops.md
+- Pour decisions archi : voir Docs/Architecture/Decisions.md
+- Pour progression magique : voir Docs/Architecture/Magic_Progression.md
+- Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 
 ---
 
 ## Comment demarrer une session
 
 ### Session claude.ai
-1. Nico dit : "on travaille sur SoM, lis le CLAUDE.md et le journal"
+1. Nico dit : "on travaille sur SoM"
 2. Claude.ai lit CLAUDE.md + Journal_Modifications.md via GitHub MCP
-3. Claude.ai fait un resume de l'etat actuel et propose la suite
+3. Resume de l'etat actuel + proposition suite
 
 ### Session UnrealClaude (editeur)
-1. Ouvrir Tools -> Claude Assistant -> NOUVELLE session
-2. Commencer par : "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis 'Tools => Claude Assistant', tu as acces a 28 MCP Tools."
-3. Agent en mode DISCOVERY UNIQUEMENT -- pas de blueprint_modify
+1. Tools -> Claude Assistant -> NOUVELLE session
+2. "CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis 'Tools => Claude Assistant', tu as acces a 28 MCP Tools."
+3. Agent en mode DISCOVERY UNIQUEMENT
 
 ---
 
