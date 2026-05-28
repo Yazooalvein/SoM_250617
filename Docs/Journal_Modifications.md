@@ -5,6 +5,46 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 29/05/2026 -- Session design -- Archi WeaponArchitecture + Inventaire + TenaciteEtat -- DESIGN VALIDE
+
+#### Contexte
+Session de design preparatoire avant C1-WeaponArchitecture. Objectif : trancher 4 points bloques
+qui empechaient d'attaquer la refonte EquipWeapon proprement.
+
+#### Decision 1 -- Source de verite arme courante : ComboManager
+- HC.ChoosenWeapon supprime -- redondant avec ComboManager.CurrentWeaponID
+- BP_ComboManagerComponent = source de verite unique (arme equipee + niveau arme)
+- EquipWeapon migre sur ComboManager
+- HC delegue, ne stocke pas -- coherent avec philosophie de factorisation du projet
+- SaveGame lira ComboManager.CurrentWeaponID directement
+
+#### Decision 2 -- DiscoveredWeapons -> BP_InventoryComponent
+- DiscoveredWeapons sort de HC et migre vers un BP_InventoryComponent dedie (a creer)
+- InventoryComponent accueillera : armes, consommables Seiken, materiaux craft, equipement (Casque/Armure/Accessoire)
+- ComboManager ne connait que l'arme equipee, pas l'inventaire
+- Radial interroge InventoryComponent pour peupler ses slots armes
+- Separation propre, extensible vers C5-Equipment et C5-ForgeSystem
+
+#### Decision 3 -- Switch arme en combo = reset combo (punition)
+- EquipWeapon reinitialise l'etat combo immediatement
+- Pas de fenetre de grace, pas de conservation de step cross-arme
+- Pas de grisage UI Radial pendant combo
+- Slow-mo Radial (Time Dilation 0.2) = seule concession au joueur
+- Coherent avec identite Dark Souls du projet
+
+#### Decision 4 -- TenaciteEtat heros
+- Valeur de base : 25 (cle supplementaire BP_AttributeSet_Base, pas une 8eme stat visible)
+- Modifiable par : equipement, buffs/debuffs, Corruption
+- Corruption reduit la TenaciteEtat -> boucle de pression (plus corrompu = plus vulnerable aux effets de statut)
+- Passe par SetStatValue comme toutes les stats
+- Calibrage Corruption -> reduction TenaciteEtat : a definir en session Economie/Calibrage
+
+#### Etat final
+4 decisions actees. C1-WeaponArchitecture peut demarrer sans ambiguite d'architecture.
+Spec complete dans Docs/Architecture/Decisions.md.
+
+---
+
 ### 28/05/2026 -- C1-WeaponArchitecture -- Etapes 5-6-7 + Radial curseur -- PARTIEL
 
 #### Etape 5 -- Suppression CanAttack sur HC -- VALIDE
@@ -243,4 +283,4 @@ Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 28/05/2026
+- Derniere mise a jour : 29/05/2026
