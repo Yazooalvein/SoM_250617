@@ -60,6 +60,7 @@ Apres chaque decision, implementation ou changement de cap, mettre a jour :
 | `Docs/Architecture/[Systeme].md` | Quand l'architecture d'un systeme change |
 | `Docs/Architecture/Input_Architecture.md` | Quand les inputs ou IMC changent |
 | `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial menu evolue |
+| `Docs/Architecture/Stats_Progression.md` | Quand les stats ou la progression changent |
 | `Docs/Project_Architecture_Index.md` | Quand un nouveau fichier doc est cree |
 
 ### Fichier decisions -- IMPORTANT
@@ -123,6 +124,26 @@ Format dans Docs/Session_UnrealClaude.md :
 - `MagicComponent` : BP_MagicComponent sur le Character
 - `BP_ComboManagerComponent` : sur le Character
 - NOTE : ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- a unifier en C1-WeaponArchitecture
+
+### Stats heros -- DESIGN VALIDE (28/05/2026)
+- 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
+- Nouvelles cles a ajouter dans BP_AttributeSet_Base : "Magie", "Resistance", "EnduranceMax", "EnduranceCurrent", "Vitesse", "Level", "EssenceMana", "EssenceManaDropped", "ChanceCritique"
+- Progression hybride : niveaux globaux 1-10 (stats auto + 2 points libres) + progression par usage armes/magie
+- Ressource universelle : Essence de Mana (XP + investissement deites) -- perdue a la mort, recuperable sur place DS-like
+- Formule degats physiques : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
+- Formule degats magiques : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
+- Degats elementaires : * (1 - ResistanceElementaire[Element]) -- TMap<EElement, float> sur heros ET ennemis
+- 8 elements correspondant aux 8 deites
+- Coups critiques : 5% de base, x1.5 degats, heros ET ennemis
+- Stamina : -10 attaque legere, -20 attaque lourde, -25 esquive, -5/s sprint -- recuperation auto apres 1s
+- Pas de regen PV auto -- soin via sorts/Fontaine de Fee uniquement
+- Voir Docs/Architecture/Stats_Progression.md pour spec complete
+
+### Stats ennemis -- DESIGN VALIDE (28/05/2026)
+- Systeme simplifie dedie : PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat
+- Pas de stamina, pas de niveau global, pas de progression par usage
+- ResistanceElementaire : TMap<EElement, float> comme le heros
+- A ajouter sur BP_Enemy_Base lors de C1-WeaponArchitecture ou C2-EnemyTypes
 
 ### Hero 3D
 - ABP actif : **ABP_Manny_Platforming** (pas ABP_Unarmed qui est pour les ennemis)
@@ -189,7 +210,8 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_Enemy_Base` : bCanBeLocked, bIsDead, OnDeath, bIsLocked, bIsAttacking, bHasAlreadyHit
   - WeaponClass (hardcode BP_Enemy_Sword01 -- a generaliser C2-EnemyMesh)
   - Implements BPI_TakeDamage
-  - Variables stats : MaxHealth, CurrentHealth, AttackRadius
+  - Variables stats actuelles : MaxHealth, CurrentHealth, AttackRadius
+  - Stats a ajouter (C1-WeaponArchitecture ou C2-EnemyTypes) : Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat, ResistanceElementaire
   - Hit Flash ennemi : ABANDONNE (voir Decisions.md)
 - `BP_Enemy_TestBed` : enfant de BP_Enemy_Base
   - MaxHealth, CurrentHealth, AttackRadius exposes Instance Editable en map
@@ -224,9 +246,11 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_Weapon_Base` : WeaponData, OwnerCharacter, bIsEquipped, bCanDealDamage, TouchedActors
 - `DT_Weapons` : 2 entrees (Sword_01, 2HSword_01), struct FWeaponData
   - FWeaponData contient : Name, Type, Level, Mesh, Stats, Socket, BP_Weapon, icons, DT_Combo, IdleAnim
+  - A ajouter en C1-WeaponArchitecture : CoeffArme (float), VitesseAttaque (float)
 - `DT_Combo` par arme : rows avec StepID, InputType, AnimMontage, NextSteps, WeaponID, LevelMin=0
 - `LevelMin = 0` sur toutes les rows DT_Combo (niveau de base)
 - DETTE ARCHI : logique armes eclatee entre HC (ChoosenWeapon, DiscoveredWeapons, EquipWeapon) et ComboManager (CurrentWeaponID) -- a consolider en C1-WeaponArchitecture
+- VitesseAttaque : multiplicateur PlayRate montage -- Epee1M=1.2, Epee2H=0.75, Arc=1.0, Hache=0.6
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
@@ -263,6 +287,7 @@ Format dans Docs/Session_UnrealClaude.md :
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
 - `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC, ZOrder=10
+- A ajouter : jauge Endurance/Stamina (C1-WeaponArchitecture), jauge Essence de Mana (C1-WeaponArchitecture)
 
 ### Inputs -- etat actuel (C1-InputsUI COMPLET VALIDE PIE 23/05/2026)
 - `IMC_Gameplay` (ex IMC_Prototype renomme) : inputs gameplay, charge au ReceivePossessed
@@ -308,6 +333,7 @@ Options=Menu Global
 - [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
 - [x] RadialUnlock VALIDE PIE : bRadialUnlocked, blocage OpenRadial, blocage SwitchCategory Magic, BP_Debug_UnlockDeity (27/05/2026)
 - [x] C1-CleanupDettes COMPLET : LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime (27/05/2026)
+- [x] DESIGN-StatsProgression VALIDE : 7 stats heros, progression hybride, Essence de Mana, formules degats, elements, critiques, stamina, effets de statut (28/05/2026)
 
 ## Dettes techniques
 
@@ -317,31 +343,33 @@ Options=Menu Global
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
 - **Archi armes/combo eclatee** (C1-WeaponArchitecture) : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager), EquipWeapon sur HC a revoir, perimetre HC vs Component a definir
+- **Nouvelles stats a ajouter dans BP_AttributeSet_Base** (C1-WeaponArchitecture) : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique
+- **Stats ennemis enrichies a ajouter sur BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
+- **CoeffArme + VitesseAttaque a ajouter dans FWeaponData** (C1-WeaponArchitecture)
+- **Jauge Stamina + Essence de Mana a ajouter dans UI_HUD_Main** (C1-WeaponArchitecture)
 
 ## Prochains jalons
 
-1. **Stats/Progression personnage** : caracteristiques, fourchette niveaux, formule degats
-2. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, doc decisions
-3. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
-4. **C1-SwordMoveset** : moveset epee complet
-5. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
-6. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
-7. **C2-SaveGame** : implementation apres spec SaveDesign validee
-8. **Economie** : forge, monnaie narrative
-9. **C1-BowPOC** : arc
-10. **C1-WeaponSwitching** : switching armes en combat
-11. **C1-SFXCombat** : sons combat de base
-12. **Lore Deites** : ordre deblocage, structure rituel
-13. **Lore Fee** : nom, personnalite, histoire
-14. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
+1. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, ajout CoeffArme/VitesseAttaque FWeaponData, nouvelles stats BP_AttributeSet_Base, doc decisions
+2. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
+3. **C1-SwordMoveset** : moveset epee complet
+4. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
+5. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
+6. **C2-SaveGame** : implementation apres spec SaveDesign validee
+7. **Economie** : forge, monnaie narrative
+8. **C1-BowPOC** : arc
+9. **C1-WeaponSwitching** : switching armes en combat
+10. **C1-SFXCombat** : sons combat de base
+11. **Lore Deites** : ordre deblocage, structure rituel, cout Essence par deite
+12. **Lore Fee** : nom, personnalite, histoire
+13. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
 
 ## Sessions design a planifier
 
 - **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption
-- **Session Lore Deites** : ordre deblocage, structure rituel par deite, cas Ondine
+- **Session Lore Deites** : ordre deblocage, structure rituel par deite, cout Essence, cas Ondine
 - **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
 - **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
-- **Session Stats/Progression personnage** : caracteristiques, fourchette de niveaux, formule degats
 
 ---
 
@@ -380,8 +408,14 @@ Options=Menu Global
 - Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
 - Fontaine de Fee = feu de camp DS : repos -> purge Corruption + fee restauree + mobs respawn
 - ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- source de verite a unifier en C1-WeaponArchitecture
+- Essence de Mana = ressource universelle XP + investissement deites -- perdue a la mort, recuperable sur place (DS-like)
+- ResistanceElementaire = TMap<EElement, float> sur heros ET ennemis -- valeurs negatives = faiblesse
+- VitesseAttaque = multiplicateur PlayRate montage dans FWeaponData -- pas la stat Vitesse du heros
+- Formule degats : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
+- Pas de regen PV auto -- soin via sorts/objets/Fontaine de Fee uniquement
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 - Pour le design progression magique : voir Docs/Architecture/Magic_Progression.md
+- Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
 - Pour le lore complet : voir Docs/Lore_ShadowOfMana.md
 
 ---
