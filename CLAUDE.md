@@ -61,6 +61,7 @@ Apres chaque decision, implementation ou changement de cap, mettre a jour :
 | `Docs/Architecture/Input_Architecture.md` | Quand les inputs ou IMC changent |
 | `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial menu evolue |
 | `Docs/Architecture/Stats_Progression.md` | Quand les stats ou la progression changent |
+| `Docs/Architecture/Combat_StatusEffects.md` | Quand les effets de statut ou la Corruption changent |
 | `Docs/Project_Architecture_Index.md` | Quand un nouveau fichier doc est cree |
 
 ### Fichier decisions -- IMPORTANT
@@ -127,7 +128,7 @@ Format dans Docs/Session_UnrealClaude.md :
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Nouvelles cles a ajouter dans BP_AttributeSet_Base : "Magie", "Resistance", "EnduranceMax", "EnduranceCurrent", "Vitesse", "Level", "EssenceMana", "EssenceManaDropped", "ChanceCritique"
+- Nouvelles cles a ajouter dans BP_AttributeSet_Base : "Magie", "Resistance", "EnduranceMax", "EnduranceCurrent", "Vitesse", "Level", "EssenceMana", "EssenceManaDropped", "ChanceCritique", "Corruption"
 - Progression hybride : niveaux globaux 1-10 (stats auto + 2 points libres) + progression par usage armes/magie
 - Ressource universelle : Essence de Mana (XP + investissement deites) -- perdue a la mort, recuperable sur place DS-like
 - Formule degats physiques : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
@@ -144,6 +145,31 @@ Format dans Docs/Session_UnrealClaude.md :
 - Pas de stamina, pas de niveau global, pas de progression par usage
 - ResistanceElementaire : TMap<EElement, float> comme le heros
 - A ajouter sur BP_Enemy_Base lors de C1-WeaponArchitecture ou C2-EnemyTypes
+
+### Effets de statut -- DESIGN VALIDE (28/05/2026)
+- 8 effets signatures, un par deite :
+  - Lumina : Eblouissement (-precision ennemie, revele invisibles)
+  - Luna : Sommeil (bloque actions, reveil x1.5 degats)
+  - Ombre : Malediction (-75% soins recus)
+  - Sylphide : Desequilibre (-Defense, bloque sprint)
+  - Gnome : Alourdi (-Vitesse, -VitesseAttaque severe)
+  - Salamandre : Brulure (drain PV + -Resistance Feu)
+  - Ondine : Gele (ralentissement severe -> Fige si deja Ralenti)
+  - Dryade : Empoisonne (drain PV lent, 3 stacks max)
+- Heros ET ennemis peuvent subir les effets
+- TenaciteEtat : float 0.0-1.0, reduit duree des effets subis
+- BP_StatusEffectComponent a creer en C1-SwordMoveset
+- Voir Docs/Architecture/Combat_StatusEffects.md pour spec complete
+
+### Corruption Magique -- DESIGN VALIDE (28/05/2026)
+- Float 0-100 sur heros, cle "Corruption" via SetStatValue
+- Generation : Attaque+3, Debuff+2, Buff+1, Heal+0
+- Modificateurs deite : Ombre x0.5, Lumina x1.5, Salamandre x1.25, Dryade x0.75
+- Seuils negatifs : 25 (aura), 50 (-20% resistances), 75 (faiblesse element + drain stamina), 100 (statut /30s)
+- Bonus Essence ennemis : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond a 100)
+- Sorts Heal : 0 Corruption mais reduisent legerement le bonus Essence actif
+- Purge Fontaine : Corruption=0. Si >=75 : fee epuisee (pas de montee deite). Si 100 : fee gronde
+- Voir Docs/Architecture/Combat_StatusEffects.md pour spec complete
 
 ### Hero 3D
 - ABP actif : **ABP_Manny_Platforming** (pas ABP_Unarmed qui est pour les ennemis)
@@ -282,12 +308,11 @@ Format dans Docs/Session_UnrealClaude.md :
 - Data layer deites : DT_Deities (FSoM_DeityData), DT_TalentNodes (FSoM_TalentNode) -- VALIDE PIE
 - Convention BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre (=Athanor), Ondine, Dryade
-- Corruption Magique : compteur sur le heros, effets negatifs progressifs, purge a la Fontaine de Fee
 
 ### UI / HUD
 - `UI_HUD_Main` : event-driven via OnStatChanged, zero polling -- FINALISE
 - `UI_LockOnIndicator` : 1 image LockOnCross, widget statique positionne par PC, ZOrder=10
-- A ajouter : jauge Endurance/Stamina (C1-WeaponArchitecture), jauge Essence de Mana (C1-WeaponArchitecture)
+- A ajouter (C1-WeaponArchitecture) : jauge Stamina, jauge Essence de Mana, jauge Corruption
 
 ### Inputs -- etat actuel (C1-InputsUI COMPLET VALIDE PIE 23/05/2026)
 - `IMC_Gameplay` (ex IMC_Prototype renomme) : inputs gameplay, charge au ReceivePossessed
@@ -333,7 +358,9 @@ Options=Menu Global
 - [x] C1-MagicUnlockSystem COMPLET VALIDE PIE : IsDeityAccessible, LockDeity, IncrementSpellUsage courbe SoM, LevelUpSpell, AddTalentPoint, BP_SpellCategoryThresholds data-driven (27/05/2026)
 - [x] RadialUnlock VALIDE PIE : bRadialUnlocked, blocage OpenRadial, blocage SwitchCategory Magic, BP_Debug_UnlockDeity (27/05/2026)
 - [x] C1-CleanupDettes COMPLET : LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime (27/05/2026)
-- [x] DESIGN-StatsProgression VALIDE : 7 stats heros, progression hybride, Essence de Mana, formules degats, elements, critiques, stamina, effets de statut (28/05/2026)
+- [x] DESIGN-StatsProgression VALIDE : 7 stats heros, progression hybride, Essence de Mana, formules degats, elements, critiques, stamina (28/05/2026)
+- [x] DESIGN-StatusEffects VALIDE : 8 effets par deite, interactions, BP_StatusEffectComponent prevu (28/05/2026)
+- [x] DESIGN-Corruption VALIDE : systeme risque/recompense, bonus Essence, seuils negatifs, purge Fontaine (28/05/2026)
 
 ## Dettes techniques
 
@@ -342,31 +369,31 @@ Options=Menu Global
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
-- **Archi armes/combo eclatee** (C1-WeaponArchitecture) : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager), EquipWeapon sur HC a revoir, perimetre HC vs Component a definir
-- **Nouvelles stats a ajouter dans BP_AttributeSet_Base** (C1-WeaponArchitecture) : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique
+- **Archi armes/combo eclatee** (C1-WeaponArchitecture) : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager)
+- **Nouvelles stats a ajouter dans BP_AttributeSet_Base** (C1-WeaponArchitecture) : Magie, Resistance, EnduranceMax, EnduranceCurrent, Vitesse, Level, EssenceMana, EssenceManaDropped, ChanceCritique, Corruption
 - **Stats ennemis enrichies a ajouter sur BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
 - **CoeffArme + VitesseAttaque a ajouter dans FWeaponData** (C1-WeaponArchitecture)
-- **Jauge Stamina + Essence de Mana a ajouter dans UI_HUD_Main** (C1-WeaponArchitecture)
+- **Jauges Stamina + Essence de Mana + Corruption a ajouter dans UI_HUD_Main** (C1-WeaponArchitecture)
+- **BP_StatusEffectComponent a creer** (C1-SwordMoveset)
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, ajout CoeffArme/VitesseAttaque FWeaponData, nouvelles stats BP_AttributeSet_Base, doc decisions
-2. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
-3. **C1-SwordMoveset** : moveset epee complet
-4. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
-5. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
-6. **C2-SaveGame** : implementation apres spec SaveDesign validee
-7. **Economie** : forge, monnaie narrative
-8. **C1-BowPOC** : arc
-9. **C1-WeaponSwitching** : switching armes en combat
-10. **C1-SFXCombat** : sons combat de base
-11. **Lore Deites** : ordre deblocage, structure rituel, cout Essence par deite
-12. **Lore Fee** : nom, personnalite, histoire
-13. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
+1. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique, CoeffArme/VitesseAttaque, nouvelles stats BP_AttributeSet_Base, stats ennemis, HUD Stamina/Essence/Corruption
+2. **C1-SwordMoveset** : moveset epee complet + BP_StatusEffectComponent
+3. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
+4. **Arbre de talents** : C1-MagicTreeModule -- cablage UnlockTreeNode + UI
+5. **C2-SaveGame** : implementation apres spec SaveDesign validee
+6. **Economie** : forge, monnaie narrative
+7. **C1-BowPOC** : arc
+8. **C1-WeaponSwitching** : switching armes en combat
+9. **C1-SFXCombat** : sons combat de base
+10. **Lore Deites** : ordre deblocage, structure rituel, cout Essence par deite
+11. **Lore Fee** : nom, personnalite, histoire, lien Corruption
+12. **C1-AnimationsPass1** : strafe distincts + roll sans root motion + rename ABP_Hero
 
 ## Sessions design a planifier
 
-- **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption
+- **Session Lore Fee** : nom, personnalite, histoire, lien Ombre/Corruption, effet narratif Corruption=100
 - **Session Lore Deites** : ordre deblocage, structure rituel par deite, cout Essence, cas Ondine
 - **Session SaveDesign** : Fontaine de Fee detaillee, respawn, penalites mort
 - **Session Economie** : forge, monnaie narrative, systeme de rattrapage magie
@@ -405,7 +432,6 @@ Options=Menu Global
 - UsageThreshold dans FSoM_SpellData : SUPPRIME -- remplace par BP_SpellCategoryThresholds
 - DT_Deities BaseSpells : ordre fixe [0=Attack, 1=Heal, 2=Buff, 3=Debuff] pour toutes les deites
 - Athanor = Salamandre : meme deite, deux noms selon localisation
-- Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
 - Fontaine de Fee = feu de camp DS : repos -> purge Corruption + fee restauree + mobs respawn
 - ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- source de verite a unifier en C1-WeaponArchitecture
 - Essence de Mana = ressource universelle XP + investissement deites -- perdue a la mort, recuperable sur place (DS-like)
@@ -413,9 +439,14 @@ Options=Menu Global
 - VitesseAttaque = multiplicateur PlayRate montage dans FWeaponData -- pas la stat Vitesse du heros
 - Formule degats : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
 - Pas de regen PV auto -- soin via sorts/objets/Fontaine de Fee uniquement
+- Corruption bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 -- plafond a 100, pas de bonus supplementaire
+- Corruption Heal : 0 generation mais reduit legerement le bonus Essence actif
+- Corruption purge >= 75 : fee epuisee, impossible de monter niveau deite lors de cette visite
+- BP_StatusEffectComponent : a creer en C1-SwordMoveset sur HC et Enemy_Base
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 - Pour le design progression magique : voir Docs/Architecture/Magic_Progression.md
 - Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
+- Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
 - Pour le lore complet : voir Docs/Lore_ShadowOfMana.md
 
 ---
