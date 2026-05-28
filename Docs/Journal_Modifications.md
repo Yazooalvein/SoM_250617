@@ -5,6 +5,45 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 28/05/2026 -- Session design -- Effets de statut & Corruption Magique -- DESIGN VALIDE
+
+#### Effets de statut par deite
+
+Table complete validee -- 8 deites, 8 effets signatures :
+- Lumina : Eblouissement (reduit precision ennemie + revele invisibles)
+- Luna : Sommeil (bloque actions, reveil x1.5 degats si touche)
+- Ombre : Malediction (-75% soins recus)
+- Sylphide : Desequilibre (-Defense + bloque sprint)
+- Gnome : Alourdi (-Vitesse et -VitesseAttaque severe)
+- Salamandre : Brulure (drain PV + -Resistance Feu)
+- Ondine : Gele (ralentissement severe, Fige si deja Ralenti)
+- Dryade : Empoisonne (drain PV lent, 3 stacks max)
+
+Interactions cles : Sommeil+attaque=x1.5, Desequilibre+Gele=Fige, Malediction+Drain=combo punitif
+
+Implementation : BP_StatusEffectComponent sur HC et Enemy_Base -- a creer en C1-SwordMoveset
+
+#### Corruption Magique -- systeme risque/recompense
+
+- Generation : Attaque+3, Debuff+2, Buff+1, Heal+0
+- Modificateurs par deite : Ombre x0.5, Lumina x1.5, Salamandre x1.25, Dryade x0.75
+- Seuils negatifs : 25 (aura), 50 (-20% resistances), 75 (faiblesse element + drain stamina), 100 (statut aleatoire /30s)
+- Bonus Essence ennemis par seuil : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond a 100)
+- Sorts Heal : 0 Corruption mais reduisent legerement le bonus Essence actif
+- Purge Fontaine : Corruption=0. Si >=75 : fee epuisee (pas de montee deite cette visite). Si 100 : fee gronde
+- Tension centrale : purger souvent = securite, rester haut = farming rapide mais risque
+
+#### Points encore ouverts
+- Duree effets de statut + TenaciteEtat base heros -> C1-SwordMoveset
+- Element faiblesse a 75 : aleatoire ou fixe par run -> a trancher
+- Aura visuelle Corruption >= 25 -> ART ou C4
+- Effet narratif Corruption=100 (dialogue fee ?) -> Session Lore Fee
+
+#### Etat final
+DESIGN-StatusEffects + DESIGN-Corruption VALIDES. Spec dans Docs/Architecture/Combat_StatusEffects.md.
+
+---
+
 ### 28/05/2026 -- Session design -- Stats & Progression personnage -- DESIGN VALIDE
 
 #### Decisions actees
@@ -30,17 +69,9 @@ Suivi precis de toutes les evolutions majeures du projet.
 - 8 elements correspondant aux 8 deites
 
 **Critique :** 5% de base, x1.5, heros ET ennemis
-
 **Stamina :** -10 att legere, -20 att lourde, -25 esquive, -5/s sprint -- recuperation auto 1s
-
 **Stats ennemis (systeme simplifie dedie) :** PV, Attaque, Defense, Resistance, Vitesse, VitesseAttaque, TenaciteEtat + ResistanceElementaire TMap
-
-**VitesseAttaque armes :** multiplicateur PlayRate montage dans FWeaponData (distinct de stat Vitesse heros)
-
-#### Points encore ouverts
-- Cout Essence par niveau de deite -> Session Lore Deites
-- Valeurs ResistanceElementaire par type ennemi -> C2-EnemyTypes
-- BP_StatusEffectComponent : quand creer ? -> C1-SwordMoveset ou apres
+**VitesseAttaque armes :** multiplicateur PlayRate montage dans FWeaponData
 
 #### Etat final
 DESIGN-StatsProgression VALIDE. Spec complete dans Docs/Architecture/Stats_Progression.md.
@@ -49,57 +80,34 @@ DESIGN-StatsProgression VALIDE. Spec complete dans Docs/Architecture/Stats_Progr
 
 ### 28/05/2026 -- Session planning -- Refacto armes/combo note
 
-#### Constat identifie
-- Logique armes/combo eclatee entre HC (ChoosenWeapon, DiscoveredWeapons, EquipWeapon), BP_ComboManagerComponent (CurrentWeaponID) et les datatables
-- ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants : deux sources de verite pour l'arme courante
-
-#### Decision
-- C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto"
-- Objectifs : audit existant, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, doc decisions
-- Placement : apres Stats/Progression personnage, avant C1-SwordMoveset (conditionne le moveset)
-- Aucune implem avant ce jalon : le combo est VALIDE PIE, ne pas toucher maintenant
-
 #### Etat final
-Note de planning enregistree. C1-WeaponArchitecture mis a jour dans CLAUDE.md et Roadmap.
+C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto". Note enregistree.
 
 ---
 
 ### 27/05/2026 -- C1-CleanupDettes COMPLET
 
 #### Suppressions effectuees
-- LockOnSwitchCooldown dans BP_SoM_PlayerController : supprime, SwitchCooldown du Component est la source unique
-- UsageThreshold dans FSoM_SpellData : supprime, remplace par BP_SpellCategoryThresholds (TMap par enum)
+- LockOnSwitchCooldown dans BP_SoM_PlayerController : supprime
+- UsageThreshold dans FSoM_SpellData : supprime, remplace par BP_SpellCategoryThresholds
 - Fix Up Redirectors execute, compilation OK
 
 #### Etat final
-C1-CleanupDettes COMPLET. Plus aucune dette de cette serie.
+C1-CleanupDettes COMPLET.
 
 ---
 
 ### 27/05/2026 -- RadialUnlock + blocages narratifs radial -- VALIDE PIE
 
-#### BP_SoM_HeroCharacter -- nouvelle variable
-- bRadialUnlocked (bool, default=false) : bloque l'ouverture complete du radial jusqu'a un evenement narratif
-
-#### BP_SoM_PlayerController -- OpenRadial modifie
-- Branch(bRadialUnlocked) en entree : FALSE -> Return, TRUE -> continuer flow existant
-
-#### UI_Radial_Main -- SwitchCategory modifie
-- Branch avant switch vers Magic : MagicComponentRef.UnlockedSpells.Num() > 0
-
-#### BP_Debug_UnlockDeity
-- Overlap -> UnlockDeity("Lumina") + SET bRadialUnlocked=true
-- Simule l'evenement narratif complet
-
 #### Etat final
-Systeme de deblocage narratif radial operationnel.
+Systeme de deblocage narratif radial operationnel (bRadialUnlocked + BP_Debug_UnlockDeity).
 
 ---
 
 ### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
 
 #### Etat final
-C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
+C1-MagicUnlockSystem VALIDE PIE. Chaine usage->niveau->points operationnelle.
 
 ---
 
@@ -240,6 +248,7 @@ Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
 Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
 Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
 Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
+Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
 Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
