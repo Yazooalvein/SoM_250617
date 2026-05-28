@@ -8,6 +8,70 @@ Format : chaque decision = date + contexte + decision + raison + consequences.
 
 ---
 
+## ARMES & INVENTAIRE
+
+### [29/05/2026] Source de verite arme courante -- ComboManager
+**Contexte** : Doublon entre HC.ChoosenWeapon (FName) et ComboManager.CurrentWeaponID (FName).
+Aucun des deux n'etait officiellement "le patron". Logique EquipWeapon eparpillee HC / ComboManager / UI_Radial / PC.
+**Decision** : BP_ComboManagerComponent = source de verite unique pour l'arme courante et le niveau arme.
+HC.ChoosenWeapon est supprime. EquipWeapon vit sur ComboManager. HC delegue, ne stocke pas.
+**Raison** : Coherent avec la philosophie de factorisation du projet (LockOn, Magie, Combo = Components dedies).
+HC devient un coordinateur leger. ComboManager possede tout ce qui est "arme + combat".
+SaveGame lira ComboManager.CurrentWeaponID directement -- une ligne de plus, pas un probleme archi.
+**Consequences** :
+- Supprimer HC.ChoosenWeapon dans C1-WeaponArchitecture
+- EquipWeapon migre sur BP_ComboManagerComponent
+- Tout appelant (Radial, PC, HC) passe par ComboManager.EquipWeapon
+- Ne jamais recreer de variable arme courante sur HC
+
+### [29/05/2026] DiscoveredWeapons -- migration vers InventoryComponent
+**Contexte** : DiscoveredWeapons (Array<FName>) etait sur HC. Avec la suppression de ChoosenWeapon,
+la question se pose de savoir ou vit la liste des armes connues du joueur.
+**Decision** : DiscoveredWeapons migre vers un BP_InventoryComponent dedie (a creer).
+Ce Component accueillera aussi : consommables Seiken, materiaux de craft, equipement (Casque/Armure/Accessoire).
+ComboManager ne connait que l'arme equipee, pas l'inventaire.
+**Raison** : ComboManager = combat/combo uniquement. L'inventaire est une donnee de progression du personnage,
+pas une donnee de combat. Le Radial interroge InventoryComponent pour peupler ses slots armes.
+Separation propre, extensible naturellement vers C5-Equipment et C5-ForgeSystem.
+**Consequences** :
+- Creer BP_InventoryComponent sur HC dans C1-WeaponArchitecture (ou jalon dedie)
+- Radial lit InventoryComponent.DiscoveredWeapons (pas HC, pas ComboManager)
+- DiscoveredWeapons supprime de HC
+
+### [29/05/2026] Switch arme en cours de combo -- reset combo (punition)
+**Contexte** : Comportement non defini : que se passe-t-il si le joueur ouvre le Radial et change d'arme
+pendant un combo actif ?
+**Decision** : Switch arme = reset combo complet. ComboManager.EquipWeapon reinitialise l'etat combo
+immediatement, sans fenetre de grace ni conservation du step.
+**Raison** : Coherent avec l'identite Dark Souls du projet -- chaque action a un cout.
+Le slow-mo Radial (Time Dilation 0.2) est la seule concession accordee au joueur.
+Le Radial n'est pas grisce pendant un combo -- le joueur choisit consciemment de switcher.
+**Consequences** :
+- EquipWeapon appelle ResetCombo (ou equivalent) avant InitComboTree
+- Pas de logique de conservation de step cross-arme
+- Pas de grisage UI du Radial pendant combo
+
+---
+
+## SYSTEME DE STATS & COMBAT
+
+### [29/05/2026] TenaciteEtat heros -- valeur de base + modificateurs
+**Contexte** : TenaciteEtat existait sur les ennemis (design Stats valide 28/05/2026) mais
+la valeur de base heros n'avait pas ete definie. Necessaire pour implementer BP_StatusEffectComponent.
+**Decision** : TenaciteEtat heros = 25 en valeur de base.
+Cle supplementaire dans BP_AttributeSet_Base (pas une 8eme stat visible).
+Modifiable par : equipement, buffs/debuffs, et Corruption (la Corruption reduit la TenaciteEtat).
+Passe obligatoirement par SetStatValue comme toutes les stats.
+**Raison** : Valeur basse = heros vulnerable par defaut aux effets de statut (Dark Souls style).
+La resistance se construit via equipement et gestion de la Corruption.
+Lien Corruption -> TenaciteEtat cree une boucle de pression : plus corrompu = plus vulnerable aux effets.
+**Consequences** :
+- Ajouter TenaciteEtat dans BP_AttributeSet_Base avec valeur par defaut 25
+- BP_StatusEffectComponent lit TenaciteEtat via GetStatValue pour calculer la resistance
+- Calibrage Corruption -> reduction TenaciteEtat : a definir en session Economie/Calibrage
+
+---
+
 ## COMBAT & FEEDBACK
 
 ### [21/05/2026] Hit Flash ennemi -- ABANDONNE
@@ -300,3 +364,7 @@ OnStatChanged = dispatcher de notification.
 - 25/05/2026 : architecture finale UnlockDeity (TempDeitySpells simple + Set Members)
 - 25/05/2026 : ValidateRadial fonction dediee PC + condition CurrentCategory pour N1/N2
 - 25/05/2026 : C1-RadialMagie VALIDE PIE
+- 29/05/2026 : ComboManager = source verite arme courante, HC.ChoosenWeapon supprime
+- 29/05/2026 : DiscoveredWeapons -> BP_InventoryComponent (armes + consommables + craft + equip)
+- 29/05/2026 : Switch arme en combo = reset combo complet (punition, pas de grisage)
+- 29/05/2026 : TenaciteEtat heros base 25, impactee par Corruption + debuffs via SetStatValue
