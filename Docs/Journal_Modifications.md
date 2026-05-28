@@ -5,6 +5,38 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 28/05/2026 -- C1-WeaponArchitecture -- Etapes 5-6-7 + Radial curseur -- PARTIEL
+
+#### Etape 5 -- Suppression CanAttack sur HC -- VALIDE
+- Guards input (IA_Attack_Light, IA_Attack_Heavy) lisent ComboManager.CanAttack directement
+- Variables HC.CanAttack supprimees
+- Source unique : BP_ComboManagerComponent.CanAttack
+
+#### Etape 6 -- UpgradeWeaponLevel -- VALIDE
+- Option A implementee : runtime only, sans SaveGame
+- Flux : CurrentWeaponLevel +1 -> GetDataTableRow DT_Weapons -> InitComboTree(CurrentWeaponID, FWeaponData)
+- Parametre NewLevel en entree existe mais non utilise (Option A)
+
+#### Etape 7 -- Radial curseur position initiale -- PARTIEL
+- Mecanique confirmee par audit : roue tourne, curseur fixe en haut (position 0)
+- PopulateWeaponSlots : TargetRotation = -(EquippedIndex * AnglePerSlot), CurrentRotation = TargetRotation, SelectedIndex = 0
+- AnglePerSlot recalcule localement (360 / Array_Length(SlotDataList)) -- pas de variable globale
+- Guard ajoute : si CurrentWeaponID == None -> ne pas modifier les rotations
+- Premiere ouverture avec arme equipee : OK
+- Bug ouvert : a la reouverture apres changement d'arme, la roue ne se repositionne pas correctement
+- Cause suspectee : CurrentWeaponID dans ComboManager non mis a jour apres ValidateSelectedWeapon -> EquipWeapon
+
+#### Dettes identifiees cette session
+- Refonte EquipWeapon (dette C1) : logique eparpillee HC / ComboManager / UI_Radial / PC -> unifier avant cloture C1-WeaponArchitecture
+- HandleAttack ErrorType=1 sur HC : a verifier PIE
+- SaveGame : BeginPlay charger arme -> EquipWeapon
+- BP_Enemy_Base : stats manquantes + WeaponClass generique
+
+#### Etat final
+Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug reouverture ouvert. Refonte EquipWeapon identifiee comme dette C1 critique.
+
+---
+
 ### 28/05/2026 -- Session design -- Lore, Cast, Fee, Ombre, Deites -- DESIGN VALIDE
 
 #### Decisions rapides
