@@ -92,14 +92,21 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Stats via `BP_AttributeSet_Base` (ref : `AttributeSetRef`)
 - `bIsDead` + `IsDead()`, `bIsInvincible`, `OnPlayerDeath`, `OnStatChanged`
 - `bRadialUnlocked` (bool, default=false)
-- `DiscoveredWeapons` (Array<FName>), `ChoosenWeapon` (FName)
-- `BP_CombatLockOnComponent`, `MagicComponent`, `BP_ComboManagerComponent` sur le Character
-- NOTE : ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) redondants -- a unifier C1-WeaponArchitecture
-- DETTE C1 : EquipWeapon logique eparpillee HC / ComboManager / UI_Radial / PC -- refonte avant cloture C1
+- `BP_CombatLockOnComponent`, `MagicComponent`, `BP_ComboManagerComponent`, `BP_InventoryComponent` sur le Character
+- HC.ChoosenWeapon SUPPRIME -- source unique : ComboManager.CurrentWeaponID (29/05/2026)
+- DiscoveredWeapons SUPPRIME de HC -- migre vers BP_InventoryComponent (29/05/2026)
+
+### Composants HC -- philosophie de factorisation
+- HC = coordinateur leger, ne stocke pas d'etat metier
+- BP_CombatLockOnComponent : tout l'etat lock-on
+- BP_MagicComponent : tout l'etat magie
+- BP_ComboManagerComponent : arme courante + niveau arme + etat combo
+- BP_InventoryComponent : armes decouvertes + consommables + materiaux craft + equipement (a creer)
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent
+- Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
+- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (29/05/2026)
 - Progression hybride : niveaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
 - Essence de Mana : progression -- perdue a la mort, recuperable DS-like
 - Pieces d'Or : economie -- jamais perdues
@@ -123,6 +130,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Phase 2 (apres Sanctuaire d'Ombre) : plafond 100
 - Faiblesse a 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond)
+- Corruption reduit TenaciteEtat heros (calibrage a definir)
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
 ### Economie & Drops -- DESIGN VALIDE (28/05/2026)
@@ -176,18 +184,25 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack
 - Flow : IA_Attack -> CanAttack -> HandleAttack -> PlayAttackMontage
 - CanAttack : source unique ComboManager (HC.CanAttack supprime -- etape 5 C1-WeaponArchitecture)
+- Switch arme en combo = reset combo complet (punition) -- pas de grisage Radial (29/05/2026)
 
 ### Armes
 - FWeaponData : a enrichir CoeffArme + VitesseAttaque (C1-WeaponArchitecture)
-- DETTE : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager)
+- ComboManager.CurrentWeaponID = source unique arme equipee (HC.ChoosenWeapon supprime)
+- EquipWeapon vit sur BP_ComboManagerComponent
 - UpgradeWeaponLevel : implemente Option A (runtime, sans SaveGame) -- etape 6 C1-WeaponArchitecture
+
+### Inventaire (a creer -- C1-WeaponArchitecture)
+- BP_InventoryComponent : DiscoveredWeapons, consommables Seiken, materiaux craft, equipement
+- Radial lit BP_InventoryComponent pour peupler les slots armes
+- ComboManager ne connait que l'arme equipee, pas l'inventaire
 
 ### Radial Armes -- PARTIEL (28/05/2026)
 - Mecanique : roue tourne, curseur fixe en haut (position 0)
 - PopulateWeaponSlots : TargetRotation = -(EquippedIndex * AnglePerSlot), CurrentRotation = TargetRotation, SelectedIndex = 0
 - Guard : si CurrentWeaponID == None -> pas de modification rotation
 - Bug ouvert : reouverture apres changement arme -> mauvaise rotation (CurrentWeaponID non mis a jour ?)
-- DETTE C1 : refonte EquipWeapon necessaire pour corriger le bug
+- DETTE C1 : refonte EquipWeapon + migration InventoryComponent necessaires pour corriger le bug
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
@@ -215,6 +230,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-StatsProgression, DESIGN-StatusEffects, DESIGN-Corruption, DESIGN-Economy (28/05/2026)
 - [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites, conflit Loup/DragonFolk (28/05/2026)
 - [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
+- [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
 
 ## Dettes techniques
 
@@ -223,10 +239,11 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : bug reouverture apres changement arme** (C1-WeaponArchitecture)
-- **Refonte EquipWeapon : logique eparpillee HC/ComboManager/UI_Radial/PC** (C1-WeaponArchitecture -- CRITIQUE, avant cloture C1)
+- **Refonte EquipWeapon : migrer sur ComboManager, supprimer HC.ChoosenWeapon** (C1-WeaponArchitecture -- CRITIQUE)
+- **Creer BP_InventoryComponent : migrer DiscoveredWeapons + consommables + craft + equip** (C1-WeaponArchitecture)
 - **HandleAttack ErrorType=1 sur HC** (C1-WeaponArchitecture -- a verifier PIE)
 - **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
-- **Nouvelles stats BP_AttributeSet_Base** (C1-WeaponArchitecture)
+- **Nouvelles stats BP_AttributeSet_Base (dont TenaciteEtat base 25)** (C1-WeaponArchitecture)
 - **Stats ennemis BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
 - **CoeffArme + VitesseAttaque FWeaponData** (C1-WeaponArchitecture)
 - **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-WeaponArchitecture)
@@ -235,7 +252,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture + Refacto** (dont refonte EquipWeapon -- CRITIQUE)
+1. **C1-WeaponArchitecture + Refacto** (EquipWeapon sur ComboManager, BP_InventoryComponent, HC.ChoosenWeapon supprime -- CRITIQUE)
 2. **C1-SwordMoveset** + BP_StatusEffectComponent
 3. **SaveDesign** : spec Fontaine de Fee
 4. **C1-MagicTreeModule** : arbre de talents
@@ -270,6 +287,11 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - LevelMin = 0 dans DT_Combo
 - HandleAttack sans parametre ChoosenWeapon
 - HC.CanAttack supprime -- source unique ComboManager.CanAttack (etape 5 C1-WeaponArchitecture)
+- HC.ChoosenWeapon SUPPRIME -- source unique ComboManager.CurrentWeaponID (29/05/2026)
+- EquipWeapon vit sur BP_ComboManagerComponent (pas HC) -- (29/05/2026)
+- BP_InventoryComponent = source de DiscoveredWeapons pour le Radial (29/05/2026)
+- Switch arme en combo = reset combo complet, pas de grisage Radial (29/05/2026)
+- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs (29/05/2026)
 - UpgradeWeaponLevel : Option A runtime (etape 6 C1-WeaponArchitecture)
 - Radial roue tourne / curseur fixe haut -- TargetRotation = -(Index * AnglePerSlot) dans PopulateWeaponSlots
 - Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
@@ -281,6 +303,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Athanor = Salamandre
 - Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Corruption Phase 1 plafond 50 / Phase 2 plafond 100 (apres Sanctuaire d'Ombre)
+- Corruption reduit TenaciteEtat heros (calibrage a definir en session Economie)
 - Menu pause = pause complete (pas Time Dilation) -- Time Dilation reserve radial uniquement
 - Touchpad PS5 : reserve C4
 - Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE ⚠️
@@ -308,4 +331,4 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ---
 
-*Derniere mise a jour : 28/05/2026*
+*Derniere mise a jour : 29/05/2026*
