@@ -5,7 +5,7 @@ Mis à jour après chaque session de design ou de développement.
 
 ---
 
-## Modules existants (état au 25/05/2026)
+## Modules existants (état au 28/05/2026)
 
 | Module | État | Notes |
 |--------|------|-------|
@@ -31,6 +31,7 @@ Mis à jour après chaque session de design ou de développement.
 | TestBed | ✅ VALIDE PIE | Lvl_TestBed, BP_Enemy_TestBed, SFX placeholder |
 | Collisions capsule | ✅ VALIDE PIE | CapsuleComponent Pawn = Block |
 | IMC dédiés (5 contextes) | ✅ VALIDE PIE | C1-InputsUI complet -- swap OpenRadial/CloseRadial |
+| Archi armes/combo | ⚠️ Dette | ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager) -- C1-WeaponArchitecture |
 
 ---
 
@@ -51,7 +52,7 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
 
 ---
 
-## Ordre de dépendances global (révisé 25/05/2026)
+## Ordre de dépendances global (révisé 28/05/2026)
 
 ```
 [FAIT] J-LockOn -> J-Camera -> J-LockMove -> J-TestBed -> J-ComboFix
@@ -59,18 +60,18 @@ Sessions créatives (ART / MUS / MAP) : intercalées librement.
         └─> C1-HitFeel (partiel : knockback ✅, shake ✅, gamepad ❌, hitstop reporté)
               └─> C1-InputsUI ✅ VALIDE PIE
                     └─> C1-RadialMagie ✅ VALIDE PIE (25/05/2026)
-                          └─> C1-MagicProgressionDesign (spec design : montée de niveau sorts)
-                                └─> C1-CleanupDettes (LockOnSwitchCooldown PC + SelectedIndex radial)
-                                      └─> C1-WeaponArchitecture
-                                            └─> C1-SwordMoveset
-                                                  └─> C1-SaveDesign (spec)
-                                                        └─> C1-BowPOC
-                                                              └─> C1-WeaponSwitching
-                                                                    └─> C2-SaveGame
-                                                                          └─> C1-AnimationsPass1 (fin C1)
+                          └─> C1-MagicProgressionDesign ✅ VALIDE
+                                └─> C1-MagicUnlockSystem ✅ VALIDE PIE
+                                      └─> C1-CleanupDettes ✅ COMPLET
+                                            └─> C1-WeaponArchitecture + Refacto
+                                                  └─> C1-SwordMoveset
+                                                        └─> C1-SaveDesign (spec)
+                                                              └─> C1-BowPOC
+                                                                    └─> C1-WeaponSwitching
+                                                                          └─> C2-SaveGame
+                                                                                └─> C1-AnimationsPass1 (fin C1)
 
 C1-SFXCombat : peut démarrer dès maintenant
-C1-MagicUnlockSystem : après C1-MagicProgressionDesign
 C1-HitFlashEnemies : ABANDONNE (21/05/2026)
 
 C2-EnemyMesh
@@ -136,33 +137,21 @@ C2-EnemyMesh
 - [ ] SelectedIndex radial : retour sur ChoosenWeapon → C1-CleanupDettes
 - [ ] SchoolID dynamique depuis CurrentMagicSchool (actuellement lu depuis TempSchoolID capturé au validate)
 
-### C1-MagicProgressionDesign — Session design progression des sorts
-- [ ] Trancher : montée de niveau linéaire (puissance/durée) vs arbre de talent par sort
-- [ ] Cohérence avec progression armes (forge + talents)
-- [ ] Décider si les ennemis magiques partagent DT_Spells du hero ou sous-ensemble dédié
-- [ ] Livrable : spec MagicProgression.md
-- ⚠️ Aucune implémentation avant cette session
+### ✅ C1-MagicProgressionDesign — DESIGN VALIDE (25/05/2026)
+### ✅ C1-MagicUnlockSystem — COMPLET VALIDE PIE (27/05/2026)
+### ✅ C1-CleanupDettes — COMPLET (27/05/2026)
 
-### C1-MagicUnlockSystem — Système de déblocage de sorts
-- [ ] Fonction UnlockSpell(SchoolID, SpellID) sur BP_MagicComponent
-- [ ] Chaque sort/école appris passe par cette fonction (pas en dur dans BeginPlay)
-- [ ] Retirer le stub test BeginPlay de BP_MagicComponent
-- [ ] Chaque nouvelle école = nouveau DT_Spells dédié + rows enregistrées via UnlockSpell
-- ⚠️ Après C1-MagicProgressionDesign
-
-### C1-CleanupDettes — Nettoyage dettes mineures (presque fini)
-- [x] Fix TargetActor espace dans UI_LockOnIndicator
-- [x] ZOrder=10 sur AddToViewport indicateur lock-on
-- [x] Supprimer BT_TestBed et BB_TestBed
-- [ ] Supprimer LockOnSwitchCooldown du PC (redondant avec Component->SwitchCooldown)
-- [ ] SelectedIndex radial : retourner sur ChoosenWeapon à l'ouverture (FindIndex dans DiscoveredWeapons)
-
-### C1-WeaponArchitecture — Audit & décision structure data armes
-- [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData
+### C1-WeaponArchitecture + Refacto — Audit, refacto & décision structure armes/combo
+- [ ] Audit BP_Weapon_Base, DT_Weapons, FWeaponData, BP_ComboManagerComponent
+- [ ] Décision source de vérité unique pour l'arme courante (ChoosenWeapon HC vs CurrentWeaponID ComboManager — redondance actuelle)
+- [ ] Décision périmètre HC vs Component (EquipWeapon, DiscoveredWeapons : rester sur HC ou migrer ?)
+- [ ] Évaluer pertinence d'un BP_WeaponManagerComponent dédié
 - [ ] Décision BP_WeaponType_Base (classe mère abstraite par TYPE)
 - [ ] Vérifier champs forge + talents dans FWeaponData
-- [ ] Doc de décision
+- [ ] Implem minimale du refacto (pas de nouvelle feature, cleanup uniquement)
+- [ ] Doc de décision dans Decisions.md
 - ⚠️ Conditionne C1-SwordMoveset, C1-BowPOC, C5-ForgeSystem, C5-TalentTree
+- ⚠️ Ne pas toucher avant ce jalon : combo VALIDE PIE, ne pas casser
 
 ### C1-SwordMoveset — Moveset épée complet
 - [ ] Combo 3 coups légers, finisseur, coup chargé (heavy)
@@ -260,6 +249,8 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 |-------|-------|
 | Modèle respawn : sanctuaires DS / checkpoints Seiken-KH / hybride | C1-SaveDesign |
 | Switching armes : reset combo ou conservation ? | C1-WeaponSwitching |
+| Source de vérité arme courante : HC ou Component ? | C1-WeaponArchitecture |
+| Périmètre EquipWeapon/DiscoveredWeapons : HC ou WeaponManagerComponent ? | C1-WeaponArchitecture |
 | Forge : matériaux exacts (graines Mana ?) | C5-ForgeSystem |
 | Corruption : les sorts de soin corrompent-ils moins ? | C4-CorruptionSystem |
 | Compagnons : mort permanente possible hors choix moral ? | C4-Companions |
@@ -285,3 +276,4 @@ La magie ennemie partagera DT_Spells du hero -- architecture à définir en C2 a
 - MAJ 23/05/2026 : décisions C1-RadialMagie actées, C1-MagicProgressionDesign ajouté, SelectedIndex en C1-CleanupDettes
 - MAJ 23/05/2026 : ART-MagicIcons ajouté, C1-MagicUnlockSystem ajouté, tâches C1-RadialMagie mises à jour
 - MAJ 25/05/2026 : C1-RadialMagie VALIDE PIE — navigation 3 niveaux + CastSpell + fix bDefaultValueIsIgnored
+- MAJ 28/05/2026 : C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto", jalons completes mis a jour, dette archi armes/combo tracee
