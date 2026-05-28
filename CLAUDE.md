@@ -122,6 +122,7 @@ Format dans Docs/Session_UnrealClaude.md :
 - `BP_CombatLockOnComponent` : sur le CHARACTER (pas le PC)
 - `MagicComponent` : BP_MagicComponent sur le Character
 - `BP_ComboManagerComponent` : sur le Character
+- NOTE : ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- a unifier en C1-WeaponArchitecture
 
 ### Hero 3D
 - ABP actif : **ABP_Manny_Platforming** (pas ABP_Unarmed qui est pour les ennemis)
@@ -225,6 +226,7 @@ Format dans Docs/Session_UnrealClaude.md :
   - FWeaponData contient : Name, Type, Level, Mesh, Stats, Socket, BP_Weapon, icons, DT_Combo, IdleAnim
 - `DT_Combo` par arme : rows avec StepID, InputType, AnimMontage, NextSteps, WeaponID, LevelMin=0
 - `LevelMin = 0` sur toutes les rows DT_Combo (niveau de base)
+- DETTE ARCHI : logique armes eclatee entre HC (ChoosenWeapon, DiscoveredWeapons, EquipWeapon) et ComboManager (CurrentWeaponID) -- a consolider en C1-WeaponArchitecture
 
 ### GameMode / Controllers
 - `BP_SoM_GameMode` (`/Game/Core/`) -- Player Controller Class = BP_SoM_PlayerController
@@ -314,11 +316,12 @@ Options=Menu Global
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : SelectedIndex = 0 a l'ouverture** (C1-RadialMagie) -- voir Decisions.md
+- **Archi armes/combo eclatee** (C1-WeaponArchitecture) : ChoosenWeapon (HC) redondant avec CurrentWeaponID (ComboManager), EquipWeapon sur HC a revoir, perimetre HC vs Component a definir
 
 ## Prochains jalons
 
 1. **Stats/Progression personnage** : caracteristiques, fourchette niveaux, formule degats
-2. **C1-WeaponArchitecture** : audit data armes pour forge/talents
+2. **C1-WeaponArchitecture + Refacto** : audit armes/combo, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, doc decisions
 3. **Corruption Magique** : compteur, effets progressifs, lien SaveDesign
 4. **C1-SwordMoveset** : moveset epee complet
 5. **SaveDesign** : session design respawn/sauvegarde Fontaine de Fee
@@ -376,6 +379,7 @@ Options=Menu Global
 - Athanor = Salamandre : meme deite, deux noms selon localisation
 - Corruption Magique : compteur dedie sur le heros, effets progressifs par seuil, purge a la Fontaine de Fee
 - Fontaine de Fee = feu de camp DS : repos -> purge Corruption + fee restauree + mobs respawn
+- ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants -- source de verite a unifier en C1-WeaponArchitecture
 - Pour les POURQUOI des decisions : voir Docs/Architecture/Decisions.md
 - Pour le design progression magique : voir Docs/Architecture/Magic_Progression.md
 - Pour le lore complet : voir Docs/Lore_ShadowOfMana.md
@@ -396,4 +400,4 @@ Options=Menu Global
 
 ---
 
-*Derniere mise a jour : 27/05/2026*
+*Derniere mise a jour : 28/05/2026*
