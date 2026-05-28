@@ -5,65 +5,73 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
-### 28/05/2026 -- Session design -- Economie, Drops, Consommables, Mana -- DESIGN VALIDE
+### 28/05/2026 -- Session design -- Lore, Cast, Fee, Ombre, Deites -- DESIGN VALIDE
 
-#### Double monnaie
-- Essence de Mana : progression (niveaux, deites, forge armes) -- perdue a la mort, recuperable DS-like
-- Pieces d'Or (PO) : economie du monde (marchands, objets, armures) -- jamais perdues
+#### Decisions rapides
+- Corruption 75 faiblesse : deite la plus utilisee depuis la DERNIERE PURGE (pas depuis le debut)
+- Menu pause : pause complete (pas Time Dilation) -- Time Dilation reserve au radial uniquement
+- Touchpad PS5 : reserve a C4 (pas de contenu suffisant pour decider maintenant)
 
-#### Drops ennemis
-- Toujours : Essence + PO (quantites variables par type)
-- Aleatoire : objets consommables (15-25%), materiaux de forge (8-18%), coffres Seiken
-- Boss : drop garanti x1 objet + x1 materiau
+#### Sanctuaire d'Ombre -- evenement narratif milieu acte 1
+- Zone obligatoire, Corruption monte anormalement vite avant meme d'y entrer
+- Boss met le heros a 0 PV -- Ombre intervient via la Corruption, le heros se releve
+- Images ambigues d'Ombre (souffrante ou menaçante -- impossible a lire)
+- Consequence : Corruption Phase 2 debloquee (plafond 100)
+- La Fee reagit differemment a la prochaine Fontaine -- elle sait quelque chose
 
-#### Consommables style Secret of Mana
-- Bonbon/Noix/Miel (PV), Plante (Mana), Herbe (statut), Essence Purifiee (Corruption -15), Repas (+% drop temp)
-- Stock max 9 unites par type, rechargeable Fontaine depuis stock mondial
-- Utilisables en combat, via quickslot ou radial dedie (C7-HUDPolish)
-- Taux de drop augmente uniquement via Repas -- pas de stat permanente
+#### La Fee -- spec complete
+- Origine : gardienne Fontaine de Mana originelle, sauvee par Ondine lors du cataclysme
+- Nature secrete : contient un fragment de l'ame de la soeur du heros -- insuffle par Ondine dans une fee mourante
+- Ni la fee ni le heros ne le savent
+- Nostalgie inexpliquee du heros = fragment d'ame de sa soeur
+- Mecanique : transportee par le heros, se repose aux Fontaines, ralentit la Corruption passivement
+- Nom : a trouver EN MEME TEMPS que le nom de la soeur (foreshadow) ⚠️
 
-#### Materiaux de forge
-- 3 tiers : Graine de Mana (commun), Cristal de Mana (rare), Essence Cristallisee (special)
-- Non lies aux elements -- universels
-- Forge narrative style Seiken : upgrade N+1 debloque par jalon narratif + materiaux requis
+#### Cast complet avec races
+- Heros : Humain
+- Pretresse (Lumina) : Humaine Celeste (ailes blanches, style Riesz Trials of Mana)
+- Suivante (Luna) : Beastman Felin (style Morley Vision of Mana) -- froide avec le heros, douce avec le Garcon Loup
+- Forgeron Nain (Salamandre) : Nain -- pere adoptif du Garcon Loup (clin d'oeil Popoi)
+- Colosse (Gnome) : Nain -- ami du Garcon Loup
+- Reine du Vent (Sylphide) : DragonFolk (style Careena Vision of Mana)
+- Oracle Mana (Dryade) : Sproutling taille humaine (style Julei Vision of Mana) -- arrive fin acte 2
+- Soeur du Heros : Humaine -- fusion incomplete avec Ondine, devient Deesse Mana en fin de jeu
+- Garcon Loup : Beastman Loup (style Kevin Trials of Mana) -- reçoit Ondine en fin de jeu
+- Fee : fragment ame soeur, nom a definir avec la soeur
 
-#### Equipement
-- 3 slots : Casque, Armure, Accessoire
-- Stats : Defense + Resistance uniquement
-- Achat PO ou drop coffres/boss
+#### Dynamiques groupe
+- Suivante reconnait la race du Garcon Loup des la rencontre -- ne dit rien, imperceptiblement plus douce
+- Garcon Loup vs Reine du Vent : tension latente (tribu Loup en guerre avec DragonFolk)
+- Origine conflit Loup/DragonFolk : a definir ⚠️
 
-#### Cout sorts Mana
-- Formule : Base + (NiveauSort * Multiplicateur)
-- ManaMax separee de Magie, monte avec Level global (+8/niveau, base 60)
-- Cles : "ManaMax" / "ManaCurrent"
-- Pas de regen Mana auto
-
-#### Sauvegarde & respawn
-- Sauvegarde tout sauf Essence non depensee
-- Respawn : ennemis normaux oui, boss jamais
-- Double mort = Essence definitivement perdue
-
-#### Corruption Phase 1/2
-- Phase 1 (debut jeu) : plafond 50, effets limites
-- Phase 2 (apres revelation Hero/Ombre) : plafond 100, faiblesse = deite la plus utilisee au franchissement 75, effet statut = meme deite a 100
-- Narrativement : Ombre leve involontairement le voile protecteur suite a la decheance de la Mana
+#### Ordre deites (provisoire)
+Lumina (1, debut A1) -> Luna (2, debut A1) -> Gnome (3, milieu A1) -> Ombre (4, milieu A1 post-Gnome) -> Salamandre (5, A2) -> Sylphide (6, A2) -> Dryade (7, fin A2) -> Ondine (8, A3)
 
 #### Points encore ouverts
-- Duree buff Repas -> C5-Equipment
-- Prerequis niveau equipement -> C5-Equipment
-- Quand exactement debloquer Corruption Phase 2 -> Session Lore Ombre
-- Radial dedie objets vs integration radial existant -> C7-HUDPolish
-- Prix PO + taux drops calibres -> Playtest acte 1
+- Noms de TOUS les personnages (session dediee) -- soeur et fee ensemble ⚠️
+- Nom de la ville hub ⚠️
+- Origine conflit Tribu Loup / DragonFolk ⚠️
+- Rituels de communion par deite -- session Lore Deites
+- Cout Essence par niveau de deite -- session Lore Deites
+- Effet narratif Fee Corruption=100 -- session Lore Fee (complement)
+- Histoire propre de Flammy
 
 #### Etat final
-DESIGN-Economy VALIDE. Spec dans Docs/Architecture/Economy_Drops.md.
+DESIGN-Lore VALIDE (provisoire). Spec dans Docs/Lore_ShadowOfMana.md.
+
+---
+
+### 28/05/2026 -- Session design -- Economie, Drops, Consommables, Mana -- DESIGN VALIDE
+
+#### Etat final
+Double monnaie, drops Seiken, Mana, equipement. Spec dans Economy_Drops.md.
 
 ---
 
 ### 28/05/2026 -- Session design -- Effets de statut & Corruption Magique -- DESIGN VALIDE
 
 #### Etat final
-8 effets par deite valides, Corruption systeme risque/recompense valide. Spec dans Combat_StatusEffects.md.
+8 effets par deite, Corruption Phase 1/2, bonus Essence. Spec dans Combat_StatusEffects.md.
 
 ---
 
@@ -77,56 +85,35 @@ DESIGN-Economy VALIDE. Spec dans Docs/Architecture/Economy_Drops.md.
 ### 28/05/2026 -- Session planning -- Refacto armes/combo note
 
 #### Etat final
-C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto". Note enregistree.
+C1-WeaponArchitecture elargi. Note enregistree.
 
 ---
 
 ### 27/05/2026 -- C1-CleanupDettes COMPLET
 
-#### Etat final
-LockOnSwitchCooldown PC supprime, UsageThreshold FSoM_SpellData supprime. Compilation OK.
+---
+
+### 27/05/2026 -- RadialUnlock VALIDE PIE
 
 ---
 
-### 27/05/2026 -- RadialUnlock + blocages narratifs radial -- VALIDE PIE
-
-#### Etat final
-bRadialUnlocked + BP_Debug_UnlockDeity operationnels.
-
----
-
-### 27/05/2026 -- C1-MagicUnlockSystem -- VALIDE PIE
-
-#### Etat final
-Chaine usage->niveau->points operationnelle avec courbe SoM adaptee.
+### 27/05/2026 -- C1-MagicUnlockSystem VALIDE PIE
 
 ---
 
 ### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee
 
-#### Etat final
-Lore enrichi, mecanique Corruption posee, Fontaine de Fee integree narrativement.
-
 ---
 
 ### 26/05/2026 -- Session design -- Magic_Progression DESIGN
-
-#### Etat final
-Design progression magique pose dans Magic_Progression.md.
 
 ---
 
 ### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
 
-#### Etat final
-Sortie du mode dummy magie. Data layer deites complet et data-driven.
-
 ---
 
 ### 25/05/2026 -- Session design + outils IA
-
-#### Etat final
-C1-MagicProgressionDesign VALIDE.
 
 ---
 
@@ -206,38 +193,17 @@ C1-MagicProgressionDesign VALIDE.
 
 ---
 
-### 11/05/2026 -- Session design
-
-### 11/05/2026 -- Jalon #9 -- Audit complet + nettoyage
-
-### 11/05/2026 -- Jalon #8 -- Migration UE5.7 + UnrealClaude
+### 11/05/2026 -- Sessions design + jalons #8 et #9
 
 ### 07/05/2026 -- Jalons #1 a #7
 
-### 20/07/2025 -- Nico -- Animation Weapon Integration
-
-### 27/06/2025 -- Nico -- BP_AIController_Enemy_Base, PawnSensing
-
-### 26/06/2025 -- Nico -- BPI_TakeDamage, BP_Enemy_Base
-
-### 24/06/2025 -- Nico -- Systeme armes data-driven, Radial, Combo
-
-### 21/06/2025 -- Nico -- Refactorisation BP_ComboManagerComponent
-
-### 19-20/06/2025 -- Nico -- Lock-On, Menu Radial, refonte Combo
-
-### 18/06/2025 -- Nico -- Refactoring pipeline Gameplay de base
-
-### 17/06/2025 -- Nico -- Creation du projet
+### 2025 -- Sessions fondatrices (voir historique complet)
 
 ---
 
 ## Rappel
 Pour la roadmap detaillee : voir Docs/Roadmap_Gameplay.md
 Pour les decisions architecturales : voir Docs/Architecture/Decisions.md
-Pour les inputs et IMC : voir Docs/Architecture/Input_Architecture.md
-Pour le radial menu : voir Docs/Architecture/RadialMenu_Architecture.md
-Pour la progression magique : voir Docs/Architecture/Magic_Progression.md
 Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
 Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
 Pour l'economie et les drops : voir Docs/Architecture/Economy_Drops.md
