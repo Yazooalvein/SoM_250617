@@ -5,6 +5,23 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 28/05/2026 -- Session planning -- Refacto armes/combo note
+
+#### Constat identifie
+- Logique armes/combo eclatee entre HC (ChoosenWeapon, DiscoveredWeapons, EquipWeapon), BP_ComboManagerComponent (CurrentWeaponID) et les datatables
+- ChoosenWeapon (HC) et CurrentWeaponID (ComboManager) sont redondants : deux sources de verite pour l'arme courante
+
+#### Decision
+- C1-WeaponArchitecture elargi en "C1-WeaponArchitecture + Refacto"
+- Objectifs : audit existant, source de verite unique arme courante, perimetre HC vs Component, eventuel BP_WeaponManagerComponent, doc decisions
+- Placement : apres Stats/Progression personnage, avant C1-SwordMoveset (conditionne le moveset)
+- Aucune implem avant ce jalon : le combo est VALIDE PIE, ne pas toucher maintenant
+
+#### Etat final
+Note de planning enregistree. C1-WeaponArchitecture mis a jour dans CLAUDE.md et Roadmap.
+
+---
+
 ### 27/05/2026 -- C1-CleanupDettes COMPLET
 
 #### Suppressions effectuees
@@ -184,4 +201,4 @@ Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 27/05/2026
+- Derniere mise a jour : 28/05/2026
