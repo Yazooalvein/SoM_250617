@@ -23,7 +23,7 @@ Chaque deite possede un effet de statut signature appliquable aux ennemis ET au 
 - **Sommeil (Luna) + attaque** = reveil brutal x1.5 degats -- invite a combo inter-sorts
 - **Desequilibre (Sylphide) + Gele (Ondine)** = Fige -- synergie entre deux deites
 - **Malediction (Ombre) + Drain (Dryade ou Salamandre)** = combo tres punitif sur ennemis a gros PV
-- **Brulure (Salamandre) + Empoisonne (Dryade)** = double drain, efficace en combat de harcèlement
+- **Brulure (Salamandre) + Empoisonne (Dryade)** = double drain, efficace en combat de harcelement
 
 ### Variables d'effet de statut
 
@@ -48,12 +48,26 @@ Les sorts Debuff Lumina existants peuvent utiliser un stub en attendant.
 ### Concept
 
 La Corruption mesure le degre auquel le heros utilise la magie des deites a des fins violentes.
-Plus la Corruption est haute, plus le heros est instable -- mais aussi plus il attire l'Essence des ennemis.
-C'est un systeme de risque/recompense, pas une pure punition.
+C'est un systeme de risque/recompense : haute Corruption = farming accelere mais heros fragilise.
+
+### Deux phases de Corruption
+
+**Phase 1 -- debut du jeu (avant la revelation Hero/Ombre)**
+- Plafond : 50
+- Seuils actifs : 25 (aura visible), 50 (-20% resistances)
+- Pas de faiblesse elementaire, pas d'effets de statut
+- Le joueur apprend le systeme sans risque maximal
+
+**Phase 2 -- apres la revelation du lien Hero/Ombre**
+- Plafond : 100 (leve involontairement par Ombre suite a la decheance de la Mana)
+- Narrativement : Ombre ne "choisit" pas de corrompre le heros -- c'est la consequence de son etat blesse
+- Faiblesse a 75 : element de la **deite la plus utilisee** au moment du franchissement (deterministe, lisible)
+- Effet de statut a 100 : celui de cette **meme deite** toutes les 30s -- consequence directe des choix de jeu
 
 ### Jauge Corruption
 
-- Float 0.0 -> 100.0 sur BP_SoM_HeroCharacter, cle SetStatValue : "Corruption"
+- Float 0.0 -> plafond (50 ou 100 selon phase) sur BP_SoM_HeroCharacter
+- Cle SetStatValue : "Corruption"
 - Visible dans le HUD (a ajouter a UI_HUD_Main)
 - Purge complete a la Fontaine de Fee
 
@@ -64,11 +78,9 @@ C'est un systeme de risque/recompense, pas une pure punition.
 | Attaque | +3 |
 | Debuff | +2 |
 | Buff | +1 |
-| Heal | 0 (ou +0.5 si soin excessif sur PV pleins) |
+| Heal | 0 (ou +0.5 si soin excessif sur PV pleins -- a confirmer au playtest) |
 
 ### Modificateurs par deite
-
-Certaines deites tolerent mieux l'usage offensif de leur magie :
 
 | Deite | Modificateur Corruption |
 |-------|------------------------|
@@ -83,35 +95,25 @@ Certaines deites tolerent mieux l'usage offensif de leur magie :
 | Seuil | Effet negatif | Bonus Essence ennemis |
 |-------|--------------|----------------------|
 | 0-24 | Aucun | x1.0 (base) |
-| 25-49 | Aura visible (cosmétique -- signal d'alerte) | x1.15 |
+| 25-49 | Aura visible (cosmetique -- signal d'alerte) | x1.15 |
 | 50-74 | -20% resistances elementaires heros | x1.35 |
-| 75-99 | Un element aleatoire devient faiblesse active (-50% resistance) + perte stamina a chaque sort | x1.60 |
-| 100 | Effet de statut aleatoire toutes les 30s sur le heros -- Fontaine obligatoire pour purger | x1.60 (plafond -- le jeu ne recompense plus d'aller au-dela) |
+| 75-99 | Faiblesse element (deite la plus utilisee) + perte stamina a chaque sort | x1.60 |
+| 100 | Effet de statut (deite la plus utilisee) toutes les 30s | x1.60 (plafond) |
 
-### Mechanique de bonus Essence
+Le bonus Essence plafonne a x1.60 -- atteindre 100 n'apporte aucun farming supplementaire mais ajoute des penalites.
+Le joueur doit choisir son niveau de risque optimal.
 
-Plus la Corruption est haute, plus les ennemis vaincus laissent d'Essence de Mana.
-Le bonus est progressif et plafonne a x1.60 -- atteindre 100 ne donne aucun avantage supplementaire
-mais ajoute des penalites. Le joueur doit donc choisir son niveau de risque optimal.
+### Role des sorts Heal
 
-**Tension centrale :**
-- Purger souvent = securite + farming lent
-- Rester haut en Corruption = farming rapide + vulnerabilite croissante
-- Les Fontaines font respawn les mobs : purger trop souvent = moins d'Essence nette
-
-### Role des sorts Heal dans la gestion Corruption
-
-Les sorts Heal ne generent pas de Corruption mais reduisent legerement le bonus Essence en cours.
-Soigner "refroidit" la dynamique de Corruption sans aller a la Fontaine, mais au prix du farming.
+Les sorts Heal ne generent pas de Corruption mais reduisent legerement le bonus Essence actif.
 Cela donne aux sorts Heal un role strategique au-dela du simple soin.
 
 ### Purge a la Fontaine de Fee
 
 - Remet Corruption a 0
-- Si Corruption >= 75 au moment de la purge : la fee est "epuisee" -- impossible de monter le niveau
-  d'une deite lors de cette visite (cout narratif et gameplay)
-- Si Corruption = 100 : purge forcee, pas de choix, la fee gronde (effet narratif a definir en Session Lore Fee)
-- Mobs respawn a chaque visite Fontaine (comportement DS)
+- Si Corruption >= 75 : la fee est "epuisee" -- impossible de monter le niveau d'une deite lors de cette visite
+- Si Corruption = 100 : purge forcee, la fee gronde (effet narratif a definir en Session Lore Fee)
+- Mobs normaux respawnent a chaque visite
 
 ---
 
@@ -119,14 +121,15 @@ Cela donne aux sorts Heal un role strategique au-dela du simple soin.
 
 | Sujet | Lie a |
 |-------|-------|
-| Duree des effets de statut par defaut | C1-SwordMoveset (premier test en combat) |
+| Duree des effets de statut par defaut | C1-SwordMoveset |
 | TenaciteEtat valeur de base heros | C1-SwordMoveset |
 | Effet narratif exact Corruption=100 (dialogue fee ?) | Session Lore Fee |
 | Aura visuelle Corruption >= 25 : shader, particules ? | ART ou C4 |
-| Quel element devient faiblesse a 75 : aleatoire a chaque seuil ou fixe par run ? | A trancher |
-| Soins excessifs corrompent-ils vraiment (+0.5) ? | A confirmer au playtest |
+| Soins excessifs corrompent-ils vraiment (+0.5) ? | Playtest |
+| Quand exactement debloquer Corruption Phase 2 ? | Session Lore Ombre |
 
 ---
 
-*Cree le 28/05/2026 -- session design Effets de Statut & Corruption*
-*Prochaine mise a jour prevue : C1-SwordMoveset (premier contact avec BP_StatusEffectComponent)*
+*Cree le 28/05/2026*
+*MAJ 28/05/2026 : Corruption Phase 1/2, lien narratif Ombre, faiblesse = deite la plus utilisee*
+*Prochaine mise a jour prevue : C1-SwordMoveset (BP_StatusEffectComponent)*
