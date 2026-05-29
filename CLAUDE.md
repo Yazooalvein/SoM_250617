@@ -112,7 +112,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
 - Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
-- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (a implémenter)
+- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (a implementer)
 - Progression hybride : niveaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
 - Essence de Mana : progression -- perdue a la mort, recuperable DS-like
 - Pieces d'Or : economie -- jamais perdues
@@ -145,19 +145,19 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Touchpad PS5 : reserve a C4
 - Voir Docs/Architecture/Economy_Drops.md
 
-### Lore & Cast -- DESIGN VALIDE provisoire (28/05/2026)
+### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
 - Voir Docs/Lore_ShadowOfMana.md pour le detail complet
 
 **Cast (races) :**
-- Heros : Humain
-- Pretresse (Lumina) : Humaine Celeste (ailes blanches)
-- Suivante (Luna) : Beastman Felin -- froide/heros, douce/Garcon Loup
-- Forgeron Nain (Salamandre) : Nain -- pere adoptif Garcon Loup
-- Colosse (Gnome) : Nain -- ami Garcon Loup
+- Heros : Humain -- seul impacte physiquement par la Corruption (indices visuels subtils)
+- Pretresse (Lumina) : Humaine Celeste (ailes blanches) -- percoit la Corruption sur le heros
+- Suivante (Luna) : Beastman Felin -- froide/heros, douce/Garcon Loup -- percoit la Corruption sur le heros
+- Forgeron Nain (Salamandre) : Nain -- pere adoptif Garcon Loup -- actif tout au long du jeu
+- Colosse (Gnome) : Nain -- ami Garcon Loup -- ne percoit pas la Corruption
 - Reine du Vent (Sylphide) : DragonFolk
-- Oracle Mana (Dryade) : Sproutling taille humaine -- arrive fin acte 2
-- Soeur du Heros : Humaine -- fusion incomplete Ondine, devient Deesse Mana fin jeu
-- Garcon Loup : Beastman Loup -- reçoit Ondine fin jeu
+- Oracle Mana (Dryade) : Sproutling taille humaine -- arrive fin acte 2, meurt debut A4
+- Soeur du Heros : Humaine -- fusion incomplete Ondine, devient Deesse Mana fin jeu -- revelee vivante au boss A2
+- Garcon Loup : Beastman Loup -- recoit Ondine fin jeu -- ne percoit pas la Corruption
 - Fee : fragment ame soeur (insuffle par Ondine) -- nom a trouver avec la soeur ⚠️
 
 **Ordre deites (provisoire) :**
@@ -169,7 +169,19 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Images ambigues d'Ombre (alliee ou menace ?)
 - Consequence : Corruption Phase 2 debloquee
 
+**Structure actes (29/05/2026) :**
+- A1 : monde brise, equipe, mystere heros/Ombre, Epee Mana brisee + reconnue par heros
+- A2 : retour Hub (non reconstruit), liberation zones (deite = changement esthetique + Hub se reconstruit), boss General = choix moral + revelation soeur vivante
+- A3 : recherche soeur, verite Grande Guerre, Epee Mana restauree, boss Demon Mana
+- A4 : Demon Primordial, Flammy debloque, resolution toutes lignes
+
+**Armes Mana (29/05/2026) :**
+- Amenees par la Deesse, trouvees deteriorees en A1, restaurees par etapes (Forgeron + materiaux drop)
+- Jalon narratif + materiaux = condition double pour chaque palier d'evolution
+- Epee Mana : brisee A1 (reconnaissance heros), evolution jusqu'a etat final A3 (necessaire pour Demon Mana)
+
 **⚠️ RAPPEL RECURRENT : noms Soeur et Fee a trouver ensemble (foreshadow)**
+**⚠️ Question ouverte : presence General avant boss A2 (Option A ou B) -- en maturation**
 
 ### Hero 3D
 - ABP actif : ABP_Manny_Platforming (pas ABP_Unarmed)
@@ -234,6 +246,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
 - [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
 - [x] C1-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
+- [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction, Corruption heros (29/05/2026)
 
 ## Dettes techniques
 
@@ -269,6 +282,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Session Noms** : tous les personnages -- soeur et fee ENSEMBLE ⚠️
 - **Session Lore Deites** : rituels par deite, cout Essence, order confirmation
 - **Session zones acte 1** : structure zones, Fontaines, conflit Loup/DragonFolk
+- **Session zones acte 2** : origine conflit Loup/DragonFolk, structure regions
 - **Session SaveDesign** : Fontaine de Fee detaillee
 - **Session Economie** : calibrage (apres playtest)
 
@@ -312,6 +326,14 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Touchpad PS5 : reserve C4
 - Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE ⚠️
 - Forge narrative Seiken : upgrade N+1 conditionne par jalon narratif + materiaux
+- Armes Mana : jalon narratif + materiaux drop = double condition evolution (empeche tout maxer d'un coup)
+- Epee Mana : brisee A1 = reconnaissance heros, evolution par etapes, etat final A3 = condition boss Demon Mana
+- Forgeron Nain : actif et utile tout au long du jeu (pas juste A1/A2)
+- Liberation deite dans une region = changement esthetique visuel de la zone
+- Hub non reconstruit a l'arrivee A2 -- se reconstruit zone par zone, PNJs rencontres en route reviennent
+- Heros = seul humanoide impacte physiquement par Corruption -- Pretresse + Suivante le percoivent (sensibilite Mana)
+- Flammy : debloque fin A3/A4, acces lieux inaccessibles
+- Conflit Loup/DragonFolk : ancien, amplifie par Decheance Mana
 - Respawn Fontaine : ennemis normaux oui, boss jamais
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
