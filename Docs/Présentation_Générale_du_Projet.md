@@ -1,91 +1,120 @@
-# Shadow of Mana — ARPG Blueprint Only (UE 5.6+)
+# Shadow of Mana — ARPG Blueprint Only (UE 5.7.4)
 
 ---
 
 ## 🎮 Présentation Générale
 
-**Shadow of Mana** est un Action-RPG 3D développé sous **Unreal Engine 5.6** (template Third Person — Plateforming), 100% **Blueprint Only**.  
-Le projet est inspiré de jeux tels que **Secret of Mana** (Seiken Densetsu) et **Dark Souls**, avec une forte composante action, une structure modulaire, et une architecture documentaire complète.
+**Shadow of Mana** est un Action-RPG 3D développé sous **Unreal Engine 5.7.4** (template Third Person — Plateforming), 100% **Blueprint Only**.
+
+Le projet est une lettre d'amour aux classiques du genre : **Secret of Mana** (Seiken Densetsu 2 & 3), **Trials of Mana**, **Vision of Mana** pour l'univers et le cast, et **Dark Souls** pour la philosophie de combat — exigeant, lisible, chaque action a un coût.
 
 ---
 
-## 🌌 Histoire Macro (Pitch rapide)
+## 🌌 Histoire (pitch sans spoilers)
 
-Dans un monde fracturé par la destruction de l’Arbre Mana, le héros et ses compagnons cherchent à rétablir l’équilibre des éléments et percer le secret de la grande guerre magique.  
-Au fil d’une aventure mêlant action, progression, exploration et narration, le joueur incarne des personnages uniques, chacun lié à un élément et à une histoire singulière.
+L'**Arbre Mana** a été détruit lors d'une Grande Guerre magique. Le monde en porte les cicatrices : zones corrompues, faune et flore altérées, équilibres élémentaires brisés. Les **esprits élémentaires** — les Déités — survivent, affaiblis, cherchant leurs représentants humains.
+
+Le héros, ancien soldat, est entraîné malgré lui dans une quête qui le dépasse. Accompagné d'un groupe de compagnons aux origines et aux races variées, il devra parcourir un monde en ruine, renouer les liens entre les Déités et leurs représentants, et faire face à une vérité bien plus sombre que prévu sur les origines du cataclysme.
+
+Le jeu se déroule sur **4 actes**. Chaque région libérée se transforme visuellement. Chaque choix narratif a des conséquences durables.
+
+---
+
+## 👥 Cast (aperçu)
+
+Un groupe de personnages aux races distinctes — Humain, Humaine Céleste, Beastman Félin, Nains, DragonFolk, Beastman Loup, Sproutling — chacun lié à une Déité élémentaire parmi les huit que compte le monde de Mana.
+
+Huit Déités : **Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade.**
+
+---
+
+## ⚙️ Systèmes clés
+
+**Combat**
+- Système de combos par arme (TMap de steps, progression par niveau)
+- Lock-on, esquive, stamina — philosophie Dark Souls
+- Radial menu en slow-motion pour changer d'arme ou lancer un sort
+
+**Magie**
+- 8 écoles élémentaires, déblocage progressif lié à la narration
+- Arbre de progression par déité
+- Système de **Corruption Magique** : utiliser la magie corrompt le héros — risque/récompense
+
+**Armes**
+- Plusieurs types (Épée, Greatsword, Arc, Lance, Hache...)
+- Évolution par étapes via la forge — matériaux + jalons narratifs requis
+- Inspiré du système d'armes Seiken : chaque arme a son moveset propre
+
+**Progression**
+- Système de stats hybride : montée de niveau globale + progression par usage (armes, magie)
+- Double monnaie : Essence de Mana (perdue à la mort, récupérable) + Pièces d'Or (permanentes)
+- Équipement 3 slots, consommables Seiken
+
+**Hub & Monde**
+- Ville centrale qui se reconstruit progressivement au fil des avancées narratives
+- PNJs rencontrés en route reviennent peupler la ville
+- Fontaines de Fée : mécanisme de repos (inspiré des feux Dark Souls), intégré au lore
 
 ---
 
 ## 🗂️ Structure du dossier `Content/` (schéma simplifié)
 
+```
 Content/
-├── Core/ # BP parents, GameMode, GameInstance, PlayerController
-├── Systems/ # Combat, Stats, Inventory, LockOn, Save, Quest, Dialogue, Audio
-├── UI/ # Widgets, HUD, RadialMenu, Debug, LockOnIndicator, etc.
-├── Data/ # DataTables, DataAssets (objets, stats, quêtes, dialogues…)
-├── Characters/ # Joueurs, Ennemis, PNJ (BPs, Meshes, Animations)
-├── Audio/ # Cues, Mixes, Musiques, SFX, VO
-├── Weapons/ # Blueprints, Data, Meshes
-├── Levels/ # Maps, Prototypage
-├── Magic/ # FX, sorts, Data
-├── Dev/ # Sandbox, prototypes, debug, expérimentations
-
-yaml
-Copier
-Modifier
-
-> **Voir le fichier `Structure_Dossier_Content.md` pour l’arborescence complète et commentée.**
+├── Core/        # BP parents, GameMode, GameInstance, PlayerController
+├── Systems/     # Combat, Stats, Inventory, LockOn, Save, Quest, Dialogue, Audio
+├── UI/          # Widgets, HUD, RadialMenu, etc.
+├── Data/        # DataTables, DataAssets (armes, stats, sorts, drops...)
+├── Characters/  # Héros, Ennemis, PNJ (BPs, Meshes, Animations)
+├── Audio/       # Cues, Mixes, Musiques, SFX
+├── Weapons/     # Blueprints, Data, Meshes
+├── Levels/      # Maps, Prototypage
+├── Magic/       # FX, sorts, Data
+└── Dev/         # Sandbox, prototypes, expérimentations
+```
 
 ---
 
-## ⚙️ Stack technique
+## 🛠️ Stack technique
 
 - **Blueprint Only** (aucune classe C++)
-- Basé sur le **template Plateforming** UE 5.6 (Third Person variant)
-- Systèmes modulaires : Stat System, Combat, Menu Radial, Lock-On, UI, Save, etc.
-- Versioning & suivi : **Git** (avec LFS pour les assets volumineux)
-- Documentation centralisée dans `/Docs` et `/Architecture`
-- Roadmap évolutive et journal des modifications associés à chaque milestone Git
+- **Unreal Engine 5.7.4** — template Plateforming (Third Person variant)
+- **UnrealClaude v1.4.5** : plugin IA intégré à l'éditeur (discovery & audit Blueprint via MCP)
+- Versioning : **Git + LFS** pour les assets volumineux
+- Documentation centralisée dans `/Docs` et `/Docs/Architecture`
+- Journal des modifications et roadmap maintenus à chaque session
 
 ---
 
-## 📋 Règles & conventions globales
+## 📋 Conventions globales
 
-- **Nommage Blueprint** : BP_ pour Blueprints, UI_ pour Widgets, F_/E_ pour Structs/Enums, camelCase pour variables
-- **Documentation** : chaque système possède sa fiche d’architecture dans `/Architecture`
-- **Commits Git** : message structuré, référence au module impacté, date
-- **Sandbox/Dev** : tout prototype temporaire est isolé dans `/Dev` pour éviter la pollution du projet
-
----
-
-## 🚀 Roadmap Macro
-
-- Mise en place du Stat System (out of the box, scalable, modulaire)
-- Intégration Combat System (combo, lock-on, esquive, gestion stamina)
-- Déploiement du Menu Radial, UI et Debug
-- Extension Inventaire, Quêtes, Sauvegarde, Lore, Audio, etc.
+- **Nommage** : `BP_` Blueprints, `UI_` Widgets, `F_`/`E_` Structs/Enums, camelCase variables
+- **Architecture** : chaque système a sa fiche dans `Docs/Architecture/`
+- **Commits** : format `type(som): description` — référence au module, date
+- **Prototypes** : isolés dans `/Dev` pour ne pas polluer la structure principale
 
 ---
 
-## 👤 Crédit / Contributeur
+## 👤 Crédits
 
-- **Développeur principal** : [Ton Nom/Pseudo]
-- **Assistant architecture & support** : ChatGPT (OpenAI)
-- **Projet privé / prototypage / expérience personnelle**
-
----
-
-## 📁 Index documentaire
-
-Voir : `Project_Architecture_Index.md` pour la liste exhaustive de la documentation technique.
+- **Lead Developer** : YazooAlvein
+- **Assistant IA architecture & support** : projet initié avec ChatGPT (OpenAI), repris et développé avec Claude (Anthropic)
+- **Projet personnel** — prototypage & expérience de développement solo
 
 ---
 
-## 📝 Notes complémentaires
+## 📁 Documentation
 
-- Toutes les docs et schémas sont en français.
-- Ce fichier fait foi pour la présentation générale du projet et sert de README principal pour le repo Git.
+| Document | Contenu |
+|----------|---------|
+| `CLAUDE.md` | Contexte IA, architecture clé, jalons, règles |
+| `Docs/Roadmap_Gameplay.md` | Planification complète par couches |
+| `Docs/Journal_Modifications.md` | Historique de toutes les sessions |
+| `Docs/Lore_ShadowOfMana.md` | Lore, cast, structure narrative |
+| `Docs/Project_Architecture_Index.md` | Index de toute la documentation technique |
+| `Docs/Architecture/` | Fiches système détaillées |
 
 ---
-> Création : [17/06/2025]
-> Dernière mise à jour : [JJ/MM/AAAA]
+
+> Création : 17/06/2025
+> Dernière mise à jour : 29/05/2026
