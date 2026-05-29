@@ -13,13 +13,13 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 29/05/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour |
-| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour |
-| Planning sessions | Docs/Planning_Sessions.md | Mis a jour |
-| Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 26/05 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 29/05/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 29/05/2026 |
+| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 29/05/2026 |
+| Planning sessions | Docs/Planning_Sessions.md | A verifier |
+| Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 29/05/2026 |
 | Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
 
 ---
@@ -35,6 +35,10 @@ A mettre a jour a chaque creation ou modification de document.
 | Weapons System | Weapons_System_Architecture.md | Stable |
 | Combo System | Combo_System_Architecture.md | Stable |
 | Stats System | Stats_Architecture.md | Stable |
+| Stats & Progression design | Stats_Progression.md | Mis a jour 29/05/2026 |
+| Effets statut & Corruption | Combat_StatusEffects.md | Mis a jour 29/05/2026 |
+| Economie & Drops | Economy_Drops.md | Design valide 28/05 |
+| Decisions architecturales | Decisions.md | Mis a jour 29/05/2026 |
 | Combat System | Combat_Architecture.md | Stable |
 | Damage & Collision | Damage_Collision_Architecture.md | Stable |
 | Lock-On | LockOn_Architecture.md | Stable |
@@ -55,27 +59,35 @@ A mettre a jour a chaque creation ou modification de document.
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique
+## Jalons Cycle 1 -- etat synthetique (29/05/2026)
 
 | Jalon | Statut |
 |---|---|
-| J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | Complets |
-| C1-CollisionFix | Complet |
-| C1-HitFeel | Partiel (knockback + shake ok, gamepad manque, hitstop reporte) |
-| C1-HitFlashEnemies | Abandonne (21/05/2026) |
-| C1-CleanupDettes | Partiel (3/4 faits, reste LockOnSwitchCooldown PC) |
-| C1-InputsUI | Complet VALIDE PIE (23/05/2026) |
-| C1-RadialMagie | Complet VALIDE PIE (25/05/2026) |
-| C1-MagicProgressionDesign | Design valide (25/05/2026) |
-| C1-MagicDataLayer | Complet VALIDE PIE (25/05/2026) |
-| C1-MagicUnlockSystem | A faire -- PRIORITAIRE |
-| C1-WeaponArchitecture | A faire |
-| C1-SwordMoveset | A faire |
-| C1-SaveDesign | A faire |
-| C1-BowPOC | A faire |
-| C1-WeaponSwitching | A faire |
-| C1-SFXCombat | A faire |
-| C1-AnimationsPass1 | A faire (fin C1) |
+| J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | ✅ Complets |
+| C1-CollisionFix | ✅ Complet VALIDE PIE |
+| C1-HitFeel | 🔧 Partiel (knockback + shake OK, gamepad manque, hitstop reporte) |
+| C1-HitFlashEnemies | ❌ Abandonne (21/05/2026) |
+| C1-CleanupDettes | ✅ Complet (27/05/2026) |
+| C1-InputsUI | ✅ Complet VALIDE PIE (23/05/2026) |
+| C1-RadialMagie | ✅ Complet VALIDE PIE (25/05/2026) |
+| C1-MagicProgressionDesign | ✅ Design valide (25/05/2026) |
+| C1-MagicDataLayer | ✅ Complet VALIDE PIE (25/05/2026) |
+| C1-MagicUnlockSystem | ✅ Complet VALIDE PIE (27/05/2026) |
+| C1-WeaponArchitecture + Refacto | ✅ Complet VALIDE PIE (29/05/2026) |
+| DESIGN-StatsProgression | ✅ Design valide (28/05/2026) |
+| DESIGN-StatusEffects | ✅ Design valide (28/05/2026) |
+| DESIGN-Corruption | ✅ Design valide (28/05/2026) |
+| DESIGN-Economy | ✅ Design valide (28/05/2026) |
+| DESIGN-Lore | ✅ Design valide enrichi (29/05/2026) |
+| DESIGN-WeaponArchitecture | ✅ Design valide (29/05/2026) |
+| C1-SwordMoveset | ⏳ A faire -- PRIORITAIRE |
+| C1-HUDCore | ⏳ A faire -- apres C1-SwordMoveset |
+| C1-SaveDesign | ⏳ A faire |
+| C1-BowPOC | ⏳ A faire |
+| C1-WeaponSwitching | ⏳ A faire |
+| C1-SFXCombat | ⏳ A faire |
+| C1-MagicTreeModule | ⏳ A faire |
+| C1-AnimationsPass1 | ⏳ A faire (fin C1) |
 
 ---
 
@@ -92,3 +104,4 @@ A mettre a jour a chaque creation ou modification de document.
 - Creation : 17/06/2025
 - MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
 - MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md, Lore mis a jour
+- MAJ 29/05/2026 : jalons C1 remis a jour (C1-WeaponArchitecture complet, tous DESIGN valides), ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md dans index, dates mises a jour
