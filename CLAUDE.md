@@ -202,9 +202,9 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ### Radial Armes -- VALIDE PIE (29/05/2026)
 - PopulateWeaponSlots lit InventoryComponent.GetWeapons() (plus HC.DiscoveredWeapons)
-- Mecanique : roue tourne, curseur fixe en haut (position 0)
+- Mecanique : roue tourne sur arme equipee a l'ouverture, curseur fixe en haut (position 0)
 - Guard : si CurrentWeaponID == None -> pas de modification rotation
-- Bug ouvert : reouverture apres changement arme -> mauvaise rotation -> C1-WeaponArchitecture
+- Dette curseur : position initiale toujours slot 0 -> C?-RadialRefacto (refonte systeme Radial)
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
@@ -213,7 +213,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ### UI / HUD
 - UI_HUD_Main : event-driven -- FINALISE
-- A ajouter (C1-WeaponArchitecture) : jauges Stamina, Mana, Essence, Corruption
+- Jauges Stamina/Mana/Essence/Corruption : a faire (C1-HUDCore)
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -233,7 +233,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites (28/05/2026)
 - [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
 - [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
-- [x] C1-WeaponArchitecture Refacto : EquipWeapon sur ComboManager, BP_InventoryComponent cree et branche, InitComboTree allege, PopulateWeaponSlots migre VALIDE PIE (29/05/2026)
+- [x] C1-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
 
 ## Dettes techniques
 
@@ -241,29 +241,28 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **Radial Armes : bug reouverture apres changement arme** (C1-WeaponArchitecture)
-- **HandleAttack ErrorType=1 sur HC** (C1-WeaponArchitecture -- a verifier PIE)
+- **Radial curseur position initiale a l'ouverture** (C?-RadialRefacto -- refonte complete systeme Radial)
 - **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
 - **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (C1-SwordMoveset)
 - **Stats ennemis BP_Enemy_Base** (C2-EnemyTypes)
-- **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-WeaponArchitecture)
+- **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-HUDCore)
 - **BP_StatusEffectComponent** (C1-SwordMoveset)
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
-- **InitComboTree : pin WeaponID encore dans signature (inutilise)** -> nettoyer (C1-WeaponArchitecture)
 - **Radial dedie objets consommables** (C7-HUDPolish)
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture** -- finaliser : bug reouverture Radial, HandleAttack ErrorType=1, jauges HUD, nettoyage signatures
-2. **C1-SwordMoveset** + BP_StatusEffectComponent + TenaciteEtat dans AttributeSet
+1. **C1-SwordMoveset** + BP_StatusEffectComponent + TenaciteEtat dans AttributeSet
+2. **C1-HUDCore** : jauges Stamina, Mana, Essence, Corruption
 3. **SaveDesign** : spec Fontaine de Fee
 4. **C1-MagicTreeModule** : arbre de talents
 5. **C2-SaveGame**
 6. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
-7. **Session Noms personnages** : soeur + fee ensemble ⚠️
-8. **Session Lore Deites** : rituels, cout Essence
-9. **Session zones acte 1** : structure, Fontaines, enchaînement
-10. **C1-AnimationsPass1**
+7. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
+8. **Session Noms personnages** : soeur + fee ensemble ⚠️
+9. **Session Lore Deites** : rituels, cout Essence
+10. **Session zones acte 1** : structure, Fontaines, enchaînement
+11. **C1-AnimationsPass1**
 
 ## Sessions design a planifier
 
@@ -297,8 +296,9 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Switch arme en combo = reset combo complet, pas de grisage Radial
 - TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs (a implementer)
 - UpgradeWeaponLevel : Option A runtime (etape 6 C1-WeaponArchitecture)
-- Radial roue tourne / curseur fixe haut -- TargetRotation = -(Index * AnglePerSlot) dans PopulateWeaponSlots
+- Radial roue tourne sur arme equipee a l'ouverture -- TargetRotation = -(EquippedIndex * AnglePerSlot)
 - Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
+- Radial curseur position initiale : systeme heterogene -> reporte C?-RadialRefacto
 - UnlockDeity : "Set Members in FSoM_DeitySpells" NON "Make FSoM_DeitySpells"
 - UnlockDeity Map_Contains : TRUE = deja present -> return
 - search_nodes("UnlockDeity") = 0 -> chercher "Unlock Deity" (avec espace)
