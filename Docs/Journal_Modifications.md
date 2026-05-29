@@ -5,6 +5,31 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 29/05/2026 -- C1-WeaponArchitecture -- CLOTURE
+
+#### Radial -- rotation a l'ouverture -- VALIDE PIE (partiel)
+- Bug rotation corrige : PopulateWeaponSlots positionne maintenant la roue sur l'arme equipee (CurrentWeaponID) a chaque ouverture
+- Fix : TargetRotation = -(EquippedIndex * AnglePerSlot) calcule depuis Array_Find(CurrentWeaponID) dans GetWeapons()
+- Fix : SET SelectedIndex branche sur Array Index du ForEach SlotDataList (etait hardcode a 0)
+- Fix : pin A du Equal(Integer) dans ForEach SlotWidgets branche sur Array Index (etait non connecte)
+- Bug curseur position initiale : toujours sur slot 0 independamment de l'arme equipee
+- Cause : systeme Radial heterogene (melange ancienne base + factorisations recentes) -- audit UnrealClaude realise
+- Decision : dette reportee vers C?-RadialRefacto (refonte complete du systeme Radial a planifier)
+
+#### Dettes resolues cette session
+- HC.DiscoveredWeapons supprimee de HC : FAIT
+- InitComboTree pin WeaponID inutilise nettoye : FAIT
+- HandleAttack ErrorType=1 : VERIFIE / RESOLU
+
+#### Dettes restantes -> reportees
+- Radial curseur position initiale a l'ouverture -> C?-RadialRefacto
+- Jauges HUD Stamina/Mana/Essence/Corruption -> C1-HUDCore
+
+#### Etat final
+C1-WeaponArchitecture clos. Rotation Radial fonctionnelle. Curseur position initiale reporte en dette RadialRefacto. Prochain jalon : C1-SwordMoveset ou C1-HUDCore.
+
+---
+
 ### 29/05/2026 -- C1-WeaponArchitecture -- Refacto EquipWeapon + BP_InventoryComponent -- VALIDE PIE
 
 #### BP_InventoryComponent -- VALIDE PIE
@@ -17,7 +42,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 #### ComboManager.EquipWeapon -- VALIDE PIE
 - Nouvelle fonction EquipWeapon(WeaponID, WeaponLevel) sur BP_ComboManagerComponent
 - Flux : SET CurrentWeaponID -> SET CurrentWeaponLevel -> SET CurrentStepID="Start" -> SET CanAttack=true -> GetDataTableRow(DT_Weapons, WeaponID) -> InitComboTree(WeaponData)
-- HC.EquipWeapon delgue vers ComboManager.EquipWeapon au lieu d'appeler InitComboTree directement
+- HC.EquipWeapon delegue vers ComboManager.EquipWeapon au lieu d'appeler InitComboTree directement
 - Bug resolu : InitComboTree avait pin WeaponID orphelin (supprime de la signature) -> Refresh Node + rebranching
 
 #### InitComboTree -- allege -- VALIDE PIE
@@ -34,13 +59,6 @@ Suivi precis de toutes les evolutions majeures du projet.
 #### PopulateWeaponSlots -- mis a jour -- VALIDE PIE
 - Lecture HC.DiscoveredWeapons remplacee par InventoryComponent.GetWeapons()
 - Cast HC -> GET InventoryComponent -> GetWeapons() -> ForEach
-
-#### Dettes restantes
-- HC.DiscoveredWeapons : variable encore presente sur HC (a supprimer proprement)
-- InitComboTree : pin WeaponID encore dans la signature (inutilise, a nettoyer)
-- DiscoveredWeapons par defaut : renseignees en Details panel instance HC (pas BeginPlay) -> dette SaveGame
-- HandleAttack ErrorType=1 sur HC : toujours ouvert -> C1-WeaponArchitecture
-- Bug reouverture Radial : toujours ouvert -> C1-WeaponArchitecture
 
 #### Etat final
 Refacto EquipWeapon valide PIE. ComboManager = source de verite arme. InventoryComponent cree et branche. Switch arme + combos fonctionnels. Radial peuple correctement depuis InventoryComponent.
@@ -106,16 +124,9 @@ Spec complete dans Docs/Architecture/Decisions.md.
 - Guard ajoute : si CurrentWeaponID == None -> ne pas modifier les rotations
 - Premiere ouverture avec arme equipee : OK
 - Bug ouvert : a la reouverture apres changement d'arme, la roue ne se repositionne pas correctement
-- Cause suspectee : CurrentWeaponID dans ComboManager non mis a jour apres ValidateSelectedWeapon -> EquipWeapon
-
-#### Dettes identifiees cette session
-- Refonte EquipWeapon (dette C1) : logique eparpillee HC / ComboManager / UI_Radial / PC -> unifier avant cloture C1-WeaponArchitecture
-- HandleAttack ErrorType=1 sur HC : a verifier PIE
-- SaveGame : BeginPlay charger arme -> EquipWeapon
-- BP_Enemy_Base : stats manquantes + WeaponClass generique
 
 #### Etat final
-Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug reouverture ouvert. Refonte EquipWeapon identifiee comme dette C1 critique.
+Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug reouverture ouvert.
 
 ---
 
