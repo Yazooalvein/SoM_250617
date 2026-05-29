@@ -1,5 +1,5 @@
 # Stats & Progression — Shadow of Mana
-# Spec design validee le 28/05/2026 -- MAJ 28/05/2026
+# Spec design validee le 28/05/2026 -- MAJ 29/05/2026
 
 ---
 
@@ -18,6 +18,7 @@
 Stats supplementaires (cles a ajouter dans BP_AttributeSet_Base) :
 - "Level", "EssenceMana", "EssenceManaDropped", "PiecesOr", "ChanceCritique", "Corruption"
 - "ManaMax", "ManaCurrent" (separees de Magie -- voir section 8)
+- "TenaciteEtat" : base 25, cle supplementaire (pas une 8eme stat visible) -- impactee par equipement + debuffs + Corruption
 
 Toutes les stats passent par SetStatValue / OnStatChanged (architecture existante).
 
@@ -53,7 +54,7 @@ A chaque level up :
 Courbe automatique par niveau :
 
 | Niveau | PV | Attaque | Defense | Magie | Resistance | Endurance | Vitesse |
-|--------|----|---------|---------|-------|------------|-----------|---------|
+|--------|----|---------|---------|-------|------------|-----------|---------| 
 | 1 | 100 | 10 | 5 | 10 | 5 | 100 | 10 |
 | 2 | 115 | 11 | 6 | 11 | 6 | 105 | 10 |
 | 3 | 130 | 12 | 7 | 12 | 7 | 110 | 11 |
@@ -222,13 +223,12 @@ Seules sources de soin : sorts Heal, consommables (Bonbon/Noix/Miel), Fontaine d
 |-------|-------|
 | Cout Essence par niveau de deite | Session Lore Deites |
 | Valeurs ResistanceElementaire par type ennemi | C2-EnemyTypes |
-| TenaciteEtat heros valeur de base | C1-SwordMoveset |
-| BP_StatusEffectComponent : quand creer ? | C1-SwordMoveset |
-| Vitesse influe-t-elle sur vitesse anim recuperation stamina ? | C1-WeaponArchitecture |
+| Vitesse influe-t-elle sur vitesse anim recuperation stamina ? | C1-SwordMoveset |
 | Prerequis niveau equipement | C5-Equipment |
 | Calibrage prix PO et drops | Playtest acte 1 |
 
 ---
 
-*Cree le 28/05/2026 -- MAJ 28/05/2026 : ajout ManaMax, PO, equipement, formule cout sorts*
-*Prochaine mise a jour prevue : C1-WeaponArchitecture*
+*Cree le 28/05/2026*
+*MAJ 28/05/2026 : ajout ManaMax, PO, equipement, formule cout sorts*
+*MAJ 29/05/2026 : TenaciteEtat heros base 25 acte (RESOLU -- C1-WeaponArchitecture), points ouverts nettoyes*
