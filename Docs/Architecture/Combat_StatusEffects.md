@@ -1,5 +1,5 @@
 # Effets de Statut & Corruption Magique -- Shadow of Mana
-# Spec design validee le 28/05/2026
+# Spec design validee le 28/05/2026 -- MAJ 29/05/2026
 
 ---
 
@@ -35,11 +35,18 @@ Chaque effet est represente par :
 
 Reduction par TenaciteEtat : `DureeEffective = Duration * (1 - TenaciteEtat)`
 
-### Implementation recommandee
+### TenaciteEtat heros -- RESOLU (29/05/2026)
+
+- Valeur de base heros : **25** (cle supplementaire BP_AttributeSet_Base -- pas une 8eme stat visible)
+- Modifiable par : equipement, buffs/debuffs, Corruption
+- Corruption reduit TenaciteEtat -> boucle de pression (plus corrompu = plus vulnerable)
+- Passe par SetStatValue comme toutes les stats
+- A implementer dans C1-SwordMoveset
+
+### Implementation
 
 `BP_StatusEffectComponent` sur BP_SoM_HeroCharacter ET BP_Enemy_Base.
-A creer lors de C1-SwordMoveset ou apres selon priorites.
-Les sorts Debuff Lumina existants peuvent utiliser un stub en attendant.
+A creer lors de **C1-SwordMoveset**.
 
 ---
 
@@ -58,17 +65,17 @@ C'est un systeme de risque/recompense : haute Corruption = farming accelere mais
 - Pas de faiblesse elementaire, pas d'effets de statut
 - Le joueur apprend le systeme sans risque maximal
 
-**Phase 2 -- apres la revelation du lien Hero/Ombre**
+**Phase 2 -- apres le Sanctuaire d'Ombre (milieu acte 1)**
 - Plafond : 100 (leve involontairement par Ombre suite a la decheance de la Mana)
 - Narrativement : Ombre ne "choisit" pas de corrompre le heros -- c'est la consequence de son etat blesse
-- Faiblesse a 75 : element de la **deite la plus utilisee** au moment du franchissement (deterministe, lisible)
+- Faiblesse a 75 : element de la **deite la plus utilisee DEPUIS LA DERNIERE PURGE** (deterministe, lisible)
 - Effet de statut a 100 : celui de cette **meme deite** toutes les 30s -- consequence directe des choix de jeu
 
 ### Jauge Corruption
 
 - Float 0.0 -> plafond (50 ou 100 selon phase) sur BP_SoM_HeroCharacter
 - Cle SetStatValue : "Corruption"
-- Visible dans le HUD (a ajouter a UI_HUD_Main)
+- Visible dans le HUD (a ajouter a UI_HUD_Main -- C1-HUDCore)
 - Purge complete a la Fontaine de Fee
 
 ### Generation de Corruption par sort
@@ -97,7 +104,7 @@ C'est un systeme de risque/recompense : haute Corruption = farming accelere mais
 | 0-24 | Aucun | x1.0 (base) |
 | 25-49 | Aura visible (cosmetique -- signal d'alerte) | x1.15 |
 | 50-74 | -20% resistances elementaires heros | x1.35 |
-| 75-99 | Faiblesse element (deite la plus utilisee) + perte stamina a chaque sort | x1.60 |
+| 75-99 | Faiblesse element (deite la plus utilisee depuis purge) + perte stamina a chaque sort | x1.60 |
 | 100 | Effet de statut (deite la plus utilisee) toutes les 30s | x1.60 (plafond) |
 
 Le bonus Essence plafonne a x1.60 -- atteindre 100 n'apporte aucun farming supplementaire mais ajoute des penalites.
@@ -112,7 +119,7 @@ Cela donne aux sorts Heal un role strategique au-dela du simple soin.
 
 - Remet Corruption a 0
 - Si Corruption >= 75 : la fee est "epuisee" -- impossible de monter le niveau d'une deite lors de cette visite
-- Si Corruption = 100 : purge forcee, la fee gronde (effet narratif a definir en Session Lore Fee)
+- Si Corruption = 100 : purge forcee, la fee gronde (effet narratif a definir -- Session Lore Fee)
 - Mobs normaux respawnent a chaque visite
 
 ---
@@ -122,14 +129,13 @@ Cela donne aux sorts Heal un role strategique au-dela du simple soin.
 | Sujet | Lie a |
 |-------|-------|
 | Duree des effets de statut par defaut | C1-SwordMoveset |
-| TenaciteEtat valeur de base heros | C1-SwordMoveset |
 | Effet narratif exact Corruption=100 (dialogue fee ?) | Session Lore Fee |
 | Aura visuelle Corruption >= 25 : shader, particules ? | ART ou C4 |
 | Soins excessifs corrompent-ils vraiment (+0.5) ? | Playtest |
-| Quand exactement debloquer Corruption Phase 2 ? | Session Lore Ombre |
+| Calibrage Corruption -> reduction TenaciteEtat (valeurs exactes) | Session Economie/Calibrage |
 
 ---
 
 *Cree le 28/05/2026*
-*MAJ 28/05/2026 : Corruption Phase 1/2, lien narratif Ombre, faiblesse = deite la plus utilisee*
-*Prochaine mise a jour prevue : C1-SwordMoveset (BP_StatusEffectComponent)*
+*MAJ 28/05/2026 : Corruption Phase 1/2, lien narratif Ombre, faiblesse = deite la plus utilisee depuis purge*
+*MAJ 29/05/2026 : TenaciteEtat heros base 25 RESOLU (C1-WeaponArchitecture), points ouverts nettoyes*
