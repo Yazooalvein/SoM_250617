@@ -101,12 +101,18 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - BP_CombatLockOnComponent : tout l'etat lock-on
 - BP_MagicComponent : tout l'etat magie
 - BP_ComboManagerComponent : arme courante + niveau arme + etat combo
-- BP_InventoryComponent : armes decouvertes + consommables + materiaux craft + equipement (a creer)
+- BP_InventoryComponent : armes decouvertes (Content/Systems/Inventory/) -- extensible consommables/craft/equip
+
+### BP_InventoryComponent -- VALIDE PIE (29/05/2026)
+- Variables : DiscoveredWeapons (Array<Name>)
+- Fonctions : AddWeapon(WeaponID : Name), GetWeapons() -> Array<Name>
+- Valeurs par defaut renseignees en Details panel instance HC (dette -> BeginPlay a terme)
+- Radial lit GetWeapons() pour peupler les slots armes
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
 - Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
-- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (29/05/2026)
+- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (a implémenter)
 - Progression hybride : niveaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
 - Essence de Mana : progression -- perdue a la mort, recuperable DS-like
 - Pieces d'Or : economie -- jamais perdues
@@ -177,32 +183,28 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - BP_CombatLockOnComponent sur Character -- SwitchCooldown source unique
 
 ### Ennemis
-- BP_Enemy_Base : stats a ajouter (C1-WeaponArchitecture ou C2-EnemyTypes)
+- BP_Enemy_Base : stats a ajouter (C2-EnemyTypes)
 - BP_Enemy_TestBed : stats Instance Editable
 
-### Combat -- VALIDE PIE (18/05/2026)
-- BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack
+### Combat -- VALIDE PIE (29/05/2026)
+- BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack, EquipWeapon
 - Flow : IA_Attack -> CanAttack -> HandleAttack -> PlayAttackMontage
-- CanAttack : source unique ComboManager (HC.CanAttack supprime -- etape 5 C1-WeaponArchitecture)
-- Switch arme en combo = reset combo complet (punition) -- pas de grisage Radial (29/05/2026)
+- CanAttack : source unique ComboManager
+- Switch arme en combo = reset combo complet (punition) -- pas de grisage Radial
 
-### Armes
-- FWeaponData : a enrichir CoeffArme + VitesseAttaque (C1-WeaponArchitecture)
-- ComboManager.CurrentWeaponID = source unique arme equipee (HC.ChoosenWeapon supprime)
-- EquipWeapon vit sur BP_ComboManagerComponent
-- UpgradeWeaponLevel : implemente Option A (runtime, sans SaveGame) -- etape 6 C1-WeaponArchitecture
+### Armes -- VALIDE PIE (29/05/2026)
+- FWeaponData : CoeffArme + VitesseAttaque present (a utiliser dans formule degats)
+- ComboManager.CurrentWeaponID = source unique arme equipee
+- ComboManager.EquipWeapon(WeaponID, WeaponLevel) = point d'entree unique equipement arme
+  - Flux : SET CurrentWeaponID/Level/StepID/CanAttack -> GetDataTableRow(DT_Weapons) -> InitComboTree(WeaponData)
+- HC.EquipWeapon = spawn physique arme + attach HandGrip_R + AddWeapon(InventoryComponent) + appel ComboManager.EquipWeapon
+- InitComboTree(WeaponData) = responsabilite unique : Map_Clear + charger ComboStepMap depuis DT_Combo
 
-### Inventaire (a creer -- C1-WeaponArchitecture)
-- BP_InventoryComponent : DiscoveredWeapons, consommables Seiken, materiaux craft, equipement
-- Radial lit BP_InventoryComponent pour peupler les slots armes
-- ComboManager ne connait que l'arme equipee, pas l'inventaire
-
-### Radial Armes -- PARTIEL (28/05/2026)
+### Radial Armes -- VALIDE PIE (29/05/2026)
+- PopulateWeaponSlots lit InventoryComponent.GetWeapons() (plus HC.DiscoveredWeapons)
 - Mecanique : roue tourne, curseur fixe en haut (position 0)
-- PopulateWeaponSlots : TargetRotation = -(EquippedIndex * AnglePerSlot), CurrentRotation = TargetRotation, SelectedIndex = 0
 - Guard : si CurrentWeaponID == None -> pas de modification rotation
-- Bug ouvert : reouverture apres changement arme -> mauvaise rotation (CurrentWeaponID non mis a jour ?)
-- DETTE C1 : refonte EquipWeapon + migration InventoryComponent necessaires pour corriger le bug
+- Bug ouvert : reouverture apres changement arme -> mauvaise rotation -> C1-WeaponArchitecture
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
@@ -228,9 +230,10 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-MagicProgression (26/05/2026)
 - [x] C1-MagicUnlockSystem, RadialUnlock, C1-CleanupDettes (27/05/2026)
 - [x] DESIGN-StatsProgression, DESIGN-StatusEffects, DESIGN-Corruption, DESIGN-Economy (28/05/2026)
-- [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites, conflit Loup/DragonFolk (28/05/2026)
+- [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites (28/05/2026)
 - [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
 - [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
+- [x] C1-WeaponArchitecture Refacto : EquipWeapon sur ComboManager, BP_InventoryComponent cree et branche, InitComboTree allege, PopulateWeaponSlots migre VALIDE PIE (29/05/2026)
 
 ## Dettes techniques
 
@@ -239,21 +242,20 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial Armes : bug reouverture apres changement arme** (C1-WeaponArchitecture)
-- **Refonte EquipWeapon : migrer sur ComboManager, supprimer HC.ChoosenWeapon** (C1-WeaponArchitecture -- CRITIQUE)
-- **Creer BP_InventoryComponent : migrer DiscoveredWeapons + consommables + craft + equip** (C1-WeaponArchitecture)
 - **HandleAttack ErrorType=1 sur HC** (C1-WeaponArchitecture -- a verifier PIE)
 - **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
-- **Nouvelles stats BP_AttributeSet_Base (dont TenaciteEtat base 25)** (C1-WeaponArchitecture)
-- **Stats ennemis BP_Enemy_Base** (C1-WeaponArchitecture ou C2-EnemyTypes)
-- **CoeffArme + VitesseAttaque FWeaponData** (C1-WeaponArchitecture)
+- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (C1-SwordMoveset)
+- **Stats ennemis BP_Enemy_Base** (C2-EnemyTypes)
 - **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-WeaponArchitecture)
 - **BP_StatusEffectComponent** (C1-SwordMoveset)
+- **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
+- **InitComboTree : pin WeaponID encore dans signature (inutilise)** -> nettoyer (C1-WeaponArchitecture)
 - **Radial dedie objets consommables** (C7-HUDPolish)
 
 ## Prochains jalons
 
-1. **C1-WeaponArchitecture + Refacto** (EquipWeapon sur ComboManager, BP_InventoryComponent, HC.ChoosenWeapon supprime -- CRITIQUE)
-2. **C1-SwordMoveset** + BP_StatusEffectComponent
+1. **C1-WeaponArchitecture** -- finaliser : bug reouverture Radial, HandleAttack ErrorType=1, jauges HUD, nettoyage signatures
+2. **C1-SwordMoveset** + BP_StatusEffectComponent + TenaciteEtat dans AttributeSet
 3. **SaveDesign** : spec Fontaine de Fee
 4. **C1-MagicTreeModule** : arbre de talents
 5. **C2-SaveGame**
@@ -283,15 +285,17 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - IA_Look dans PC (pas HeroCharacter)
 - Move() lock-on : GetPlayerCameraManager -> GetCameraRotation
 - LastAxisX/LastAxisY : doubles sur HeroCharacter, SET au Triggered IA_Move
-- InitComboTree(WeaponID, WeaponLevel) : appele par EquipWeapon
 - LevelMin = 0 dans DT_Combo
 - HandleAttack sans parametre ChoosenWeapon
-- HC.CanAttack supprime -- source unique ComboManager.CanAttack (etape 5 C1-WeaponArchitecture)
-- HC.ChoosenWeapon SUPPRIME -- source unique ComboManager.CurrentWeaponID (29/05/2026)
-- EquipWeapon vit sur BP_ComboManagerComponent (pas HC) -- (29/05/2026)
-- BP_InventoryComponent = source de DiscoveredWeapons pour le Radial (29/05/2026)
-- Switch arme en combo = reset combo complet, pas de grisage Radial (29/05/2026)
-- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs (29/05/2026)
+- HC.CanAttack supprime -- source unique ComboManager.CanAttack
+- HC.ChoosenWeapon SUPPRIME -- source unique ComboManager.CurrentWeaponID
+- ComboManager.EquipWeapon(WeaponID, WeaponLevel) = point d'entree unique equipement arme
+- InitComboTree(WeaponData) = responsabilite unique : charger ComboStepMap (pas de SETs d'etat)
+- HC.EquipWeapon = spawn physique + InventoryComponent.AddWeapon + ComboManager.EquipWeapon
+- PopulateWeaponSlots lit InventoryComponent.GetWeapons() (pas HC.DiscoveredWeapons)
+- BP_InventoryComponent : Actor Component, Content/Systems/Inventory/
+- Switch arme en combo = reset combo complet, pas de grisage Radial
+- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs (a implementer)
 - UpgradeWeaponLevel : Option A runtime (etape 6 C1-WeaponArchitecture)
 - Radial roue tourne / curseur fixe haut -- TargetRotation = -(Index * AnglePerSlot) dans PopulateWeaponSlots
 - Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
