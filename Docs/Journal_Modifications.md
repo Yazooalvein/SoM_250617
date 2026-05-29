@@ -5,6 +5,57 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 29/05/2026 -- Session design Lore -- Structure narrative + Armes Mana + Hub -- DESIGN VALIDE
+
+#### Decheance Mana -- impact monde et exception heros
+- Decheance Mana = impact visuel global (zones assombries, faune/flore corrompues/mutees)
+- Humanoïdes normaux non impactes physiquement
+- Heros = seule exception : subit la Corruption de la Mana (lien Ombre, a reveiller progressivement)
+- Indices visuels subtils de Corruption sur le heros
+- Pretresse (Lumina) et Suivante (Luna) percoivent ces signes (sensibilite Mana de leurs deites)
+- Garcon Loup et Colosse ne les percoivent pas (pas encore eveilles a leur deite)
+
+#### Structure actes -- enrichissement
+- Acte 1 : mise en place monde brise, equipe, mystere heros/Ombre -- theme principal
+- Acte 2 : retour Hub (non reconstruit a l'arrivee), restauration zone par zone, liberation deite = changement esthetique zone + PNJs reviennent au Hub + reconstruction progressive
+- Boss A2 = General de l'Empire : choix moral + revelation soeur encore en vie (fragment)
+- Acte 3 : recherche soeur + verite Grande Guerre + Epee Mana restauree + Demon Mana
+- Acte 4 : Demon Primordial + Flammy debloque + resolution toutes lignes narratives
+- Question ouverte : presence General avant boss A2 (Option A = present dans zones, Option B = boss surprise) -- en maturation
+
+#### Ville Hub -- reconstruction progressive
+- Non reconstruite a l'arrivee du groupe (debut A2) -- zone encore instable
+- Se reconstruit step by step a chaque zone liberee
+- PNJs rencontres en route reviennent et participent activement
+- Forge debloquee avec Salamandre, services supplementaires avec chaque liberation
+- Reference narrative : Wendel (Seiken 2/3) + Tsaata (Vision of Mana) -- lien Lumina + centralite monde
+
+#### Armes Mana -- systeme complet
+- Armes amenees sur terre par la Deesse Mana (pas liees a une deite specifique)
+- Trouvees deteriorees dans le monde, principalement en Acte 1
+- Types : Epee, Greatsword, Axe, Bow, Lance... (liste a completer)
+- Restauration par etapes via Forgeron Nain : jalon narratif + materiaux (drop ennemis)
+- Materiaux = condition suffisante qui empeche de tout maxer au deblocage narratif
+- Nombre d'etapes calibre selon longueur totale du jeu (a definir)
+- Forgeron actif et utile tout au long du jeu
+
+#### Epee Mana -- parcours narratif
+- Pretresse transporte l'Epee brisee depuis le debut
+- Forgeron : premiere reparation (A1) = echec partiel, epee fonctionnelle mais incomplète
+- Heros l'utilise, elle se brise -> signal fort : reconnu par l'epee
+- Evolution par etapes jusqu'a etat final (type "Excalibur") en A3
+- Epee Mana completement restauree = condition pour affronter Demon Mana
+
+#### Divers
+- Flammy : debloque fin A3 / debut A4, acces lieux inaccessibles, histoire propre a developper (basse priorite)
+- Conflit Loup/DragonFolk : ancien (anterieur au cataclysme), amplifie par la Decheance Mana
+- Mort Oracle : lie soeur + Empire, initie A4, circonstances a definir
+
+#### Etat final
+Session lore productive. Structure des 4 actes clarifiee et documentee. Systeme Armes Mana pose. Hub reconstruction defini. Plusieurs questions en maturation (General, mort Oracle, nom Hub, noms personnages).
+
+---
+
 ### 29/05/2026 -- C1-WeaponArchitecture -- CLOTURE
 
 #### Radial -- rotation a l'ouverture -- VALIDE PIE (partiel)
