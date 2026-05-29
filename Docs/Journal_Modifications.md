@@ -5,6 +5,48 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 29/05/2026 -- C1-WeaponArchitecture -- Refacto EquipWeapon + BP_InventoryComponent -- VALIDE PIE
+
+#### BP_InventoryComponent -- VALIDE PIE
+- Cree en Actor Component (Content/Systems/Inventory/)
+- Variables : DiscoveredWeapons (Array<Name>)
+- Fonctions : AddWeapon(WeaponID : Name) -> Array_AddUnique, GetWeapons() -> return DiscoveredWeapons
+- Ajoute sur BP_SoM_HeroCharacter comme composant InventoryComponent
+- Valeurs par defaut (Sword_01, 2HSword_01) renseignees dans Details panel de l'instance HC
+
+#### ComboManager.EquipWeapon -- VALIDE PIE
+- Nouvelle fonction EquipWeapon(WeaponID, WeaponLevel) sur BP_ComboManagerComponent
+- Flux : SET CurrentWeaponID -> SET CurrentWeaponLevel -> SET CurrentStepID="Start" -> SET CanAttack=true -> GetDataTableRow(DT_Weapons, WeaponID) -> InitComboTree(WeaponData)
+- HC.EquipWeapon delgue vers ComboManager.EquipWeapon au lieu d'appeler InitComboTree directement
+- Bug resolu : InitComboTree avait pin WeaponID orphelin (supprime de la signature) -> Refresh Node + rebranching
+
+#### InitComboTree -- allege -- VALIDE PIE
+- Supprime : SET CurrentWeaponID, SET CurrentWeaponLevel, SET CurrentStepID, SET NextStepID, SET CanAttack
+- Conserve : Map_Clear(ComboStepMap) -> GetDataTableRowNames(DT_Combo) -> ForEach -> GetDataTableRow -> Branch -> Map_Add
+- Signature simplifiee : WeaponData (FWeaponData) uniquement (WeaponID supprime de la signature)
+- Separation propre : InitComboTree = responsabilite unique (charger ComboStepMap)
+
+#### HC.EquipWeapon -- mis a jour -- VALIDE PIE
+- Array_AddUnique(HC.DiscoveredWeapons) remplace par InventoryComponent.AddWeapon(RowName)
+- Appel InitComboTree remplace par ComboManager.EquipWeapon(WeaponID, WeaponLevel)
+- HC.ChoosenWeapon supprime (plus reference nulle part)
+
+#### PopulateWeaponSlots -- mis a jour -- VALIDE PIE
+- Lecture HC.DiscoveredWeapons remplacee par InventoryComponent.GetWeapons()
+- Cast HC -> GET InventoryComponent -> GetWeapons() -> ForEach
+
+#### Dettes restantes
+- HC.DiscoveredWeapons : variable encore presente sur HC (a supprimer proprement)
+- InitComboTree : pin WeaponID encore dans la signature (inutilise, a nettoyer)
+- DiscoveredWeapons par defaut : renseignees en Details panel instance HC (pas BeginPlay) -> dette SaveGame
+- HandleAttack ErrorType=1 sur HC : toujours ouvert -> C1-WeaponArchitecture
+- Bug reouverture Radial : toujours ouvert -> C1-WeaponArchitecture
+
+#### Etat final
+Refacto EquipWeapon valide PIE. ComboManager = source de verite arme. InventoryComponent cree et branche. Switch arme + combos fonctionnels. Radial peuple correctement depuis InventoryComponent.
+
+---
+
 ### 29/05/2026 -- Session design -- Archi WeaponArchitecture + Inventaire + TenaciteEtat -- DESIGN VALIDE
 
 #### Contexte
@@ -78,55 +120,6 @@ Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug
 ---
 
 ### 28/05/2026 -- Session design -- Lore, Cast, Fee, Ombre, Deites -- DESIGN VALIDE
-
-#### Decisions rapides
-- Corruption 75 faiblesse : deite la plus utilisee depuis la DERNIERE PURGE (pas depuis le debut)
-- Menu pause : pause complete (pas Time Dilation) -- Time Dilation reserve au radial uniquement
-- Touchpad PS5 : reserve a C4 (pas de contenu suffisant pour decider maintenant)
-
-#### Sanctuaire d'Ombre -- evenement narratif milieu acte 1
-- Zone obligatoire, Corruption monte anormalement vite avant meme d'y entrer
-- Boss met le heros a 0 PV -- Ombre intervient via la Corruption, le heros se releve
-- Images ambigues d'Ombre (souffrante ou menaçante -- impossible a lire)
-- Consequence : Corruption Phase 2 debloquee (plafond 100)
-- La Fee reagit differemment a la prochaine Fontaine -- elle sait quelque chose
-
-#### La Fee -- spec complete
-- Origine : gardienne Fontaine de Mana originelle, sauvee par Ondine lors du cataclysme
-- Nature secrete : contient un fragment de l'ame de la soeur du heros -- insuffle par Ondine dans une fee mourante
-- Ni la fee ni le heros ne le savent
-- Nostalgie inexpliquee du heros = fragment d'ame de sa soeur
-- Mecanique : transportee par le heros, se repose aux Fontaines, ralentit la Corruption passivement
-- Nom : a trouver EN MEME TEMPS que le nom de la soeur (foreshadow) ⚠️
-
-#### Cast complet avec races
-- Heros : Humain
-- Pretresse (Lumina) : Humaine Celeste (ailes blanches, style Riesz Trials of Mana)
-- Suivante (Luna) : Beastman Felin (style Morley Vision of Mana) -- froide avec le heros, douce avec le Garcon Loup
-- Forgeron Nain (Salamandre) : Nain -- pere adoptif du Garcon Loup (clin d'oeil Popoi)
-- Colosse (Gnome) : Nain -- ami du Garcon Loup
-- Reine du Vent (Sylphide) : DragonFolk (style Careena Vision of Mana)
-- Oracle Mana (Dryade) : Sproutling taille humaine (style Julei Vision of Mana) -- arrive fin acte 2
-- Soeur du Heros : Humaine -- fusion incomplete avec Ondine, devient Deesse Mana en fin de jeu
-- Garcon Loup : Beastman Loup (style Kevin Trials of Mana) -- reçoit Ondine en fin de jeu
-- Fee : fragment ame soeur, nom a definir avec la soeur
-
-#### Dynamiques groupe
-- Suivante reconnait la race du Garcon Loup des la rencontre -- ne dit rien, imperceptiblement plus douce
-- Garcon Loup vs Reine du Vent : tension latente (tribu Loup en guerre avec DragonFolk)
-- Origine conflit Loup/DragonFolk : a definir ⚠️
-
-#### Ordre deites (provisoire)
-Lumina (1, debut A1) -> Luna (2, debut A1) -> Gnome (3, milieu A1) -> Ombre (4, milieu A1 post-Gnome) -> Salamandre (5, A2) -> Sylphide (6, A2) -> Dryade (7, fin A2) -> Ondine (8, A3)
-
-#### Points encore ouverts
-- Noms de TOUS les personnages (session dediee) -- soeur et fee ensemble ⚠️
-- Nom de la ville hub ⚠️
-- Origine conflit Tribu Loup / DragonFolk ⚠️
-- Rituels de communion par deite -- session Lore Deites
-- Cout Essence par niveau de deite -- session Lore Deites
-- Effet narratif Fee Corruption=100 -- session Lore Fee (complement)
-- Histoire propre de Flammy
 
 #### Etat final
 DESIGN-Lore VALIDE (provisoire). Spec dans Docs/Lore_ShadowOfMana.md.
