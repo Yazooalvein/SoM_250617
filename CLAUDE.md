@@ -57,6 +57,7 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 | `Docs/Architecture/Stats_Progression.md` | Quand les stats changent |
 | `Docs/Architecture/Combat_StatusEffects.md` | Quand effets statut ou Corruption changent |
 | `Docs/Architecture/Economy_Drops.md` | Quand economie ou drops changent |
+| `Docs/Architecture/Weapons_Progression.md` | Quand progression armes change |
 | `Docs/Architecture/Input_Architecture.md` | Quand les inputs changent |
 | `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial evolue |
 | `Docs/Lore_ShadowOfMana.md` | Quand le lore ou le cast change |
@@ -128,7 +129,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Voir Docs/Architecture/Stats_Progression.md
 
 ### Effets de statut -- DESIGN VALIDE (28/05/2026)
-- 8 effets par deite, BP_StatusEffectComponent a creer en C1-SwordMoveset
+- 8 effets par deite, BP_StatusEffectComponent a creer (jalon a definir)
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
 ### Corruption Magique -- DESIGN VALIDE (28/05/2026)
@@ -144,6 +145,15 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Menu pause : pause complete (Time Dilation reserve au radial uniquement)
 - Touchpad PS5 : reserve a C4
 - Voir Docs/Architecture/Economy_Drops.md
+
+### Progression Armes -- DESIGN VALIDE (30/05/2026)
+- Usage en combat (nombre d'attaques), formule identique magie (9 - niveau actuel %)
+- Niveau 1->2 libre ; Niveau 2->3+ conditionne par forge (XP bloquee avant forge)
+- Materiaux : Drop commun x N (Minerai/Bois/etc.) + Drop rare x 1 (Boss/Narratif)
+- Arbre par arme : tous les X niveaux (a calibrer) -- choix Combo ou Stat
+- ~50% maxables naturellement, reste via quetes annexes haut level (donnent materiaux rares)
+- Pas de rattrapage armes (contrairement a la magie)
+- Voir Docs/Architecture/Weapons_Progression.md
 
 ### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
 - Voir Docs/Lore_ShadowOfMana.md pour le detail complet
@@ -178,7 +188,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 **Armes Mana (29/05/2026) :**
 - Amenees par la Deesse, trouvees deteriorees en A1, restaurees par etapes (Forgeron + materiaux drop)
 - Jalon narratif + materiaux = condition double pour chaque palier d'evolution
-- Epee Mana : brisee A1 (reconnaissance heros), evolution jusqu'a etat final A3 (necessaire pour Demon Mana)
+- Epee Mana : brisee A1 = reconnaissance heros, evolution par etapes, etat final A3 = condition boss Demon Mana
 
 **⚠️ RAPPEL RECURRENT : noms Soeur et Fee a trouver ensemble (foreshadow)**
 **⚠️ Question ouverte : presence General avant boss A2 (Option A ou B) -- en maturation**
@@ -247,6 +257,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
 - [x] C1-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
 - [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction, Corruption heros (29/05/2026)
+- [x] DESIGN-WeaponProgression : progression usage, forge, arbre combo/stat, end-game (30/05/2026)
 
 ## Dettes techniques
 
@@ -256,26 +267,25 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Retopo hero 246K -> 10-15K** (ART-Hero)
 - **Radial curseur position initiale a l'ouverture** (C?-RadialRefacto -- refonte complete systeme Radial)
 - **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
-- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (C1-SwordMoveset)
+- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (a placer dans jalon adequat)
 - **Stats ennemis BP_Enemy_Base** (C2-EnemyTypes)
 - **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-HUDCore)
-- **BP_StatusEffectComponent** (C1-SwordMoveset)
+- **BP_StatusEffectComponent** (jalon a definir -- lie magie/ennemis)
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
 - **Radial dedie objets consommables** (C7-HUDPolish)
 
 ## Prochains jalons
 
-1. **C1-SwordMoveset** + BP_StatusEffectComponent + TenaciteEtat dans AttributeSet
-2. **C1-HUDCore** : jauges Stamina, Mana, Essence, Corruption
-3. **SaveDesign** : spec Fontaine de Fee
-4. **C1-MagicTreeModule** : arbre de talents
-5. **C2-SaveGame**
-6. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
-7. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
-8. **Session Noms personnages** : soeur + fee ensemble ⚠️
-9. **Session Lore Deites** : rituels, cout Essence
-10. **Session zones acte 1** : structure, Fontaines, enchaînement
-11. **C1-AnimationsPass1**
+1. **C1-HUDCore** : jauges Stamina, Mana, Essence, Corruption
+2. **SaveDesign** : spec Fontaine de Fee
+3. **C1-MagicTreeModule** : arbre de talents magie
+4. **C2-SaveGame**
+5. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
+6. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
+7. **Session Noms personnages** : soeur + fee ensemble ⚠️
+8. **Session Lore Deites** : rituels, cout Essence
+9. **Session zones acte 1** : structure, Fontaines, enchaînement
+10. **C1-AnimationsPass1**
 
 ## Sessions design a planifier
 
@@ -284,7 +294,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Session zones acte 1** : structure zones, Fontaines, conflit Loup/DragonFolk
 - **Session zones acte 2** : origine conflit Loup/DragonFolk, structure regions
 - **Session SaveDesign** : Fontaine de Fee detaillee
-- **Session Economie** : calibrage (apres playtest)
+- **Session Forge/Economie** : materiaux par arme, calibrage niveaux arbre
 
 ---
 
@@ -335,11 +345,14 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Flammy : debloque fin A3/A4, acces lieux inaccessibles
 - Conflit Loup/DragonFolk : ancien, amplifie par Decheance Mana
 - Respawn Fontaine : ennemis normaux oui, boss jamais
+- Progression armes : Lvl1->2 libre, Lvl2->3+ forge requise avant XP -- arbre combo/stat tous les X niveaux
+- Quetes annexes haut level : donnent materiaux rares manquants (pas forge directe) -- joueur choisit quelle arme maxer
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
 - Pour effets statut/corruption : voir Docs/Architecture/Combat_StatusEffects.md
 - Pour economie/drops : voir Docs/Architecture/Economy_Drops.md
 - Pour decisions archi : voir Docs/Architecture/Decisions.md
+- Pour progression armes : voir Docs/Architecture/Weapons_Progression.md
 
 ---
 
@@ -357,4 +370,4 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ---
 
-*Derniere mise a jour : 29/05/2026*
+*Derniere mise a jour : 30/05/2026*
