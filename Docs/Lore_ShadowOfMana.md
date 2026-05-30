@@ -1,5 +1,5 @@
 # Lore & Narrative — Shadow of Mana
-# Derniere mise a jour : 29/05/2026
+# Derniere mise a jour : 30/05/2026
 
 ---
 
@@ -19,6 +19,76 @@ La destruction de l'Arbre a provoque une "Decheance Mana" globale et visible :
 - Les humanoïdes normaux ne sont pas impactes physiquement par la Decheance
 - **Exception unique : le heros**, qui subit la Corruption de la Mana -- raison liee a son lien avec Ombre, revelee progressivement
 - Liberer une deite dans sa region restaure progressivement l'esthetique de la zone (faune, flore, lumiere, atmosphere) -- recompense tangible de chaque avancee narrative
+
+---
+
+## Mapmonde
+
+### Ebauche visuelle
+- Asset UE5 : `Content/Dev/images/ChatGPT_Image_30_mai_2026__16_56_27.uasset`
+- Version generee par IA (ChatGPT/DALL-E) a partir d'un croquis manuscrit -- statut : reference visuelle provisoire
+
+### Structure generale
+- Un continent principal structure par les racines de l'Arbre Mana
+- L'Arbre Mana au nord : point culminant du monde, ses racines descendent et delimitent naturellement les territoires
+- Chaque deite dispose de son propre territoire, delimite par des frontieres naturelles (forets, montagnes, cotes)
+- Deux presqu'iles : **Ombre** (nord-ouest) et **Ondine** (est) -- separees du continent principal par la mer sur la majorite de leur perimetre
+- Une mer interieure/exterieure encadre le continent
+
+### Territoires par deite
+
+| Deite | Position | Caracteristiques visuelles | Specificites |
+|-------|----------|--------------------------|--------------|
+| Arbre Mana | Nord, centre | Arbre colossal, racines structurantes | Pas un territoire de deite -- coeur du monde |
+| Ombre | Nord-ouest (presqu'ile) | Montagnes violettes/sombres | **Grottes** -- zone oppressante, Sanctuaire d'Ombre |
+| Luna | Ouest (continental) | Zone de lune, ambiance nocturne | Territoire continental, lien avec la Suivante |
+| Sylphide | Nord-est (continental) | Bulles/nuages translucides, zone aerienne | Pays du vent, royaume DragonFolk |
+| Dryade | Centre-nord (continental) | Forets denses autour de l'Arbre | **Village cache** -- difficile a trouver, organique |
+| Lumina | Centre (continental) | Zone lumineuse, proche du Hub | Deite de la ville principale |
+| Hub | Centre | Ville fortifiee, chateau, tours | Grande ville principale -- liee a Lumina |
+| Salamandre | Centre-sud (continental) | Montagnes volcaniques, lave orange | Region de feu et de forge |
+| Gnome | Sud (continental) | Montagnes rocheuses, zone miniere | **Grottes + village dans la montagne** -- territoire nain |
+| Ondine | Est (presqu'ile) | Zone froide, montagnes enneigees, sapins | Presqu'ile isolee, acces maritime |
+
+### Points d'interet et infrastructure
+
+**Ports :**
+- **Port ouest** : cote ouest du continent -- point de depart de la route maritime principale
+- **Port sud (cote Gnome)** : port sud-ouest -- terminus de la route maritime, acces au territoire Gnome
+
+**Routes de navigation :**
+- Route maritime principale : port ouest -> port sud (cote Gnome) -- contourne le continent par le sud
+- Permet d'eviter les montagnes du sud qui bloquent l'acces terrestre direct
+
+**Village du heros :**
+- Petite zone sud-ouest, dans le territoire de Gnome
+- Point de depart du joueur
+- Acces aux montagnes du sud par contournement via la route maritime
+
+### Parcours narratif Acte 1 -- detail geographique
+
+1. **Village du heros** (sud-ouest, territoire Gnome) -- point de depart
+2. Remontee vers le **village des Gnomes** via un pont sur les montagnes
+3. Descente dans les **grottes** -- rencontre Forgeron, Garcon Loup, Colosse -- deblocage Gnome
+4. Port inutilisable (detruit/bloque) -- le groupe doit contourner
+5. Remontee par le cote de **Salamandre** (region volcanique)
+6. **Sanctuaire d'Ombre** -- evenement narratif majeur, Corruption Phase 2
+7. Fin Acte 1
+
+8. **Debut Acte 2** : arrivee au Hub (non reconstruit)
+
+### Itineraire Pretresse + Suivante (avant la rencontre avec le heros)
+- Depart depuis l'est (territoire Ondine ou adjacent)
+- Route maritime : port est -> port sud (cote Gnome)
+- Trajet terrestre : port sud -> village du heros (sud-ouest)
+- C'est ce chemin qui les amene a la rencontre avec le heros
+
+### Notes de conception
+- La proximite geographique Gnome/Salamandre justifie narrativement le lien Forgeron (Salamandre) / Garcon Loup (Gnome)
+- Ombre et Ondine en presqu'ile = isolation geographique coherente avec leur deblocage tardif
+- Le Hub au centre = point de convergence naturel de tous les territoires
+- Dryade en village cache dans les forets = coherent avec la nature discrete d'un Sproutling
+- Les grottes d'Ombre et de Gnome renforcent l'identite souterraine/cachee de ces deux deites
 
 ---
 
@@ -217,12 +287,14 @@ Ordre provisoire -- susceptible de changer.
 
 - **Ville detruite du heros** : point de depart, une vingtaine de survivants
 - **Ville hub (nom a definir ⚠️)** : ville de lumiere, reference a Wendel + Tsaata. Non reconstruite a l'arrivee du groupe en debut d'Acte 2 (zone encore instable). Se reconstruit progressivement au fil des liberations de zones. PNJs rencontres en route reviennent et participent activement a la reconstruction. Marchands, forge, services se debloquent etape par etape.
-- **Sanctuaire d'Ombre** : zone obligatoire milieu acte 1, revelation Corruption Phase 2
-- **Region volcanique** : domaine du Forgeron Nain, du Garcon Loup et du Colosse
-- **Pays du vent** : royaume de la Reine DragonFolk, en conflit avec la tribu Loup
+- **Sanctuaire d'Ombre** : zone obligatoire milieu acte 1, revelation Corruption Phase 2 -- dans la presqu'ile d'Ombre (nord-ouest)
+- **Village des Gnomes** : village dans la montagne, accessible par un pont depuis le village du heros, grottes souterraines
+- **Region volcanique** : domaine du Forgeron Nain, du Garcon Loup et du Colosse -- territoire Salamandre/Gnome
+- **Pays du vent** : royaume de la Reine DragonFolk, en conflit avec la tribu Loup -- territoire Sylphide (nord-est)
+- **Village cache de Dryade** : village dissimule dans les forets du centre-nord, difficile a trouver
 - **Zone Beastmen Loups** : tribu du Garcon Loup (en guerre avec DragonFolk)
 - **Grande ville autrefois prospere** : origine probable du conflit, territoire de l'Empire
-- **Arbre Mana fracture** : coeur du desequilibre, zone finale
+- **Arbre Mana fracture** : coeur du desequilibre, zone finale -- nord du continent
 - **Sanctuaires elementaires** : vestiges anciens lies a chaque deite
 - **Lieux inaccessibles** : zones debloquees par Flammy (fin A3 / A4) -- contenu optionnel
 
@@ -243,7 +315,7 @@ Ordre provisoire -- susceptible de changer.
 - Debut : retour a la ville hub -- non reconstruite, zone instable. Premier etablissement du quartier general.
 - Voyage zone par zone : Salamandre (region volcanique) -> Sylphide (pays du vent, conflit Loup/DragonFolk a resoudre)
 - Chaque zone liberee = deite retrouvee + esthetique de la region restauree + PNJs qui reviennent au Hub
-- La ville hub se reconstruit progressivement : forge debloquee avec Salamandre, services supplémentaires avec chaque zone liberee
+- La ville hub se reconstruit progressivement : forge debloquee avec Salamandre, services supplementaires avec chaque zone liberee
 - L'Empire tente de recuperer les representants avant le heros
 - Revelations progressives sur la Grande Guerre
 - Fin acte 2 : Oracle Mana arrive (revelation Empire) -- Dryade debloquee
@@ -360,6 +432,8 @@ Ne pas nommer l'une sans nommer l'autre.
 | Structure exacte zone Beastmen Loups | Moyenne -- session zones |
 | Types d'Armes Mana -- liste complete | Moyenne -- session armes |
 | Nombre d'etapes evolution par arme | A calibrer selon longueur jeu |
+| Structure detaillee zones acte 1 | Moyenne -- session zones A1 |
+| Village cache Dryade -- acces et structure | Moyenne -- session zones |
 
 ---
 
@@ -368,4 +442,5 @@ Ne pas nommer l'une sans nommer l'autre.
 - Creation : 17/06/2025
 - MAJ 26/05/2026 : Lore enrichi, Corruption, Fontaine de Fee
 - MAJ 28/05/2026 : Cast complet avec races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites, conflit Loup/DragonFolk, restructuration complete
-- MAJ 29/05/2026 : Decheance Mana (impact monde + exception heros), Corruption visible subtile (Pretresse/Suivante percoivent, Garcon Loup/Colosse non), Hub reconstruction progressive, liberation deite = changement esthetique zone, structure actes enrichie (A2 retour Hub + restauration monde, A3 verite + recherche soeur, A4 Demon Primordial), revelation soeur au boss A2, Armes Mana (origine Deesse, trouvees deteriorees A1, restauration par etapes + materiaux), Epee Mana (brisee A1 = reconnaissance, evolution jusqu'a etat final A3), Forgeron actif tout au long du jeu, Flammy fin A3/A4, conflit Loup/DragonFolk = ancien amplifie par cataclysme, questions ouvertes mises a jour
+- MAJ 29/05/2026 : Decheance Mana, Hub reconstruction, structure actes enrichie, Armes Mana, Epee Mana, Flammy, conflit Loup/DragonFolk amplifie
+- MAJ 30/05/2026 : Section Mapmonde ajoutee (territoires par deite, routes, parcours A1, itineraire Pretresse), grottes Ombre/Gnome, village cache Dryade, asset mapmonde reference (Content/Dev/images/), lieux majeurs enrichis
