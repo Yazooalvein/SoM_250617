@@ -5,6 +5,29 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 30/05/2026 -- Session design -- Weapons_Progression -- DESIGN VALIDE
+
+#### DESIGN-WeaponProgression -- DESIGN VALIDE
+- Systeme de progression armes defini : usage en combat (nombre d'attaques), formule identique magie (9 - niveau actuel %)
+- Structure progression : Niveau 1->2 libre, Niveau 2->3+ conditionne par forge (XP ne s'accumule pas avant)
+- Materiaux forge : Drop commun x N (Minerai/Bois/etc.) + Drop rare x 1 (Essence/Graine/Esprit Mana -- Boss ou Narratif)
+- Arbre par arme : tous les X niveaux (a calibrer) -- choix entre Branche Combo ou Branche Stat
+- Accessibilite : ~50% des armes maxables naturellement, reste via quetes annexes haut level
+- Quetes annexes haut level : donnent les materiaux rares manquants (pas la forge directe -- joueur garde le choix)
+- Parallele magie : meme philosophie usage + condition externe, divergence sur la nature de la condition (narratif vs craft)
+- Pas de systeme de rattrapage pour les armes (contrairement a la magie)
+- Nouveau fichier : Docs/Architecture/Weapons_Progression.md
+
+#### Recadrage C1-SwordMoveset
+- Jalon C1-SwordMoveset recadre : TenaciteEtat + BP_StatusEffectComponent n'ont pas de lien logique avec le moveset epee
+- Ces sujets seront traites dans leur contexte naturel (magie, ennemis)
+- Moveset epee actuel (Light1/Light2/Heavy1) = fonctionnel, refactor combo potentiel a prevoir ulterieurement
+
+#### Etat final
+Session design productive. Weapons_Progression.md cree et pousse. Index et docs mis a jour.
+
+---
+
 ### 29/05/2026 -- Session design Lore -- Structure narrative + Armes Mana + Hub -- DESIGN VALIDE
 
 #### Decheance Mana -- impact monde et exception heros
@@ -118,38 +141,6 @@ Refacto EquipWeapon valide PIE. ComboManager = source de verite arme. InventoryC
 
 ### 29/05/2026 -- Session design -- Archi WeaponArchitecture + Inventaire + TenaciteEtat -- DESIGN VALIDE
 
-#### Contexte
-Session de design preparatoire avant C1-WeaponArchitecture. Objectif : trancher 4 points bloques
-qui empechaient d'attaquer la refonte EquipWeapon proprement.
-
-#### Decision 1 -- Source de verite arme courante : ComboManager
-- HC.ChoosenWeapon supprime -- redondant avec ComboManager.CurrentWeaponID
-- BP_ComboManagerComponent = source de verite unique (arme equipee + niveau arme)
-- EquipWeapon migre sur ComboManager
-- HC delegue, ne stocke pas -- coherent avec philosophie de factorisation du projet
-- SaveGame lira ComboManager.CurrentWeaponID directement
-
-#### Decision 2 -- DiscoveredWeapons -> BP_InventoryComponent
-- DiscoveredWeapons sort de HC et migre vers un BP_InventoryComponent dedie (a creer)
-- InventoryComponent accueillera : armes, consommables Seiken, materiaux craft, equipement (Casque/Armure/Accessoire)
-- ComboManager ne connait que l'arme equipee, pas l'inventaire
-- Radial interroge InventoryComponent pour peupler ses slots armes
-- Separation propre, extensible vers C5-Equipment et C5-ForgeSystem
-
-#### Decision 3 -- Switch arme en combo = reset combo (punition)
-- EquipWeapon reinitialise l'etat combo immediatement
-- Pas de fenetre de grace, pas de conservation de step cross-arme
-- Pas de grisage UI Radial pendant combo
-- Slow-mo Radial (Time Dilation 0.2) = seule concession au joueur
-- Coherent avec identite Dark Souls du projet
-
-#### Decision 4 -- TenaciteEtat heros
-- Valeur de base : 25 (cle supplementaire BP_AttributeSet_Base, pas une 8eme stat visible)
-- Modifiable par : equipement, buffs/debuffs, Corruption
-- Corruption reduit la TenaciteEtat -> boucle de pression (plus corrompu = plus vulnerable aux effets de statut)
-- Passe par SetStatValue comme toutes les stats
-- Calibrage Corruption -> reduction TenaciteEtat : a definir en session Economie/Calibrage
-
 #### Etat final
 4 decisions actees. C1-WeaponArchitecture peut demarrer sans ambiguite d'architecture.
 Spec complete dans Docs/Architecture/Decisions.md.
@@ -157,24 +148,6 @@ Spec complete dans Docs/Architecture/Decisions.md.
 ---
 
 ### 28/05/2026 -- C1-WeaponArchitecture -- Etapes 5-6-7 + Radial curseur -- PARTIEL
-
-#### Etape 5 -- Suppression CanAttack sur HC -- VALIDE
-- Guards input (IA_Attack_Light, IA_Attack_Heavy) lisent ComboManager.CanAttack directement
-- Variables HC.CanAttack supprimees
-- Source unique : BP_ComboManagerComponent.CanAttack
-
-#### Etape 6 -- UpgradeWeaponLevel -- VALIDE
-- Option A implementee : runtime only, sans SaveGame
-- Flux : CurrentWeaponLevel +1 -> GetDataTableRow DT_Weapons -> InitComboTree(CurrentWeaponID, FWeaponData)
-- Parametre NewLevel en entree existe mais non utilise (Option A)
-
-#### Etape 7 -- Radial curseur position initiale -- PARTIEL
-- Mecanique confirmee par audit : roue tourne, curseur fixe en haut (position 0)
-- PopulateWeaponSlots : TargetRotation = -(EquippedIndex * AnglePerSlot), CurrentRotation = TargetRotation, SelectedIndex = 0
-- AnglePerSlot recalcule localement (360 / Array_Length(SlotDataList)) -- pas de variable globale
-- Guard ajoute : si CurrentWeaponID == None -> ne pas modifier les rotations
-- Premiere ouverture avec arme equipee : OK
-- Bug ouvert : a la reouverture apres changement d'arme, la roue ne se repositionne pas correctement
 
 #### Etat final
 Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug reouverture ouvert.
@@ -210,9 +183,6 @@ Double monnaie, drops Seiken, Mana, equipement. Spec dans Economy_Drops.md.
 ---
 
 ### 28/05/2026 -- Session planning -- Refacto armes/combo note
-
-#### Etat final
-C1-WeaponArchitecture elargi. Note enregistree.
 
 ---
 
@@ -335,7 +305,8 @@ Pour les stats et progression : voir Docs/Architecture/Stats_Progression.md
 Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEffects.md
 Pour l'economie et les drops : voir Docs/Architecture/Economy_Drops.md
 Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
+Pour la progression armes : voir Docs/Architecture/Weapons_Progression.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 29/05/2026
+- Derniere mise a jour : 30/05/2026
