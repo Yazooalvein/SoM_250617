@@ -13,10 +13,10 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 29/05/2026 |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 30/05/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 29/05/2026 |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 29/05/2026 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 30/05/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 30/05/2026 |
 | Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 29/05/2026 |
 | Planning sessions | Docs/Planning_Sessions.md | A verifier |
 | Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 29/05/2026 |
@@ -33,6 +33,7 @@ A mettre a jour a chaque creation ou modification de document.
 | Magic System | Magic_System.md | POC valide |
 | Magic Progression | Magic_Progression.md | Design 26/05 |
 | Weapons System | Weapons_System_Architecture.md | Stable |
+| Weapons Progression | Weapons_Progression.md | Design 30/05/2026 |
 | Combo System | Combo_System_Architecture.md | Stable |
 | Stats System | Stats_Architecture.md | Stable |
 | Stats & Progression design | Stats_Progression.md | Mis a jour 29/05/2026 |
@@ -59,7 +60,7 @@ A mettre a jour a chaque creation ou modification de document.
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique (29/05/2026)
+## Jalons Cycle 1 -- etat synthetique (30/05/2026)
 
 | Jalon | Statut |
 |---|---|
@@ -80,6 +81,7 @@ A mettre a jour a chaque creation ou modification de document.
 | DESIGN-Economy | ✅ Design valide (28/05/2026) |
 | DESIGN-Lore | ✅ Design valide enrichi (29/05/2026) |
 | DESIGN-WeaponArchitecture | ✅ Design valide (29/05/2026) |
+| DESIGN-WeaponProgression | ✅ Design valide (30/05/2026) |
 | C1-SwordMoveset | ⏳ A faire -- PRIORITAIRE |
 | C1-HUDCore | ⏳ A faire -- apres C1-SwordMoveset |
 | C1-SaveDesign | ⏳ A faire |
@@ -105,3 +107,4 @@ A mettre a jour a chaque creation ou modification de document.
 - MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
 - MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md, Lore mis a jour
 - MAJ 29/05/2026 : jalons C1 remis a jour (C1-WeaponArchitecture complet, tous DESIGN valides), ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md dans index, dates mises a jour
+- MAJ 30/05/2026 : ajout Weapons_Progression.md, DESIGN-WeaponProgression valide
