@@ -133,8 +133,9 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
 ### Corruption Magique -- DESIGN VALIDE (28/05/2026)
-- Phase 1 (debut jeu) : plafond 50
-- Phase 2 (apres Sanctuaire d'Ombre) : plafond 100
+- Phase 1 (debut jeu) : plafond 50 (bCorruptionUnlocked=false dans AttributeSet)
+- Phase 2 (apres Sanctuaire d'Ombre) : plafond 100 (bCorruptionUnlocked=true)
+- Logique metier complete (tracking deites, purge, faiblesse 75) dans BP_CorruptionComponent (C2-CorruptionSystem)
 - Faiblesse a 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond)
 - Corruption reduit TenaciteEtat heros (calibrage a definir)
@@ -233,9 +234,16 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Seuils : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade
 
-### UI / HUD
-- UI_HUD_Main : event-driven -- FINALISE
-- Jauges Stamina/Mana/Essence/Corruption : a faire (C1-HUDCore)
+### UI / HUD -- VALIDE (31/05/2026)
+- UI_HUD_Main : event-driven, finalise
+- Architecture : barres HP/ST/MP/Corruption dans HUD_Main_VertBox, compteur Essence separe pres arme
+- Variables widget : HealthPercent, StaminaPercent, ManaPercent, EssenceValue, CorruptionPercent
+- Switch HUD_OnStatChanged : 8 cases (HealthCurrent, StaminaCurrent, ManaCurrent, HealthMax, StaminaMax, ManaMax, EssenceMana, Corruption)
+- Bindings ProgressBar : Get_HealthBar_Percent, Get_StaminaBar_Percent, Get_ManaBar_Percent, Get_CorruptionBar_Percent
+- UpdateEssenceText : EssenceValue -> Int64 -> String -> Text -> SetText(TextBlock_Essence)
+- bCorruptionUnlocked dans AttributeSet : false=clamp50, true=clamp100
+- BP_CorruptionComponent : jalon C2-CorruptionSystem (tracking deites, purge, faiblesse 75)
+- C3-EssenceMana : jalon dedie systeme complet (collecte, perte mort, recuperation DS-like)
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -258,6 +266,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] C1-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
 - [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction, Corruption heros (29/05/2026)
 - [x] DESIGN-WeaponProgression : progression usage, forge, arbre combo/stat, end-game (30/05/2026)
+- [x] C1-HUDCore VALIDE (31/05/2026)
 
 ## Dettes techniques
 
@@ -269,23 +278,24 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
 - **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (a placer dans jalon adequat)
 - **Stats ennemis BP_Enemy_Base** (C2-EnemyTypes)
-- **Jauges HUD Stamina/Mana/Essence/Corruption** (C1-HUDCore)
 - **BP_StatusEffectComponent** (jalon a definir -- lie magie/ennemis)
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
 - **Radial dedie objets consommables** (C7-HUDPolish)
+- **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** (C7-HUDPolish)
 
 ## Prochains jalons
 
-1. **C1-HUDCore** : jauges Stamina, Mana, Essence, Corruption
-2. **SaveDesign** : spec Fontaine de Fee
-3. **C1-MagicTreeModule** : arbre de talents magie
-4. **C2-SaveGame**
-5. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
-6. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
-7. **Session Noms personnages** : soeur + fee ensemble ⚠️
-8. **Session Lore Deites** : rituels, cout Essence
-9. **Session zones acte 1** : structure, Fontaines, enchaînement
-10. **C1-AnimationsPass1**
+1. **SaveDesign** : spec Fontaine de Fee
+2. **C2-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge, faiblesse 75, TenaciteEtat, indices visuels heros
+3. **C3-EssenceMana** : systeme complet Essence (collecte, perte a la mort, recuperation DS-like, bonus Corruption)
+4. **C1-MagicTreeModule** : arbre de talents magie
+5. **C2-SaveGame**
+6. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
+7. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
+8. **Session Noms personnages** : soeur + fee ensemble ⚠️
+9. **Session Lore Deites** : rituels, cout Essence
+10. **Session zones acte 1** : structure, Fontaines, enchainement
+11. **C1-AnimationsPass1**
 
 ## Sessions design a planifier
 
@@ -330,8 +340,12 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - DT_Deities BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
 - Athanor = Salamandre
 - Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
-- Corruption Phase 1 plafond 50 / Phase 2 plafond 100 (apres Sanctuaire d'Ombre)
+- Corruption Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
+- bCorruptionUnlocked dans AttributeSet = variable simple, logique metier dans C2-CorruptionSystem
 - Corruption reduit TenaciteEtat heros (calibrage a definir en session Economie)
+- EssenceMana : compteur absolu Int64 (pas de Max), souls-like -- systeme complet dans C3-EssenceMana
+- HUD_OnStatChanged Switch : 8 cases -- EssenceMana (SET direct) + Corruption (NewValue/100)
+- UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString (Int64 = pas d'overflow grandes valeurs)
 - Menu pause = pause complete (pas Time Dilation) -- Time Dilation reserve radial uniquement
 - Touchpad PS5 : reserve C4
 - Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE ⚠️
@@ -370,4 +384,4 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ---
 
-*Derniere mise a jour : 30/05/2026*
+*Derniere mise a jour : 31/05/2026*
