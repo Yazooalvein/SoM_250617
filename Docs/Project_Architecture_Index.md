@@ -13,13 +13,13 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 30/05/2026 |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 31/05/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 30/05/2026 |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 30/05/2026 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 31/05/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 31/05/2026 |
 | Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 29/05/2026 |
 | Planning sessions | Docs/Planning_Sessions.md | A verifier |
-| Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 29/05/2026 |
+| Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 30/05/2026 |
 | Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
 
 ---
@@ -39,6 +39,7 @@ A mettre a jour a chaque creation ou modification de document.
 | Stats & Progression design | Stats_Progression.md | Mis a jour 29/05/2026 |
 | Effets statut & Corruption | Combat_StatusEffects.md | Mis a jour 29/05/2026 |
 | Economie & Drops | Economy_Drops.md | Design valide 28/05 |
+| Save System & Fontaine de Fee | SaveSystem.md | Design valide 31/05/2026 |
 | Decisions architecturales | Decisions.md | Mis a jour 29/05/2026 |
 | Combat System | Combat_Architecture.md | Stable |
 | Damage & Collision | Damage_Collision_Architecture.md | Stable |
@@ -53,14 +54,13 @@ A mettre a jour a chaque creation ou modification de document.
 | Ennemi weapon collision | Enemy_WeaponCollision_And_Damage.md | Stable |
 | Animation weapon | Animation_WeaponIntegration.md | Stable |
 | Gameplay de base | BasicGameplay_Architecture.md | Stable |
-| SaveGame | (a creer -- C2-SaveGame) | Pas commence |
 | Audio | (a creer -- C1-SFXCombat) | Pas commence |
 | Quetes | (a creer -- C4-QuestSystem) | Pas commence |
 | Dialogue | (a creer -- C4-DialogueSystem) | Pas commence |
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique (30/05/2026)
+## Jalons Cycle 1 -- etat synthetique (31/05/2026)
 
 | Jalon | Statut |
 |---|---|
@@ -75,16 +75,15 @@ A mettre a jour a chaque creation ou modification de document.
 | C1-MagicDataLayer | ✅ Complet VALIDE PIE (25/05/2026) |
 | C1-MagicUnlockSystem | ✅ Complet VALIDE PIE (27/05/2026) |
 | C1-WeaponArchitecture + Refacto | ✅ Complet VALIDE PIE (29/05/2026) |
+| C1-HUDCore | ✅ Complet VALIDE PIE (31/05/2026) |
 | DESIGN-StatsProgression | ✅ Design valide (28/05/2026) |
 | DESIGN-StatusEffects | ✅ Design valide (28/05/2026) |
 | DESIGN-Corruption | ✅ Design valide (28/05/2026) |
 | DESIGN-Economy | ✅ Design valide (28/05/2026) |
-| DESIGN-Lore | ✅ Design valide enrichi (29/05/2026) |
+| DESIGN-Lore | ✅ Design valide enrichi (30/05/2026) |
 | DESIGN-WeaponArchitecture | ✅ Design valide (29/05/2026) |
 | DESIGN-WeaponProgression | ✅ Design valide (30/05/2026) |
-| C1-SwordMoveset | ⏳ A faire -- PRIORITAIRE |
-| C1-HUDCore | ⏳ A faire -- apres C1-SwordMoveset |
-| C1-SaveDesign | ⏳ A faire |
+| DESIGN-SaveDesign | ✅ Design valide (31/05/2026) |
 | C1-BowPOC | ⏳ A faire |
 | C1-WeaponSwitching | ⏳ A faire |
 | C1-SFXCombat | ⏳ A faire |
@@ -108,3 +107,4 @@ A mettre a jour a chaque creation ou modification de document.
 - MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md, Lore mis a jour
 - MAJ 29/05/2026 : jalons C1 remis a jour (C1-WeaponArchitecture complet, tous DESIGN valides), ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md dans index, dates mises a jour
 - MAJ 30/05/2026 : ajout Weapons_Progression.md, DESIGN-WeaponProgression valide
+- MAJ 31/05/2026 : ajout SaveSystem.md, DESIGN-SaveDesign valide, C1-HUDCore complet, jalons mis a jour
