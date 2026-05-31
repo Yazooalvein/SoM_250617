@@ -5,6 +5,30 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 31/05/2026 -- COMBAT-SwordMoveset -- CLOS VALIDE PIE
+
+#### Audit combo Sword_01 -- VALIDE PIE
+- DT_Combo_Sword : Start -> Light1 -> Light2 + Heavy1, montages AM_Light_Sword_1/2 et AM_Heavy_Sword_1 branches
+- ComboManager : double lookup propre (CurrentStepID -> NextSteps -> AttackType), InitComboTree filtre par WeaponID ET LevelMin
+- EquipWeapon : flux complet SET CurrentWeaponID/Level/StepID/CanAttack -> GetDataTableRow -> InitComboTree
+- Chaine combo Light1 -> Light2 et Light1 -> Heavy1 validees PIE
+- RotateTowardLockTarget presente dans ComboManager -- feeling lock-on a ameliorer ulterieurement (non bloquant)
+
+#### BP_AttributeSet_Base -- TenaciteEtat -- VALIDE
+- Ajout variable TenaciteEtat (Float, default 25.0, Instance Editable)
+- SetStatValue case TenaciteEtat : FClamp(0, 100, Value) -> SET TenaciteEtat -> OnStatChanged
+- Meme pattern que les autres stats -- Switch case 12 branche sur K2Node_VariableSet_13
+
+#### Dettes restantes
+- Lock-on feeling pendant attaques : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou jalon dedie C2
+- NextStepID et AnimToPlay : variables declarees non utilisees, candidats a suppression -> nettoyage futur
+- DebugPrint HandleAttack "Can Attack & reset combo" : a conditionner a un flag debug avant ship
+
+#### Etat final
+COMBAT-SwordMoveset CLOS. Combo epee fonctionnel (Light x2 + Heavy x1), TenaciteEtat dans AttributeSet (base 25). Prochains jalons C1 : SYS-CorruptionSystem.
+
+---
+
 ### 31/05/2026 -- SaveDesign -- DESIGN VALIDE
 
 #### Fontaine de Fee -- lore et mecanique -- DESIGN VALIDE
@@ -40,7 +64,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 - Nouveau fichier : Docs/Architecture/SaveSystem.md
 
 #### Etat final
-DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md. Implementation prevue dans C2-SaveGame (SaveGame) + C2-CorruptionSystem (purge/couts) + C3-EssenceMana (collecte/perte/recuperation).
+DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md. Implementation prevue dans SYS-SaveGame (C1) + SYS-CorruptionSystem (purge/couts) + SYS-EssenceMana (collecte/perte/recuperation).
 
 ---
 
@@ -66,16 +90,16 @@ DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md. Im
 
 #### Decisions architecture
 - bCorruptionUnlocked dans AttributeSet = variable simple (future logique dans BP_CorruptionComponent)
-- BP_CorruptionComponent : jalon dedie C2-CorruptionSystem (tracking deites, purge, faiblesse 75, TenaciteEtat)
-- C3-EssenceMana : jalon dedie pour le systeme complet Essence (collecte, perte mort, recuperation DS-like)
-- Det designer mineure : TextBlock_Essence et CorruptionBar hors structure Overlay/SizeBox standard -> acceptable pour l'instant
+- BP_CorruptionComponent : jalon dedie SYS-CorruptionSystem (tracking deites, purge, faiblesse 75, TenaciteEtat)
+- SYS-EssenceMana : jalon dedie pour le systeme complet Essence (collecte, perte mort, recuperation DS-like)
+- Dette designer mineure : TextBlock_Essence et CorruptionBar hors structure Overlay/SizeBox standard -> acceptable pour l'instant
 
 #### Dettes restantes
-- Dette designer legere : restructurer Essence/Corruption dans Overlay/SizeBox si besoin (C7-HUDPolish)
+- Dette designer legere : restructurer Essence/Corruption dans Overlay/SizeBox si besoin (UI-HUDPolish C4)
 - UpdateStatText ne couvre pas encore Essence (TextBlock deja connecte via UpdateEssenceText, non via UpdateStatText)
 
 #### Etat final
-C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operationnelle. Deux nouveaux jalons crees : C2-CorruptionSystem et C3-EssenceMana.
+C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operationnelle. Deux nouveaux jalons crees : SYS-CorruptionSystem et SYS-EssenceMana.
 
 ---
 
@@ -92,8 +116,8 @@ C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operati
 - Pas de systeme de rattrapage pour les armes (contrairement a la magie)
 - Nouveau fichier : Docs/Architecture/Weapons_Progression.md
 
-#### Recadrage C1-SwordMoveset
-- Jalon C1-SwordMoveset recadre : TenaciteEtat + BP_StatusEffectComponent n'ont pas de lien logique avec le moveset epee
+#### Recadrage COMBAT-SwordMoveset
+- Jalon COMBAT-SwordMoveset recadre : TenaciteEtat + BP_StatusEffectComponent n'ont pas de lien logique avec le moveset epee
 - Ces sujets seront traites dans leur contexte naturel (magie, ennemis)
 - Moveset epee actuel (Light1/Light2/Heavy1) = fonctionnel, refactor combo potentiel a prevoir ulterieurement
 
