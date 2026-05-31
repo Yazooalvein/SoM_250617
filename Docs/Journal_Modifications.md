@@ -5,6 +5,45 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 31/05/2026 -- SaveDesign -- DESIGN VALIDE
+
+#### Fontaine de Fee -- lore et mecanique -- DESIGN VALIDE
+- Justification narrative : la Fee "grave" le souvenir du monde aux Fontaines (pas le heros qui sauvegarde)
+- Fontaines contextuelles : apparaissent dans le monde a des moments cles (post-boss, entree zone, apres cinematique) -- remplace le concept de "save silencieuse sur jalon narratif"
+- Jalons narratifs : sauvegardent la progression uniquement, ne deplacent pas le respawn point
+- Respawn : ennemis normaux oui, boss et mini-boss jamais
+- Interaction Fontaine : restore HP/ST/MP + purge Corruption (cout variable) + regenere la Fee + respawn ennemis
+
+#### Systeme Corruption / Essence / Fontaine -- DESIGN VALIDE
+- Cout depenses Essence : 0-74% = x1.0 / 75-99% = x1.15 / 100% = inutilisable
+- Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout Essence / 100% = grand cout Essence
+- Montee niveau deite : 0-74% = normal / 75-99% = cout +15% / 100% = bloque
+- Calibrage exact des couts de purge -> session Economie/Drops
+- Tension de design : double penalite economique si Corruption haute (depenses + purge)
+
+#### Essence au sol -- mecanique mort -- DESIGN VALIDE
+- Mort par environnement -> Essence tombe au sol (objet physique ramassable)
+- Mort par ennemi -> mob fatal porte l'Essence (doit etre tue pour recuperer)
+- Exception boss/mini-boss -> Essence tombe au sol (jamais re-tuables)
+- Essence non recuperee avant 2eme mort -> perdue definitivement
+
+#### Slots de sauvegarde -- DESIGN VALIDE
+- Multi-parties : plusieurs slots (ex. 3), chaque slot = une partie distincte
+- Intra-partie : slot unique, ecrasement automatique -- souls-like strict
+
+#### Architecture technique -- DESIGN VALIDE
+- BP_SaveGame_SoM : structure complete (stats, inventaire, magie, progression monde, Essence au sol)
+- BP_FountainComponent : FountainID Name editable, bIsActivated, OnPlayerInteract()
+- Convention nommage FountainID : Fountain_[Acte]_[Zone]_[Index]
+- Flux save : GameMode.OnFountainRest(FountainID) -> collecte -> SaveGameToSlot
+- Flux mort : dropper Essence -> LoadGameFromSlot -> restaurer -> teleporter a LastFountainTransform
+- Nouveau fichier : Docs/Architecture/SaveSystem.md
+
+#### Etat final
+DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md. Implementation prevue dans C2-SaveGame (SaveGame) + C2-CorruptionSystem (purge/couts) + C3-EssenceMana (collecte/perte/recuperation).
+
+---
+
 ### 31/05/2026 -- C1-HUDCore -- VALIDE
 
 #### BP_AttributeSet_Base -- VALIDE
@@ -250,6 +289,7 @@ Pour les effets de statut et corruption : voir Docs/Architecture/Combat_StatusEf
 Pour l'economie et les drops : voir Docs/Architecture/Economy_Drops.md
 Pour le lore et la narrative : voir Docs/Lore_ShadowOfMana.md
 Pour la progression armes : voir Docs/Architecture/Weapons_Progression.md
+Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
