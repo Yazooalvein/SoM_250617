@@ -142,7 +142,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
 - Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
-- TenaciteEtat : base 25, impactee par equipement + debuffs + Corruption (a implementer)
+- TenaciteEtat : base 25, variable Float dans AttributeSet, SetStatValue case 12, FClamp(0,100) -- impactee par equipement + debuffs + Corruption
 - Progression hybride : niveaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
 - Essence de Mana : progression -- perdue a la mort, recuperable DS-like
 - Pieces d'Or : economie -- jamais perdues
@@ -263,13 +263,15 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - CanAttack : source unique ComboManager
 - Switch arme en combo = reset combo complet (punition) -- pas de grisage Radial
 
-### Armes -- VALIDE PIE (29/05/2026)
+### Armes -- VALIDE PIE (31/05/2026)
+- DT_Combo_Sword : Start -> Light1 -> Light2 + Heavy1 (montages AM_Light_Sword_1/2, AM_Heavy_Sword_1)
 - FWeaponData : CoeffArme + VitesseAttaque present (a utiliser dans formule degats)
 - ComboManager.CurrentWeaponID = source unique arme equipee
 - ComboManager.EquipWeapon(WeaponID, WeaponLevel) = point d'entree unique equipement arme
   - Flux : SET CurrentWeaponID/Level/StepID/CanAttack -> GetDataTableRow(DT_Weapons) -> InitComboTree(WeaponData)
 - HC.EquipWeapon = spawn physique arme + attach HandGrip_R + AddWeapon(InventoryComponent) + appel ComboManager.EquipWeapon
 - InitComboTree(WeaponData) = responsabilite unique : Map_Clear + charger ComboStepMap depuis DT_Combo
+- NextStepID et AnimToPlay dans ComboManager : variables non utilisees, candidats a suppression
 
 ### Radial Armes -- VALIDE PIE (29/05/2026)
 - PopulateWeaponSlots lit InventoryComponent.GetWeapons() (plus HC.DiscoveredWeapons)
@@ -314,6 +316,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] HUD-Core VALIDE PIE (31/05/2026)
 - [x] DESIGN-SaveDesign : Fontaine de Fee, SaveGame, Corruption/Essence/Fontaine (31/05/2026)
 - [x] DESIGN-Roadmap : refonte cycles milestones jouables C1/C2/C3/C4, nommage thematique (31/05/2026)
+- [x] COMBAT-SwordMoveset CLOS VALIDE PIE (31/05/2026)
 
 ## Dettes techniques
 
@@ -322,24 +325,24 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **WeaponClass hardcode BP_Enemy_Sword01** -> ENEMY-Types (C2)
 - **Retopo hero 246K -> 10-15K** -> ART-Hero
 - **Radial curseur position initiale a l'ouverture** -> UI-RadialRefacto (C2)
-- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** -> COMBAT-SwordMoveset (C1)
 - **Stats ennemis BP_Enemy_Base** -> ENEMY-Base (C1)
 - **BP_StatusEffectComponent** -> SYS-StatusEffects (C2)
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay dans SYS-SaveGame (C1)
 - **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** -> UI-HUDPolish (C4)
 - **Calibrage couts purge Corruption (75-99% et 100%)** -> SESSION-Economie
+- **NextStepID et AnimToPlay dans ComboManager** : variables non utilisees -> nettoyage futur
+- **Lock-on feeling pendant attaques** : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou C2
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **COMBAT-SwordMoveset** : combo 3 coups, heavy, rotation lock-on, TenaciteEtat dans AttributeSet
-2. **SYS-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence
-3. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
-4. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
-5. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
-6. **ENEMY-Base** : stats sur BP_Enemy_Base
-7. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
-8. **MAP-C1Level** : couloir → mobs → fontaine → arene boss
-9. **ANIM-Pass1** : rename ABP, roll en lock-on
+1. **SYS-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence
+2. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
+3. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
+4. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
+5. **ENEMY-Base** : stats sur BP_Enemy_Base
+6. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+7. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+8. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
@@ -371,7 +374,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - PopulateWeaponSlots lit InventoryComponent.GetWeapons() (pas HC.DiscoveredWeapons)
 - BP_InventoryComponent : Actor Component, Content/Systems/Inventory/
 - Switch arme en combo = reset combo complet, pas de grisage Radial
-- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs
+- TenaciteEtat heros : base 25, Float dans AttributeSet, SetStatValue case 12, FClamp(0,100), impactee par Corruption + debuffs
 - UpgradeWeaponLevel : Option A runtime (etape 6 COMBAT-WeaponArchitecture)
 - Radial roue tourne sur arme equipee a l'ouverture -- TargetRotation = -(EquippedIndex * AnglePerSlot)
 - Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
