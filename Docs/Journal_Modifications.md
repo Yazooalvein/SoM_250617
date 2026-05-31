@@ -5,6 +5,48 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 31/05/2026 -- SYS-CorruptionSystem -- VALIDE PIE
+
+#### BP_CorruptionComponent -- VALIDE PIE
+- Cree dans Content/Systems/Corruption/
+- Variables : DeityUsageMap (TMap<Name, int32>)
+- Fonctions : InitCorruption, TrackDeityUsage(DeityName), GetWeakDeity() -> Name, PurgeCorruption(CostAmount)
+- Ajoute sur BP_SoM_HeroCharacter via panneau Components
+
+#### TrackDeityUsage -- logique
+- Map_Find(DeityUsageMap, DeityName) -> bFound -> Branch
+- TRUE (deja present) : Map_Add avec valeur + 1 (ecrase)
+- FALSE (nouveau) : Map_Add avec valeur 1
+- Apres Map_Add : GetOwner -> Cast to HC -> GET AttributeSetRef -> Corruption + 5.0 -> FClamp(0,100) -> SetStatValue("Corruption", value)
+- Bug resolu : OwnerAttributeSet None apres premier sort -- cause : ordre BeginPlay non garanti entre composants -- fix : recup AttributeSetRef dynamiquement via GetOwner/Cast au moment de l'appel (pas de variable stockee)
+
+#### PurgeCorruption -- logique
+- Semantique : remet Corruption a 0 directement (purge totale), CostAmount reserve pour futur cout Essence
+- SetStatValue("Corruption", 0.0) -> Map_Clear(DeityUsageMap)
+- Bug resolu : PurgeCorruption(0.0) ne faisait rien (Corruption - 0 = Corruption) -- cause : mauvaise semantique initiale (soustraction) -- fix : remise a zero directe
+
+#### GetWeakDeity -- logique
+- Map_Keys(DeityUsageMap) -> ForEachLoop -> Map_Find(value) -> Branch(value > LocalMaxValue) -> SET LocalMaxValue + SET LocalWeakDeity
+- Retourne la deite la plus utilisee depuis la derniere purge
+
+#### Branchement BP_MagicComponent -- VALIDE PIE
+- IncrementSpellUsage : apres Map_Add SpellUsageCounts -> GetOwner -> Cast to HC -> GetComponentByClass(BP_CorruptionComponent) -> Cast -> TrackDeityUsage(DeityID)
+- DeityID provient du BreakStruct FSoM_SpellData
+
+#### UI_HUD_Main -- Fix CorruptionBar -- VALIDE PIE
+- CorruptionBar manquait de couleur Tint dans Fill Image -> ajoute (violet)
+- Get_CorruptionBar_Percent pas reliee -> fonction marquee Pure + branchee sur Percent
+
+#### BP_DebugFountain -- VALIDE PIE
+- Actor debug dans Content/Debug/
+- ActorBeginOverlap -> OtherActor == GetPlayerCharacter -> Cast to HC -> GetComponentByClass(BP_CorruptionComponent) -> PurgeCorruption(0.0)
+- Test : marcher dessus remet Corruption a 0 + reset DeityUsageMap
+
+#### Etat final
+SYS-CorruptionSystem VALIDE PIE. Sorts Lumina montent la Corruption (+5/sort), barre HUD se met a jour, fontaine debug purge a 0. Tracking deites operationnel. Prochain jalon : SYS-EssenceMana.
+
+---
+
 ### 31/05/2026 -- COMBAT-SwordMoveset -- CLOS VALIDE PIE
 
 #### Audit combo Sword_01 -- VALIDE PIE
@@ -25,7 +67,7 @@ Suivi precis de toutes les evolutions majeures du projet.
 - DebugPrint HandleAttack "Can Attack & reset combo" : a conditionner a un flag debug avant ship
 
 #### Etat final
-COMBAT-SwordMoveset CLOS. Combo epee fonctionnel (Light x2 + Heavy x1), TenaciteEtat dans AttributeSet (base 25). Prochains jalons C1 : SYS-CorruptionSystem.
+COMBAT-SwordMoveset CLOS. Combo epee fonctionnel (Light x2 + Heavy x1), TenaciteEtat dans AttributeSet (base 25).
 
 ---
 
@@ -64,62 +106,18 @@ COMBAT-SwordMoveset CLOS. Combo epee fonctionnel (Light x2 + Heavy x1), Tenacite
 - Nouveau fichier : Docs/Architecture/SaveSystem.md
 
 #### Etat final
-DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md. Implementation prevue dans SYS-SaveGame (C1) + SYS-CorruptionSystem (purge/couts) + SYS-EssenceMana (collecte/perte/recuperation).
+DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md.
 
 ---
 
 ### 31/05/2026 -- C1-HUDCore -- VALIDE
 
-#### BP_AttributeSet_Base -- VALIDE
-- Ajout variables : EssenceMana (Float), Corruption (Float), bCorruptionUnlocked (Bool, default=false)
-- SetStatValue case Corruption : Branch(bCorruptionUnlocked) -> FClamp(0,100) ou FClamp(0,50) -> SET Corruption -> OnStatChanged
-- EssenceMana pas dans SetStatValue (pas de clamp necessaire, SET direct)
-
-#### UI_HUD_Main BP -- VALIDE
-- Ajout variables widget : EssenceValue (Float), CorruptionPercent (Float)
-- Switch HUD_OnStatChanged etendu a 8 cases : + EssenceMana (SET EssenceValue direct) + Corruption (NewValue/100 -> SET CorruptionPercent)
-- InitHUD mis a jour : GET AttributeSetRef.EssenceMana -> SET EssenceValue + GET Corruption/100 -> SET CorruptionPercent
-- Binding Get_CorruptionBar_Percent cree : retourne CorruptionPercent (meme pattern Stamina/Mana)
-- Fonction UpdateEssenceText : EssenceValue -> Conv_DoubleToInt64 -> Conv_Int64ToString -> Conv_StringToText -> SetText(TextBlock_Essence)
-- Choix Int64 : gere les grandes valeurs souls-like sans overflow
-
-#### UI_HUD_Main Designer -- VALIDE
-- TextBlock_Essence ajoute sous HUD_Anchor > SizeBox_Essence (pres de l'arme -- hors VertBox, choix volontaire)
-- CorruptionBar (ProgressBar) ajoutee dans HUD_Main_VertBox en bas
-- Architecture : barres HP/ST/MP/Corruption dans VertBox, compteur Essence separe pres arme = meilleure UX
-
-#### Decisions architecture
-- bCorruptionUnlocked dans AttributeSet = variable simple (future logique dans BP_CorruptionComponent)
-- BP_CorruptionComponent : jalon dedie SYS-CorruptionSystem (tracking deites, purge, faiblesse 75, TenaciteEtat)
-- SYS-EssenceMana : jalon dedie pour le systeme complet Essence (collecte, perte mort, recuperation DS-like)
-- Dette designer mineure : TextBlock_Essence et CorruptionBar hors structure Overlay/SizeBox standard -> acceptable pour l'instant
-
-#### Dettes restantes
-- Dette designer legere : restructurer Essence/Corruption dans Overlay/SizeBox si besoin (UI-HUDPolish C4)
-- UpdateStatText ne couvre pas encore Essence (TextBlock deja connecte via UpdateEssenceText, non via UpdateStatText)
-
 #### Etat final
-C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operationnelle. Deux nouveaux jalons crees : SYS-CorruptionSystem et SYS-EssenceMana.
+C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operationnelle.
 
 ---
 
 ### 30/05/2026 -- Session design -- Weapons_Progression -- DESIGN VALIDE
-
-#### DESIGN-WeaponProgression -- DESIGN VALIDE
-- Systeme de progression armes defini : usage en combat (nombre d'attaques), formule identique magie (9 - niveau actuel %)
-- Structure progression : Niveau 1->2 libre, Niveau 2->3+ conditionne par forge (XP ne s'accumule pas avant)
-- Materiaux forge : Drop commun x N (Minerai/Bois/etc.) + Drop rare x 1 (Essence/Graine/Esprit Mana -- Boss ou Narratif)
-- Arbre par arme : tous les X niveaux (a calibrer) -- choix entre Branche Combo ou Branche Stat
-- Accessibilite : ~50% des armes maxables naturellement, reste via quetes annexes haut level
-- Quetes annexes haut level : donnent les materiaux rares manquants (pas la forge directe -- joueur garde le choix)
-- Parallele magie : meme philosophie usage + condition externe, divergence sur la nature de la condition (narratif vs craft)
-- Pas de systeme de rattrapage pour les armes (contrairement a la magie)
-- Nouveau fichier : Docs/Architecture/Weapons_Progression.md
-
-#### Recadrage COMBAT-SwordMoveset
-- Jalon COMBAT-SwordMoveset recadre : TenaciteEtat + BP_StatusEffectComponent n'ont pas de lien logique avec le moveset epee
-- Ces sujets seront traites dans leur contexte naturel (magie, ennemis)
-- Moveset epee actuel (Light1/Light2/Heavy1) = fonctionnel, refactor combo potentiel a prevoir ulterieurement
 
 #### Etat final
 Session design productive. Weapons_Progression.md cree et pousse. Index et docs mis a jour.
