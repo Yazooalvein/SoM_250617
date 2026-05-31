@@ -47,6 +47,7 @@ C4 — Alpha Test
 | Radial menu armes | ✅ VALIDE PIE | PopulateWeaponSlots depuis InventoryComponent, rotation sur arme equipee |
 | Quickslot POC | ✅ POC | 3 slots operationnels |
 | Combo system | ✅ VALIDE PIE | TMap + InitComboTree + LevelMin=0, attaque fonctionnelle |
+| Sword_01 moveset | ✅ VALIDE PIE | Light x2 + Heavy x1, montages branches, TenaciteEtat dans AttributeSet |
 | IA ennemis | ✅ POC | Behavior Tree + PawnSensing |
 | Hit Flash joueur | ✅ Stable | M_Hero HitFlashAmount |
 | Hit Flash ennemi | ❌ Abandonne | Decision 21/05 : screen shake + anim suffisent |
@@ -96,12 +97,12 @@ C4 — Alpha Test
 | DESIGN-WeaponProgression | ✅ DESIGN VALIDE | 30/05/2026 |
 | HUD-Core | ✅ VALIDE PIE | 31/05/2026 |
 | DESIGN-SaveDesign | ✅ DESIGN VALIDE | 31/05/2026 |
+| COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 |
 
 ### Jalons restants C1
 
 | Jalon | Prefixe | Contenu | Dependances |
 |---|---|---|---|
-| COMBAT-SwordMoveset | COMBAT | Combo 3 coups, heavy, rotation lock-on, TenaciteEtat dans AttributeSet | COMBAT-WeaponArchitecture ✅ |
 | SYS-CorruptionSystem | SYS | BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence | DESIGN-Corruption ✅, DESIGN-SaveDesign ✅ |
 | SYS-EssenceMana | SYS | Perte a la mort, mob porteur, recuperation DS-like, bonus Corruption | SYS-CorruptionSystem |
 | SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | DESIGN-SaveDesign ✅, SYS-EssenceMana |
@@ -171,7 +172,7 @@ C4 — Alpha Test
 ## Sessions Creatives (intercalees librement)
 
 | Session | Contenu |
-|---------|---------|
+|---------|---------| 
 | ART-Hero | LODs + correction 6 doigts + sockets (retopo 246K -> 10-15K) |
 | ART-Enemies | Meshes ennemis (Knight + 1-2 types) |
 | ART-Weapons | Assets armes Mana (Sword_01, 2HSword_01, Arc_01, Lance_01, Axe_01...) |
@@ -221,7 +222,7 @@ C4 — Alpha Test
 | Source de verite arme courante | COMBAT-WeaponArchitecture | ✅ Resolu : ComboManager |
 | Perimetre EquipWeapon/DiscoveredWeapons | COMBAT-WeaponArchitecture | ✅ Resolu : InventoryComponent |
 | Switching armes : reset combo ? | COMBAT-WeaponArchitecture | ✅ Resolu : reset complet (punition) |
-| TenaciteEtat valeur de base heros | COMBAT-WeaponArchitecture | ✅ Resolu : base 25 |
+| TenaciteEtat valeur de base heros | COMBAT-SwordMoveset | ✅ Resolu : base 25, Float AttributeSet, FClamp(0,100) |
 | StatusEffects : quand implementer ? | -- | ✅ Resolu : C2 (SYS-StatusEffects) |
 | SaveDesign : spec Fontaine de Fee | DESIGN-SaveDesign | ✅ Resolu : voir SaveSystem.md |
 | Slots de save | DESIGN-SaveDesign | ✅ Resolu : multi-slots inter-parties, 1 slot par partie |
@@ -236,4 +237,5 @@ C4 — Alpha Test
 - Resynchro complete : 18/05/2026
 - MAJ 28/05/2026 : session design complete -- Stats, Effets statut, Corruption Phase 1/2, Economie, Lore/Cast
 - MAJ 29/05/2026 : C1-WeaponArchitecture COMPLET VALIDE PIE, DESIGN-Lore enrichi, 5 points ouverts resolus
-- MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques (COMBAT-/SYS-/MAGIC-/ENEMY-/MAP-/ANIM-/HUD-/DESIGN-), jalons C1 restants clarifies, C2/C3/C4 grandes lignes posees
+- MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques
+- MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
