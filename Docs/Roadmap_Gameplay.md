@@ -59,7 +59,7 @@ C4 — Alpha Test
 | IMC dedies (5 contextes) | ✅ VALIDE PIE | COMBAT-InputsUI complet -- swap OpenRadial/CloseRadial |
 | Stats & Progression | ✅ DESIGN VALIDE | 7 stats, hybride, Essence+PO, formules, elements -- Stats_Progression.md |
 | Effets de statut | ✅ DESIGN VALIDE | 8 effets par deite, interactions -- Combat_StatusEffects.md |
-| Corruption Magique | ✅ DESIGN VALIDE | Phase 1/2, lien Ombre, bonus Essence -- Combat_StatusEffects.md |
+| Corruption Magique | ✅ VALIDE PIE | BP_CorruptionComponent, tracking deites, purge, barre HUD -- 31/05/2026 |
 | Economie & Drops | ✅ DESIGN VALIDE | Double monnaie, Seiken drops, Mana, equipement -- Economy_Drops.md |
 | Lore & Cast | ✅ DESIGN VALIDE enrichi | Structure actes, Armes Mana, Hub, Corruption heros -- Lore_ShadowOfMana.md |
 | Archi armes/combo/inventaire | ✅ VALIDE PIE | ComboManager source verite, InventoryComponent, EquipWeapon refacto -- 29/05/2026 |
@@ -98,13 +98,13 @@ C4 — Alpha Test
 | HUD-Core | ✅ VALIDE PIE | 31/05/2026 |
 | DESIGN-SaveDesign | ✅ DESIGN VALIDE | 31/05/2026 |
 | COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 |
+| SYS-CorruptionSystem | ✅ VALIDE PIE | 31/05/2026 |
 
 ### Jalons restants C1
 
 | Jalon | Prefixe | Contenu | Dependances |
 |---|---|---|---|
-| SYS-CorruptionSystem | SYS | BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence | DESIGN-Corruption ✅, DESIGN-SaveDesign ✅ |
-| SYS-EssenceMana | SYS | Perte a la mort, mob porteur, recuperation DS-like, bonus Corruption | SYS-CorruptionSystem |
+| SYS-EssenceMana | SYS | Perte a la mort, mob porteur, recuperation DS-like, bonus Corruption | SYS-CorruptionSystem ✅ |
 | SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | DESIGN-SaveDesign ✅, SYS-EssenceMana |
 | MAGIC-TreeModule | MAGIC | Arbre talents Lumina (sorts Lumina existants ✅), placeholder print pour effets | MAGIC-UnlockSystem ✅ |
 | ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire placeholder | DESIGN-StatsProgression ✅ |
@@ -172,7 +172,7 @@ C4 — Alpha Test
 ## Sessions Creatives (intercalees librement)
 
 | Session | Contenu |
-|---------|---------| 
+|---------|---------|
 | ART-Hero | LODs + correction 6 doigts + sockets (retopo 246K -> 10-15K) |
 | ART-Enemies | Meshes ennemis (Knight + 1-2 types) |
 | ART-Weapons | Assets armes Mana (Sword_01, 2HSword_01, Arc_01, Lance_01, Axe_01...) |
@@ -185,7 +185,7 @@ C4 — Alpha Test
 | SESSION-ZonesA1 | Structure zones, Fontaines, enchainement narratif |
 | SESSION-ZonesA2 | Origine conflit Loup/DragonFolk, structure regions A2 |
 | SESSION-ArmesMana | Liste types armes, nombre etapes evolution, calibrage materiaux |
-| SESSION-Economie | Calibrage PO/Essence, prix marchands, couts purge Corruption |
+| SESSION-Economie | Calibrage PO/Essence, prix marchands, couts purge Corruption, montee Corruption par sort |
 
 ---
 
@@ -212,6 +212,8 @@ C4 — Alpha Test
 | Noms definitifs consommables (lore Seiken) | SESSION-Noms/Lore | ❌ Ouvert |
 | Calibrage PO/Essence/prix marchands | SESSION-Economie | ❌ Ouvert |
 | Calibrage couts purge Corruption (75-99% et 100%) | SESSION-Economie | ❌ Ouvert |
+| Calibrage montee Corruption par sort (+5 actuel) | SESSION-Economie | ❌ Ouvert |
+| Cout Essence purge Corruption | SYS-EssenceMana (C1) | ❌ Ouvert |
 | Compagnons : mecanique en combat + mort permanente ? | SESSION C3 | ❌ Ouvert |
 | Distribution future : Steam / itch.io / perso | C4 | ❌ Ouvert |
 | Touchpad PS5 : carte, journal, autre ? | C3/C4 | ⏳ Reserve C3/C4 |
@@ -227,6 +229,7 @@ C4 — Alpha Test
 | SaveDesign : spec Fontaine de Fee | DESIGN-SaveDesign | ✅ Resolu : voir SaveSystem.md |
 | Slots de save | DESIGN-SaveDesign | ✅ Resolu : multi-slots inter-parties, 1 slot par partie |
 | Essence au sol vs mob porteur | DESIGN-SaveDesign | ✅ Resolu : environnement=sol, ennemi=mob porteur, boss=sol |
+| PurgeCorruption semantique | SYS-CorruptionSystem | ✅ Resolu : remet a 0 (pas soustraction) -- CostAmount = futur cout Essence |
 
 ---
 
@@ -239,3 +242,4 @@ C4 — Alpha Test
 - MAJ 29/05/2026 : C1-WeaponArchitecture COMPLET VALIDE PIE, DESIGN-Lore enrichi, 5 points ouverts resolus
 - MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques
 - MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
+- MAJ 31/05/2026 : SYS-CorruptionSystem VALIDE PIE -- BP_CorruptionComponent, tracking deites, purge HUD operationnels
