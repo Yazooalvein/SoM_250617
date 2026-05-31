@@ -27,6 +27,34 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 
 ---
 
+## Convention de nommage des jalons
+
+```
+Cycles = milestones jouables (C1, C2, C3, C4)
+Jalons = prefixe thematique + nom court
+
+Prefixes :
+  COMBAT-   : mecaniques de combat (armes, lock-on, combo, inputs, camera)
+  MAGIC-    : systeme magie (sorts, deites, radial magie, arbre talents)
+  SYS-      : systemes transversaux (save, corruption, essence, statuseffects)
+  ENEMY-    : ennemis (base, types, boss, IA)
+  MAP-      : niveaux et zones
+  HUD-      : interface joueur
+  ANIM-     : animations
+  DESIGN-   : sessions de design pur (pas de code)
+  ART-      : sessions art (modeles, textures)
+  MUS-      : sessions musique
+  SESSION-  : sessions de design narratif/lore
+  NAR-      : systemes narratifs (dialogue, quete, compagnons)
+  FORGE-    : systeme de forge et equipement
+  AUDIO-    : son et musique en jeu
+  UI-       : menus et interfaces hors HUD
+  QA-       : tests et qualite
+  BUILD-    : builds distribuables
+```
+
+---
+
 ## Workflow dual-agent
 
 ### Roles
@@ -130,13 +158,13 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Voir Docs/Architecture/Stats_Progression.md
 
 ### Effets de statut -- DESIGN VALIDE (28/05/2026)
-- 8 effets par deite, BP_StatusEffectComponent a creer (jalon a definir)
+- 8 effets par deite, BP_StatusEffectComponent a creer (SYS-StatusEffects -- C2)
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
 ### Corruption Magique -- DESIGN VALIDE (28/05/2026)
 - Phase 1 (debut jeu) : plafond 50 (bCorruptionUnlocked=false dans AttributeSet)
 - Phase 2 (apres Sanctuaire d'Ombre) : plafond 100 (bCorruptionUnlocked=true)
-- Logique metier complete (tracking deites, purge, faiblesse 75) dans BP_CorruptionComponent (C2-CorruptionSystem)
+- Logique metier complete (tracking deites, purge, faiblesse 75) dans BP_CorruptionComponent (SYS-CorruptionSystem -- C1)
 - Faiblesse a 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond)
 - Corruption reduit TenaciteEtat heros (calibrage a definir)
@@ -145,7 +173,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Economie & Drops -- DESIGN VALIDE (28/05/2026)
 - Double monnaie, consommables Seiken (9 max/type), forge narrative, Mana sans regen
 - Menu pause : pause complete (Time Dilation reserve au radial uniquement)
-- Touchpad PS5 : reserve a C4
+- Touchpad PS5 : reserve C3/C4
 - Voir Docs/Architecture/Economy_Drops.md
 
 ### Progression Armes -- DESIGN VALIDE (30/05/2026)
@@ -158,20 +186,22 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Voir Docs/Architecture/Weapons_Progression.md
 
 ### Save System -- DESIGN VALIDE (31/05/2026)
-- Save uniquement via Fontaines de Fee (physiques dans le niveau) + jalons narratifs (progression only, pas de respawn)
+- Save uniquement via Fontaines de Fee (physiques dans le niveau)
 - Fontaines contextuelles : apparaissent post-boss, entree zone, apres cinematique majeure
 - Slots : multi-parties (ex. 3 slots), slot unique par partie (souls-like strict)
 - Respawn : ennemis normaux oui, boss/mini-boss jamais
 - Essence mort par environnement -> au sol / mort par ennemi -> mob porteur (sauf boss -> au sol)
 - BP_SaveGame_SoM : stats, inventaire, magie, flags narratifs, Essence au sol
 - BP_FountainComponent : FountainID Name editable, bIsActivated, OnPlayerInteract()
+- Implementation : SYS-SaveGame (C1)
 - Voir Docs/Architecture/SaveSystem.md
 
 ### Corruption / Essence / Fontaine -- DESIGN VALIDE (31/05/2026)
 - Cout depenses Essence : 0-74% = x1.0 / 75-99% = x1.15 / 100% = inutilisable
 - Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout / 100% = grand cout
 - Montee niveau deite : 0-74% normal / 75-99% cout +15% / 100% bloque
-- Calibrage couts purge -> session Economie/Drops
+- Calibrage couts purge -> SESSION-Economie
+- Implementation : SYS-CorruptionSystem (C1) + SYS-EssenceMana (C1)
 - Voir Docs/Architecture/SaveSystem.md
 
 ### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
@@ -224,7 +254,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - BP_CombatLockOnComponent sur Character -- SwitchCooldown source unique
 
 ### Ennemis
-- BP_Enemy_Base : stats a ajouter (C2-EnemyTypes)
+- BP_Enemy_Base : stats a ajouter (ENEMY-Base -- C1)
 - BP_Enemy_TestBed : stats Instance Editable
 
 ### Combat -- VALIDE PIE (29/05/2026)
@@ -245,12 +275,13 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - PopulateWeaponSlots lit InventoryComponent.GetWeapons() (plus HC.DiscoveredWeapons)
 - Mecanique : roue tourne sur arme equipee a l'ouverture, curseur fixe en haut (position 0)
 - Guard : si CurrentWeaponID == None -> pas de modification rotation
-- Dette curseur : position initiale toujours slot 0 -> C?-RadialRefacto (refonte systeme Radial)
+- Dette curseur : position initiale toujours slot 0 -> UI-RadialRefacto (C2)
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
 - Seuils : Attack=150, Heal=100, Buff=50, Debuff=35, Ultime=200
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade
+- Deite C1 : Lumina (sorts existants, effets placeholder/print)
 
 ### UI / HUD -- VALIDE (31/05/2026)
 - UI_HUD_Main : event-driven, finalise
@@ -260,8 +291,6 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Bindings ProgressBar : Get_HealthBar_Percent, Get_StaminaBar_Percent, Get_ManaBar_Percent, Get_CorruptionBar_Percent
 - UpdateEssenceText : EssenceValue -> Int64 -> String -> Text -> SetText(TextBlock_Essence)
 - bCorruptionUnlocked dans AttributeSet : false=clamp50, true=clamp100
-- BP_CorruptionComponent : jalon C2-CorruptionSystem (tracking deites, purge, faiblesse 75)
-- C3-EssenceMana : jalon dedie systeme complet (collecte, perte mort, recuperation DS-like)
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -270,59 +299,55 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ## Jalons completes
 
-- [x] #1 a #9, J-10 a J-15, J-RadialMenu, J-Cleanup, ART-Hero (partiel), MUS-Workflow
-- [x] J-LockOn, J-Renommage, J-Camera, J-LockMove, J-TestBed, J-ComboFix (15-18/05/2026)
-- [x] C1-CollisionFix, C1-HitFeel (partiel), C1-HitFlashEnemies (abandonne) (18-21/05/2026)
-- [x] C1-InputsUI VALIDE PIE (23/05/2026)
-- [x] C1-RadialMagie, C1-MagicProgressionDesign, C1-MagicDataLayer (25/05/2026)
-- [x] DESIGN-MagicProgression (26/05/2026)
-- [x] C1-MagicUnlockSystem, RadialUnlock, C1-CleanupDettes (27/05/2026)
+- [x] Jalons fondateurs (#1-#9, J-10 a J-15, J-RadialMenu, J-Cleanup) -- historique
+- [x] ART-Hero (partiel), MUS-Workflow -- historique
+- [x] COMBAT-LockOn, COMBAT-Camera, COMBAT-LockMove, COMBAT-ComboFix (15-18/05/2026)
+- [x] COMBAT-CollisionFix, COMBAT-HitFeel (partiel), COMBAT-HitFlashEnemies (abandonne) (18-21/05/2026)
+- [x] COMBAT-InputsUI VALIDE PIE (23/05/2026)
+- [x] MAGIC-RadialMagie, MAGIC-ProgressionDesign, MAGIC-DataLayer (25/05/2026)
+- [x] MAGIC-UnlockSystem, COMBAT-CleanupDettes (27/05/2026)
 - [x] DESIGN-StatsProgression, DESIGN-StatusEffects, DESIGN-Corruption, DESIGN-Economy (28/05/2026)
 - [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites (28/05/2026)
-- [x] C1-WeaponArchitecture etapes 5-6 VALIDE, etape 7 PARTIELLE (28/05/2026)
-- [x] DESIGN-WeaponArchitecture : ComboManager source verite, InventoryComponent, TenaciteEtat, switch combo punition (29/05/2026)
-- [x] C1-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
-- [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction, Corruption heros (29/05/2026)
-- [x] DESIGN-WeaponProgression : progression usage, forge, arbre combo/stat, end-game (30/05/2026)
-- [x] C1-HUDCore VALIDE (31/05/2026)
+- [x] COMBAT-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
+- [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction (29/05/2026)
+- [x] DESIGN-WeaponProgression (30/05/2026)
+- [x] HUD-Core VALIDE PIE (31/05/2026)
 - [x] DESIGN-SaveDesign : Fontaine de Fee, SaveGame, Corruption/Essence/Fontaine (31/05/2026)
+- [x] DESIGN-Roadmap : refonte cycles milestones jouables C1/C2/C3/C4, nommage thematique (31/05/2026)
 
 ## Dettes techniques
 
-- **Roll en lock-on** (C1-AnimationsPass1)
-- **Rename ABP_Manny_Platforming -> ABP_Hero** (C1-AnimationsPass1)
-- **WeaponClass hardcode BP_Enemy_Sword01** (C2-EnemyMesh)
-- **Retopo hero 246K -> 10-15K** (ART-Hero)
-- **Radial curseur position initiale a l'ouverture** (C?-RadialRefacto -- refonte complete systeme Radial)
-- **SaveGame : BeginPlay charger arme -> EquipWeapon** (C2-SaveGame)
-- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** (a placer dans jalon adequat)
-- **Stats ennemis BP_Enemy_Base** (C2-EnemyTypes)
-- **BP_StatusEffectComponent** (jalon a definir -- lie magie/ennemis)
-- **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
-- **Radial dedie objets consommables** (C7-HUDPolish)
-- **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** (C7-HUDPolish)
-- **Calibrage couts purge Corruption (75-99% et 100%)** -> session Economie/Drops
+- **Roll en lock-on** -> ANIM-Pass1 (C1)
+- **Rename ABP_Manny_Platforming -> ABP_Hero** -> ANIM-Pass1 (C1)
+- **WeaponClass hardcode BP_Enemy_Sword01** -> ENEMY-Types (C2)
+- **Retopo hero 246K -> 10-15K** -> ART-Hero
+- **Radial curseur position initiale a l'ouverture** -> UI-RadialRefacto (C2)
+- **TenaciteEtat : ajouter dans BP_AttributeSet_Base (base 25)** -> COMBAT-SwordMoveset (C1)
+- **Stats ennemis BP_Enemy_Base** -> ENEMY-Base (C1)
+- **BP_StatusEffectComponent** -> SYS-StatusEffects (C2)
+- **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay dans SYS-SaveGame (C1)
+- **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** -> UI-HUDPolish (C4)
+- **Calibrage couts purge Corruption (75-99% et 100%)** -> SESSION-Economie
 
-## Prochains jalons
+## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **C2-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge, faiblesse 75, TenaciteEtat, indices visuels heros, couts Essence Fontaine
-2. **C3-EssenceMana** : systeme complet Essence (collecte, perte a la mort, recuperation DS-like, mob porteur, bonus Corruption)
-3. **C2-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
-4. **C1-MagicTreeModule** : arbre de talents magie
-5. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
-6. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
-7. **Session Noms personnages** : soeur + fee ensemble ⚠️
-8. **Session Lore Deites** : rituels, cout Essence
-9. **Session zones acte 1** : structure, Fontaines, enchainement
-10. **C1-AnimationsPass1**
+1. **COMBAT-SwordMoveset** : combo 3 coups, heavy, rotation lock-on, TenaciteEtat dans AttributeSet
+2. **SYS-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence
+3. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
+4. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
+5. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
+6. **ENEMY-Base** : stats sur BP_Enemy_Base
+7. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+8. **MAP-C1Level** : couloir → mobs → fontaine → arene boss
+9. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
-- **Session Noms** : tous les personnages -- soeur et fee ENSEMBLE ⚠️
-- **Session Lore Deites** : rituels par deite, cout Essence, order confirmation
-- **Session zones acte 1** : structure zones, Fontaines, conflit Loup/DragonFolk
-- **Session zones acte 2** : origine conflit Loup/DragonFolk, structure regions
-- **Session Forge/Economie** : materiaux par arme, calibrage niveaux arbre, calibrage couts purge Corruption
+- **SESSION-Noms** : tous les personnages -- Soeur ET Fee ENSEMBLE ⚠️, ville hub
+- **SESSION-LoreDeites** : rituels par deite, cout Essence, confirmation ordre
+- **SESSION-ZonesA1** : structure zones, Fontaines, conflit Loup/DragonFolk
+- **SESSION-ZonesA2** : origine conflit Loup/DragonFolk, structure regions
+- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge Corruption
 
 ---
 
@@ -346,11 +371,11 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - PopulateWeaponSlots lit InventoryComponent.GetWeapons() (pas HC.DiscoveredWeapons)
 - BP_InventoryComponent : Actor Component, Content/Systems/Inventory/
 - Switch arme en combo = reset combo complet, pas de grisage Radial
-- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs (a implementer)
-- UpgradeWeaponLevel : Option A runtime (etape 6 C1-WeaponArchitecture)
+- TenaciteEtat heros : base 25, cle supplementaire AttributeSet, impactee par Corruption + debuffs
+- UpgradeWeaponLevel : Option A runtime (etape 6 COMBAT-WeaponArchitecture)
 - Radial roue tourne sur arme equipee a l'ouverture -- TargetRotation = -(EquippedIndex * AnglePerSlot)
 - Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
-- Radial curseur position initiale : systeme heterogene -> reporte C?-RadialRefacto
+- Radial curseur position initiale : systeme heterogene -> reporte UI-RadialRefacto (C2)
 - UnlockDeity : "Set Members in FSoM_DeitySpells" NON "Make FSoM_DeitySpells"
 - UnlockDeity Map_Contains : TRUE = deja present -> return
 - search_nodes("UnlockDeity") = 0 -> chercher "Unlock Deity" (avec espace)
@@ -359,32 +384,34 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Athanor = Salamandre
 - Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Corruption Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
-- bCorruptionUnlocked dans AttributeSet = variable simple, logique metier dans C2-CorruptionSystem
-- Corruption reduit TenaciteEtat heros (calibrage a definir en session Economie)
-- EssenceMana : compteur absolu Int64 (pas de Max), souls-like -- systeme complet dans C3-EssenceMana
+- bCorruptionUnlocked dans AttributeSet = variable simple, logique metier dans SYS-CorruptionSystem (C1)
+- Corruption reduit TenaciteEtat heros (calibrage a definir en SESSION-Economie)
+- EssenceMana : compteur absolu Int64 (pas de Max), souls-like -- implementation dans SYS-EssenceMana (C1)
 - HUD_OnStatChanged Switch : 8 cases -- EssenceMana (SET direct) + Corruption (NewValue/100)
 - UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString (Int64 = pas d'overflow grandes valeurs)
 - Menu pause = pause complete (pas Time Dilation) -- Time Dilation reserve radial uniquement
-- Touchpad PS5 : reserve C4
+- Touchpad PS5 : reserve C3/C4
 - Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE ⚠️
 - Forge narrative Seiken : upgrade N+1 conditionne par jalon narratif + materiaux
-- Armes Mana : jalon narratif + materiaux drop = double condition evolution (empeche tout maxer d'un coup)
+- Armes Mana : jalon narratif + materiaux drop = double condition evolution
 - Epee Mana : brisee A1 = reconnaissance heros, evolution par etapes, etat final A3 = condition boss Demon Mana
-- Forgeron Nain : actif et utile tout au long du jeu (pas juste A1/A2)
+- Forgeron Nain : actif et utile tout au long du jeu
 - Liberation deite dans une region = changement esthetique visuel de la zone
 - Hub non reconstruit a l'arrivee A2 -- se reconstruit zone par zone, PNJs rencontres en route reviennent
-- Heros = seul humanoide impacte physiquement par Corruption -- Pretresse + Suivante le percoivent (sensibilite Mana)
+- Heros = seul humanoide impacte physiquement par Corruption -- Pretresse + Suivante le percoivent
 - Flammy : debloque fin A3/A4, acces lieux inaccessibles
 - Conflit Loup/DragonFolk : ancien, amplifie par Decheance Mana
 - Respawn Fontaine : ennemis normaux oui, boss jamais
 - Progression armes : Lvl1->2 libre, Lvl2->3+ forge requise avant XP -- arbre combo/stat tous les X niveaux
-- Quetes annexes haut level : donnent materiaux rares manquants (pas forge directe) -- joueur choisit quelle arme maxer
-- SaveSystem : save via Fontaines physiques uniquement (pas de save silencieuse abstraite)
-- Fontaines contextuelles : se reveillent post-boss / entree zone / apres cinematique = lore coherent
-- Jalons narratifs : sauvegardent progression mais pas respawn point
+- Quetes annexes haut level : donnent materiaux rares manquants
+- SaveSystem : save via Fontaines physiques uniquement
+- Fontaines contextuelles : se reveillent post-boss / entree zone / apres cinematique
 - Essence mort : au sol si environnement / mob porteur si ennemi (sauf boss -> au sol)
 - Corruption/Essence : 0-74% normal / 75-99% x1.15 / 100% bloque -- purge 0-74% gratuit / 75-99% petit cout / 100% grand cout
 - BP_FountainComponent : FountainID Name editable, convention Fountain_[Acte]_[Zone]_[Index]
+- Deite C1 = Lumina (sorts existants, effets placeholder/print en combat)
+- ENEMY-Boss1 C1 : gros mob, 1-2 patterns simples (magie placeholder, saut), pas d'anim avancee
+- Critere fin C1 : MAP-C1Level jouable de bout en bout (spawn -> mobs -> fontaine -> boss)
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
 - Pour effets statut/corruption : voir Docs/Architecture/Combat_StatusEffects.md
