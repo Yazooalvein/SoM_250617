@@ -122,7 +122,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Stats via `BP_AttributeSet_Base` (ref : `AttributeSetRef`)
 - `bIsDead` + `IsDead()`, `bIsInvincible`, `OnPlayerDeath`, `OnStatChanged`
 - `bRadialUnlocked` (bool, default=false)
-- `BP_CombatLockOnComponent`, `MagicComponent`, `BP_ComboManagerComponent`, `BP_InventoryComponent` sur le Character
+- `BP_CombatLockOnComponent`, `MagicComponent`, `BP_ComboManagerComponent`, `BP_InventoryComponent`, `BP_CorruptionComponent` sur le Character
 - HC.ChoosenWeapon SUPPRIME -- source unique : ComboManager.CurrentWeaponID (29/05/2026)
 - DiscoveredWeapons SUPPRIME de HC -- migre vers BP_InventoryComponent (29/05/2026)
 
@@ -131,13 +131,23 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - BP_CombatLockOnComponent : tout l'etat lock-on
 - BP_MagicComponent : tout l'etat magie
 - BP_ComboManagerComponent : arme courante + niveau arme + etat combo
-- BP_InventoryComponent : armes decouvertes (Content/Systems/Inventory/) -- extensible consommables/craft/equip
+- BP_InventoryComponent : armes decouvertes (Content/Systems/Inventory/)
+- BP_CorruptionComponent : tracking deites, purge, faiblesse 75 (Content/Systems/Corruption/)
 
 ### BP_InventoryComponent -- VALIDE PIE (29/05/2026)
 - Variables : DiscoveredWeapons (Array<Name>)
 - Fonctions : AddWeapon(WeaponID : Name), GetWeapons() -> Array<Name>
 - Valeurs par defaut renseignees en Details panel instance HC (dette -> BeginPlay a terme)
 - Radial lit GetWeapons() pour peupler les slots armes
+
+### BP_CorruptionComponent -- VALIDE PIE (31/05/2026)
+- Variables : DeityUsageMap (TMap<Name, int32>)
+- Fonctions : InitCorruption, TrackDeityUsage(DeityName), GetWeakDeity()->Name, PurgeCorruption(CostAmount)
+- TrackDeityUsage : incremente DeityUsageMap + Corruption +5.0 par sort (valeur C1, a calibrer)
+- PurgeCorruption : remet Corruption a 0 + Map_Clear(DeityUsageMap) -- CostAmount reserve pour futur cout Essence
+- GetWeakDeity : retourne la deite la plus utilisee depuis la derniere purge
+- Branche dans IncrementSpellUsage (BP_MagicComponent) -> TrackDeityUsage(DeityID)
+- Gotcha : ne pas stocker AttributeSetRef en variable -- recup dynamiquement via GetOwner/Cast a chaque appel (ordre BeginPlay non garanti)
 
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
@@ -161,13 +171,14 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - 8 effets par deite, BP_StatusEffectComponent a creer (SYS-StatusEffects -- C2)
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
-### Corruption Magique -- DESIGN VALIDE (28/05/2026)
+### Corruption Magique -- VALIDE PIE (31/05/2026)
 - Phase 1 (debut jeu) : plafond 50 (bCorruptionUnlocked=false dans AttributeSet)
 - Phase 2 (apres Sanctuaire d'Ombre) : plafond 100 (bCorruptionUnlocked=true)
-- Logique metier complete (tracking deites, purge, faiblesse 75) dans BP_CorruptionComponent (SYS-CorruptionSystem -- C1)
+- Logique metier dans BP_CorruptionComponent (tracking deites, purge, faiblesse 75)
 - Faiblesse a 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
+- Corruption monte +5.0 par sort lance (calibrage C1, a affiner SESSION-Economie)
+- Purge = remet a 0 + reset DeityUsageMap (cout Essence a implementer SYS-EssenceMana)
 - Bonus Essence : x1.0 / x1.15 / x1.35 / x1.60 / x1.60 (plafond)
-- Corruption reduit TenaciteEtat heros (calibrage a definir)
 - Voir Docs/Architecture/Combat_StatusEffects.md
 
 ### Economie & Drops -- DESIGN VALIDE (28/05/2026)
@@ -201,7 +212,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout / 100% = grand cout
 - Montee niveau deite : 0-74% normal / 75-99% cout +15% / 100% bloque
 - Calibrage couts purge -> SESSION-Economie
-- Implementation : SYS-CorruptionSystem (C1) + SYS-EssenceMana (C1)
+- Implementation : SYS-CorruptionSystem ✅ + SYS-EssenceMana (C1)
 - Voir Docs/Architecture/SaveSystem.md
 
 ### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
@@ -291,6 +302,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Variables widget : HealthPercent, StaminaPercent, ManaPercent, EssenceValue, CorruptionPercent
 - Switch HUD_OnStatChanged : 8 cases (HealthCurrent, StaminaCurrent, ManaCurrent, HealthMax, StaminaMax, ManaMax, EssenceMana, Corruption)
 - Bindings ProgressBar : Get_HealthBar_Percent, Get_StaminaBar_Percent, Get_ManaBar_Percent, Get_CorruptionBar_Percent
+- Get_CorruptionBar_Percent doit etre marquee Pure pour le binding -- sinon non connectable
 - UpdateEssenceText : EssenceValue -> Int64 -> String -> Text -> SetText(TextBlock_Essence)
 - bCorruptionUnlocked dans AttributeSet : false=clamp50, true=clamp100
 
@@ -317,6 +329,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-SaveDesign : Fontaine de Fee, SaveGame, Corruption/Essence/Fontaine (31/05/2026)
 - [x] DESIGN-Roadmap : refonte cycles milestones jouables C1/C2/C3/C4, nommage thematique (31/05/2026)
 - [x] COMBAT-SwordMoveset CLOS VALIDE PIE (31/05/2026)
+- [x] SYS-CorruptionSystem VALIDE PIE (31/05/2026)
 
 ## Dettes techniques
 
@@ -330,19 +343,20 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay dans SYS-SaveGame (C1)
 - **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** -> UI-HUDPolish (C4)
 - **Calibrage couts purge Corruption (75-99% et 100%)** -> SESSION-Economie
+- **Calibrage montee Corruption par sort (+5 actuellement)** -> SESSION-Economie
+- **Cout Essence purge Corruption** -> SYS-EssenceMana (C1)
 - **NextStepID et AnimToPlay dans ComboManager** : variables non utilisees -> nettoyage futur
 - **Lock-on feeling pendant attaques** : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou C2
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **SYS-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge Fontaine, faiblesse 75, couts Essence
-2. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
-3. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
-4. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
-5. **ENEMY-Base** : stats sur BP_Enemy_Base
-6. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
-7. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
-8. **ANIM-Pass1** : rename ABP, roll en lock-on
+1. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
+2. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
+3. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
+4. **ENEMY-Base** : stats sur BP_Enemy_Base
+5. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+6. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+7. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
@@ -350,7 +364,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **SESSION-LoreDeites** : rituels par deite, cout Essence, confirmation ordre
 - **SESSION-ZonesA1** : structure zones, Fontaines, conflit Loup/DragonFolk
 - **SESSION-ZonesA2** : origine conflit Loup/DragonFolk, structure regions
-- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge Corruption
+- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge Corruption, montee Corruption par sort
 
 ---
 
@@ -387,8 +401,10 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Athanor = Salamandre
 - Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
 - Corruption Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
-- bCorruptionUnlocked dans AttributeSet = variable simple, logique metier dans SYS-CorruptionSystem (C1)
-- Corruption reduit TenaciteEtat heros (calibrage a definir en SESSION-Economie)
+- BP_CorruptionComponent : NE PAS stocker AttributeSetRef en variable -- ordre BeginPlay non garanti entre composants -- recup dynamiquement GetOwner->Cast->AttributeSetRef a chaque appel
+- Corruption monte +5.0 par sort (C1 placeholder, calibrage -> SESSION-Economie)
+- PurgeCorruption : remet Corruption a 0 + Map_Clear DeityUsageMap -- CostAmount = futur cout Essence (pas encore branche)
+- Get_CorruptionBar_Percent dans UI_HUD_Main : doit etre marquee Pure pour binding ProgressBar
 - EssenceMana : compteur absolu Int64 (pas de Max), souls-like -- implementation dans SYS-EssenceMana (C1)
 - HUD_OnStatChanged Switch : 8 cases -- EssenceMana (SET direct) + Corruption (NewValue/100)
 - UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString (Int64 = pas d'overflow grandes valeurs)
