@@ -58,6 +58,7 @@ Il est lu aussi bien par Claude.ai (via GitHub MCP) que par l'agent UnrealClaude
 | `Docs/Architecture/Combat_StatusEffects.md` | Quand effets statut ou Corruption changent |
 | `Docs/Architecture/Economy_Drops.md` | Quand economie ou drops changent |
 | `Docs/Architecture/Weapons_Progression.md` | Quand progression armes change |
+| `Docs/Architecture/SaveSystem.md` | Quand le systeme de save evolue |
 | `Docs/Architecture/Input_Architecture.md` | Quand les inputs changent |
 | `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial evolue |
 | `Docs/Lore_ShadowOfMana.md` | Quand le lore ou le cast change |
@@ -155,6 +156,23 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - ~50% maxables naturellement, reste via quetes annexes haut level (donnent materiaux rares)
 - Pas de rattrapage armes (contrairement a la magie)
 - Voir Docs/Architecture/Weapons_Progression.md
+
+### Save System -- DESIGN VALIDE (31/05/2026)
+- Save uniquement via Fontaines de Fee (physiques dans le niveau) + jalons narratifs (progression only, pas de respawn)
+- Fontaines contextuelles : apparaissent post-boss, entree zone, apres cinematique majeure
+- Slots : multi-parties (ex. 3 slots), slot unique par partie (souls-like strict)
+- Respawn : ennemis normaux oui, boss/mini-boss jamais
+- Essence mort par environnement -> au sol / mort par ennemi -> mob porteur (sauf boss -> au sol)
+- BP_SaveGame_SoM : stats, inventaire, magie, flags narratifs, Essence au sol
+- BP_FountainComponent : FountainID Name editable, bIsActivated, OnPlayerInteract()
+- Voir Docs/Architecture/SaveSystem.md
+
+### Corruption / Essence / Fontaine -- DESIGN VALIDE (31/05/2026)
+- Cout depenses Essence : 0-74% = x1.0 / 75-99% = x1.15 / 100% = inutilisable
+- Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout / 100% = grand cout
+- Montee niveau deite : 0-74% normal / 75-99% cout +15% / 100% bloque
+- Calibrage couts purge -> session Economie/Drops
+- Voir Docs/Architecture/SaveSystem.md
 
 ### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
 - Voir Docs/Lore_ShadowOfMana.md pour le detail complet
@@ -267,6 +285,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction, Corruption heros (29/05/2026)
 - [x] DESIGN-WeaponProgression : progression usage, forge, arbre combo/stat, end-game (30/05/2026)
 - [x] C1-HUDCore VALIDE (31/05/2026)
+- [x] DESIGN-SaveDesign : Fontaine de Fee, SaveGame, Corruption/Essence/Fontaine (31/05/2026)
 
 ## Dettes techniques
 
@@ -282,20 +301,20 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2-SaveGame)
 - **Radial dedie objets consommables** (C7-HUDPolish)
 - **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** (C7-HUDPolish)
+- **Calibrage couts purge Corruption (75-99% et 100%)** -> session Economie/Drops
 
 ## Prochains jalons
 
-1. **SaveDesign** : spec Fontaine de Fee
-2. **C2-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge, faiblesse 75, TenaciteEtat, indices visuels heros
-3. **C3-EssenceMana** : systeme complet Essence (collecte, perte a la mort, recuperation DS-like, bonus Corruption)
+1. **C2-CorruptionSystem** : BP_CorruptionComponent, tracking deites, purge, faiblesse 75, TenaciteEtat, indices visuels heros, couts Essence Fontaine
+2. **C3-EssenceMana** : systeme complet Essence (collecte, perte a la mort, recuperation DS-like, mob porteur, bonus Corruption)
+3. **C2-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
 4. **C1-MagicTreeModule** : arbre de talents magie
-5. **C2-SaveGame**
-6. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
-7. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
-8. **Session Noms personnages** : soeur + fee ensemble ⚠️
-9. **Session Lore Deites** : rituels, cout Essence
-10. **Session zones acte 1** : structure, Fontaines, enchainement
-11. **C1-AnimationsPass1**
+5. **C1-BowPOC**, **C1-WeaponSwitching**, **C1-SFXCombat**
+6. **C?-RadialRefacto** : refonte complete systeme Radial (curseur, architecture)
+7. **Session Noms personnages** : soeur + fee ensemble ⚠️
+8. **Session Lore Deites** : rituels, cout Essence
+9. **Session zones acte 1** : structure, Fontaines, enchainement
+10. **C1-AnimationsPass1**
 
 ## Sessions design a planifier
 
@@ -303,8 +322,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **Session Lore Deites** : rituels par deite, cout Essence, order confirmation
 - **Session zones acte 1** : structure zones, Fontaines, conflit Loup/DragonFolk
 - **Session zones acte 2** : origine conflit Loup/DragonFolk, structure regions
-- **Session SaveDesign** : Fontaine de Fee detaillee
-- **Session Forge/Economie** : materiaux par arme, calibrage niveaux arbre
+- **Session Forge/Economie** : materiaux par arme, calibrage niveaux arbre, calibrage couts purge Corruption
 
 ---
 
@@ -361,12 +379,19 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Respawn Fontaine : ennemis normaux oui, boss jamais
 - Progression armes : Lvl1->2 libre, Lvl2->3+ forge requise avant XP -- arbre combo/stat tous les X niveaux
 - Quetes annexes haut level : donnent materiaux rares manquants (pas forge directe) -- joueur choisit quelle arme maxer
+- SaveSystem : save via Fontaines physiques uniquement (pas de save silencieuse abstraite)
+- Fontaines contextuelles : se reveillent post-boss / entree zone / apres cinematique = lore coherent
+- Jalons narratifs : sauvegardent progression mais pas respawn point
+- Essence mort : au sol si environnement / mob porteur si ennemi (sauf boss -> au sol)
+- Corruption/Essence : 0-74% normal / 75-99% x1.15 / 100% bloque -- purge 0-74% gratuit / 75-99% petit cout / 100% grand cout
+- BP_FountainComponent : FountainID Name editable, convention Fountain_[Acte]_[Zone]_[Index]
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
 - Pour effets statut/corruption : voir Docs/Architecture/Combat_StatusEffects.md
 - Pour economie/drops : voir Docs/Architecture/Economy_Drops.md
 - Pour decisions archi : voir Docs/Architecture/Decisions.md
 - Pour progression armes : voir Docs/Architecture/Weapons_Progression.md
+- Pour save system : voir Docs/Architecture/SaveSystem.md
 
 ---
 
