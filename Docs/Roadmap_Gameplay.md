@@ -104,6 +104,7 @@ C4 — Alpha Test
 
 | Jalon | Prefixe | Contenu | Dependances |
 |---|---|---|---|
+| HUD-Quickslot | HUD | Integration 3 slots quickslot dans UI_HUD_Main -- affichage, binding, mise a jour | HUD-Core ✅ |
 | SYS-EssenceMana | SYS | Perte a la mort, mob porteur, recuperation DS-like, bonus Corruption | SYS-CorruptionSystem ✅ |
 | SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | DESIGN-SaveDesign ✅, SYS-EssenceMana |
 | MAGIC-TreeModule | MAGIC | Arbre talents Lumina (sorts Lumina existants ✅), placeholder print pour effets | MAGIC-UnlockSystem ✅ |
@@ -243,3 +244,4 @@ C4 — Alpha Test
 - MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques
 - MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
 - MAJ 31/05/2026 : SYS-CorruptionSystem VALIDE PIE -- BP_CorruptionComponent, tracking deites, purge HUD operationnels
+- MAJ 31/05/2026 : ajout HUD-Quickslot dans jalons restants C1
