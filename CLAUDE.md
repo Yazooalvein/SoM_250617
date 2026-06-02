@@ -149,12 +149,21 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Branche dans IncrementSpellUsage (BP_MagicComponent) -> TrackDeityUsage(DeityID)
 - Gotcha : ne pas stocker AttributeSetRef en variable -- recup dynamiquement via GetOwner/Cast a chaque appel (ordre BeginPlay non garanti)
 
+### BP_EssenceDrop -- VALIDE PIE (02/06/2026)
+- Cree dans Content/Systems/Essence/
+- Composants : SphereComponent (root, OverlapAllDynamic), StaticMesh (NoCollision), PointLight
+- Variables : EssenceValue (Int64), bCanBePickedUp (Bool, default false)
+- BeginPlay : Delay(1.5s) -> SET bCanBePickedUp = true
+- ActorBeginOverlap : Branch(bCanBePickedUp) -> Cast HC -> AttributeSetRef -> Add EssenceValue -> SetStatValue("EssenceValue") -> DestroyActor
+- Gotcha : StaticMesh doit etre en NoCollision -- sinon bloque les overlaps de la SphereComponent
+- Gotcha : bCanBePickedUp obligatoire -- le drop spawne a l'interieur du HC, overlap immediat sinon
+
 ### Stats heros -- DESIGN VALIDE (28/05/2026)
 - 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Cles supplementaires BP_AttributeSet_Base : Level, EssenceMana, EssenceManaDropped, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
+- Cles supplementaires BP_AttributeSet_Base : Level, EssenceValue, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
 - TenaciteEtat : base 25, variable Float dans AttributeSet, SetStatValue case 12, FClamp(0,100) -- impactee par equipement + debuffs + Corruption
 - Progression hybride : niveaux 1-10 (stats auto + 2 pts libres) + usage armes/magie
-- Essence de Mana : progression -- perdue a la mort, recuperable DS-like
+- Essence de Mana (EssenceValue) : compteur absolu Int64, souls-like -- perdue a la mort, recuperable via BP_EssenceDrop
 - Pieces d'Or : economie -- jamais perdues
 - Formule physique : Max(1, (Attaque * CoeffArme * CoeffCritique) - (Defense * 0.5))
 - Formule magique : Max(1, (Magie * CoeffSort * CoeffCritique) - (Resistance * 0.5))
@@ -207,12 +216,18 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Implementation : SYS-SaveGame (C1)
 - Voir Docs/Architecture/SaveSystem.md
 
+### Flux mort / respawn -- VALIDE PIE (02/06/2026)
+- HC : bIsDead=true -> DisableInput(GetPlayerController) -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
+- PC BeginPlay : Cast HC -> SET PlayerCharacterRef -> Bind OnPlayerDeath -> OnHeroDied
+- OnHeroDied : SpawnActor(BP_EssenceDrop, HC+Z100) -> SET EssenceValue -> SetStatValue(EssenceValue, 0) -> CameraFade(noir) -> Delay(1.5s) -> Reset HP/ST/MP -> SET bIsDead=false -> TeleportTo(PlayerStart) -> CameraFade(retour) -> EnableInput
+- Respawn placeholder C1 : PlayerStart -- remplace par LastFountainTransform dans SYS-SaveGame
+
 ### Corruption / Essence / Fontaine -- DESIGN VALIDE (31/05/2026)
 - Cout depenses Essence : 0-74% = x1.0 / 75-99% = x1.15 / 100% = inutilisable
 - Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout / 100% = grand cout
 - Montee niveau deite : 0-74% normal / 75-99% cout +15% / 100% bloque
 - Calibrage couts purge -> SESSION-Economie
-- Implementation : SYS-CorruptionSystem ✅ + SYS-EssenceMana (C1)
+- Implementation : SYS-CorruptionSystem ✅ + SYS-EssenceMana ✅
 - Voir Docs/Architecture/SaveSystem.md
 
 ### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
@@ -296,11 +311,11 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade
 - Deite C1 : Lumina (sorts existants, effets placeholder/print)
 
-### UI / HUD -- VALIDE (31/05/2026)
+### UI / HUD -- VALIDE (02/06/2026)
 - UI_HUD_Main : event-driven, finalise
 - Architecture : barres HP/ST/MP/Corruption dans HUD_Main_VertBox, compteur Essence separe pres arme
-- Variables widget : HealthPercent, StaminaPercent, ManaPercent, EssenceValue, CorruptionPercent
-- Switch HUD_OnStatChanged : 8 cases (HealthCurrent, StaminaCurrent, ManaCurrent, HealthMax, StaminaMax, ManaMax, EssenceMana, Corruption)
+- Variables widget : HealthPercent, StaminaPercent, ManaPercent, EssenceValue (Float), CorruptionPercent
+- Switch HUD_OnStatChanged : 8 cases (HealthCurrent, StaminaCurrent, ManaCurrent, HealthMax, StaminaMax, ManaMax, EssenceValue, Corruption)
 - Bindings ProgressBar : Get_HealthBar_Percent, Get_StaminaBar_Percent, Get_ManaBar_Percent, Get_CorruptionBar_Percent
 - Get_CorruptionBar_Percent doit etre marquee Pure pour le binding -- sinon non connectable
 - UpdateEssenceText : EssenceValue -> Int64 -> String -> Text -> SetText(TextBlock_Essence)
@@ -330,6 +345,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - [x] DESIGN-Roadmap : refonte cycles milestones jouables C1/C2/C3/C4, nommage thematique (31/05/2026)
 - [x] COMBAT-SwordMoveset CLOS VALIDE PIE (31/05/2026)
 - [x] SYS-CorruptionSystem VALIDE PIE (31/05/2026)
+- [x] SYS-EssenceMana VALIDE PIE (02/06/2026)
 
 ## Dettes techniques
 
@@ -344,19 +360,22 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** -> UI-HUDPolish (C4)
 - **Calibrage couts purge Corruption (75-99% et 100%)** -> SESSION-Economie
 - **Calibrage montee Corruption par sort (+5 actuellement)** -> SESSION-Economie
-- **Cout Essence purge Corruption** -> SYS-EssenceMana (C1)
+- **Cout Essence purge Corruption** -> SYS-SaveGame (C1)
 - **NextStepID et AnimToPlay dans ComboManager** : variables non utilisees -> nettoyage futur
 - **Lock-on feeling pendant attaques** : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou C2
+- **ANIM-DeathMontage** : AnimMontage mort reelle -> ANIM-Pass1 (C2)
+- **Respawn PlayerStart hardcode** -> remplacer par LastFountainTransform dans SYS-SaveGame (C1)
+- **Mob porteur Essence** -> C2 (C1 = drop au sol uniquement)
+- **Destruction drop a la 2eme mort** -> C2 (C1 = drop indefini)
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **SYS-EssenceMana** : perte a la mort, mob porteur, recuperation DS-like
-2. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn
-3. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
-4. **ENEMY-Base** : stats sur BP_Enemy_Base
-5. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
-6. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
-7. **ANIM-Pass1** : rename ABP, roll en lock-on
+1. **SYS-SaveGame** : BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn, LastFountainTransform
+2. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
+3. **ENEMY-Base** : stats sur BP_Enemy_Base
+4. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+5. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+6. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
@@ -405,8 +424,11 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Corruption monte +5.0 par sort (C1 placeholder, calibrage -> SESSION-Economie)
 - PurgeCorruption : remet Corruption a 0 + Map_Clear DeityUsageMap -- CostAmount = futur cout Essence (pas encore branche)
 - Get_CorruptionBar_Percent dans UI_HUD_Main : doit etre marquee Pure pour binding ProgressBar
-- EssenceMana : compteur absolu Int64 (pas de Max), souls-like -- implementation dans SYS-EssenceMana (C1)
-- HUD_OnStatChanged Switch : 8 cases -- EssenceMana (SET direct) + Corruption (NewValue/100)
+- EssenceValue : variable Int64 dans BP_AttributeSet_Base, souls-like, pas de Max -- renomme depuis EssenceMana (02/06/2026)
+- SetStatValue case EssenceValue : fils exec manquants = bug silencieux frequent -- toujours verifier exec in ET exec out du SET node
+- BP_EssenceDrop : StaticMesh doit etre NoCollision sinon bloque overlaps SphereComponent
+- BP_EssenceDrop : bCanBePickedUp obligatoire (Delay 1.5s) -- drop spawne a l'interieur du HC -> overlap immediat sinon
+- HUD_OnStatChanged Switch : 8 cases -- EssenceValue (SET direct) + Corruption (NewValue/100)
 - UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString (Int64 = pas d'overflow grandes valeurs)
 - Menu pause = pause complete (pas Time Dilation) -- Time Dilation reserve radial uniquement
 - Touchpad PS5 : reserve C3/C4
@@ -425,7 +447,7 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 - Quetes annexes haut level : donnent materiaux rares manquants
 - SaveSystem : save via Fontaines physiques uniquement
 - Fontaines contextuelles : se reveillent post-boss / entree zone / apres cinematique
-- Essence mort : au sol si environnement / mob porteur si ennemi (sauf boss -> au sol)
+- Essence mort : au sol C1 (mob porteur C2) / boss -> au sol
 - Corruption/Essence : 0-74% normal / 75-99% x1.15 / 100% bloque -- purge 0-74% gratuit / 75-99% petit cout / 100% grand cout
 - BP_FountainComponent : FountainID Name editable, convention Fountain_[Acte]_[Zone]_[Index]
 - Deite C1 = Lumina (sorts existants, effets placeholder/print en combat)
@@ -455,4 +477,4 @@ Lumina (A1 debut) -> Luna (A1 debut) -> Gnome (A1 milieu) -> Ombre (A1 milieu po
 
 ---
 
-*Derniere mise a jour : 31/05/2026*
+*Derniere mise a jour : 02/06/2026*
