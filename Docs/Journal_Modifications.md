@@ -5,6 +5,52 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 02/06/2026 -- SYS-EssenceMana -- VALIDE PIE
+
+#### BP_EssenceDrop -- VALIDE PIE
+- Cree dans Content/Systems/Essence/
+- Composants : SphereComponent (root, OverlapAllDynamic), StaticMesh (NoCollision), PointLight
+- Variables : EssenceValue (Int64), bCanBePickedUp (Bool, default false)
+- BeginPlay : Delay(1.5s) -> SET bCanBePickedUp = true (evite pickup instantane au spawn)
+- ActorBeginOverlap : Branch(bCanBePickedUp) -> Cast to HC -> GET AttributeSetRef -> Add_Int64Int64(EssenceMana + EssenceValue) -> Conv_Int64ToDouble -> SetStatValue("EssenceValue", total) -> DestroyActor
+- Bug resolu : drop detruit avant SET EssenceValue -- cause : heroe overlap instantane au spawn (drop spawne a l'interieur du HC) -- fix : bCanBePickedUp + Delay 1.5s en BeginPlay
+- Bug resolu : Sphere ne generait plus d'overlap -- cause : StaticMesh avec collision bloquait -- fix : StaticMesh Collision Presets = NoCollision
+
+#### BP_AttributeSet_Base -- Fix EssenceValue -- VALIDE PIE
+- Renommage EssenceMana -> EssenceValue (Int64) partout dans le projet
+- Bug critique resolu : case EssenceValue dans Switch SetStatValue avait 0 connexions exec -- cause : fils exec manquants des deux cotes du SET node -- fix : rebranchement Switch.EssenceValue -> SET EssenceValue -> Call OnStatChanged
+- Bug critique resolu : HUD_OnStatChanged case EssenceValue avait 0 connexions exec -- cause : meme probleme fils exec -- fix : rebranchement Switch.EssenceValue -> SET EssenceValue (HUD) -> UpdateEssenceText
+
+#### Flux mort heros -- BP_SoM_HeroCharacter -- VALIDE PIE
+- DisableInput : pin PlayerController desormais cable (Get Player Controller index 0)
+- AM_Death : AnimMontage placeholder deja cable (decouvert via audit T3D)
+- Flux complet : bIsDead=true -> DisableInput -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
+
+#### Flux respawn -- BP_SoM_PlayerController -- VALIDE PIE
+- BeginPlay : Get Player Character -> Cast to HC -> SET PlayerCharacterRef -> Bind Event to OnPlayerDeath -> OnHeroDied
+- Custom Event OnHeroDied :
+  - SpawnActor(BP_EssenceDrop, HC_Location + Z100, AlwaysSpawn) -> SET EssenceValue = AttributeSet.EssenceValue
+  - SetStatValue("EssenceValue", 0.0) -- remet Essence a zero
+  - StartCameraFade (0->1, 1.0s, black, bHoldWhenFinished=true)
+  - Delay(1.5s)
+  - SetStatValue(HealthCurrent = HealthMax), SetStatValue(StaminaCurrent = StaminaMax), SetStatValue(ManaCurrent = ManaMax)
+  - SET bIsDead = false sur HC
+  - GetActorOfClass(PlayerStart) -> GetActorLocation -> TeleportTo HC
+  - StartCameraFade (1->0, 0.5s) -- fade retour
+  - EnableInput (Get Player Controller)
+- Respawn placeholder : teleport au PlayerStart -- remplace par LastFountainTransform dans SYS-SaveGame (C1)
+
+#### Dettes ajoutees
+- ANIM-DeathMontage (C2) : AnimMontage mort reelle a creer et brancher
+- Respawn PlayerStart hardcode -> remplacer par LastFountainTransform dans SYS-SaveGame (C1)
+- Mob porteur Essence -> C2 (C1 = toujours drop au sol)
+- Destruction drop a la 2eme mort -> C2 (C1 = drop indefini)
+
+#### Etat final
+SYS-EssenceMana VALIDE PIE. Mort -> drop Essence au sol -> fade -> respawn PlayerStart -> fade retour. Pickup drop -> restitution Essence + HUD mis a jour.
+
+---
+
 ### 31/05/2026 -- SYS-CorruptionSystem -- VALIDE PIE
 
 #### BP_CorruptionComponent -- VALIDE PIE
@@ -315,4 +361,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 31/05/2026
+- Derniere mise a jour : 02/06/2026
