@@ -14,6 +14,7 @@ Les jalons a l'interieur d'un cycle utilisent un prefixe thematique (COMBAT-, SY
 C1 — Proof of Concept jouable
      Couloir, epee, Lumina, 2-3 mobs, 1 boss, fontaine, save/respawn, corruption/essence draft
      => On peut jouer une session complete meme si tout est placeholder
+     => PERIMETRE POC : mecaniques validees, valeurs calibrees en C2, assets placeholder OK
 
 C2 — Premiere zone jouable
      Une zone quasi complete, 2-3 armes, 2-3 deites, ennemis types, forge draft, StatusEffects
@@ -30,7 +31,7 @@ C4 — Alpha Test
 
 ---
 
-## Modules existants (etat au 31/05/2026)
+## Modules existants (etat au 02/06/2026)
 
 | Module | Etat | Notes |
 |--------|------|-------|
@@ -38,6 +39,8 @@ C4 — Alpha Test
 | HUD event-driven | ✅ VALIDE PIE | HP/ST/MP/Corruption/Essence -- HUD-Core complet |
 | Iframes dash/roll | ✅ Stable | Via AnimNotify, Dark Souls style |
 | Mort du joueur | ✅ Stable | bIsDead + OnPlayerDeath dispatcher |
+| Flux mort/respawn | ✅ VALIDE PIE (C1 POC) | Fade + reset stats + TeleportTo PlayerStart -- LastFountainTransform en SYS-SaveGame |
+| BP_EssenceDrop | ✅ VALIDE PIE (C1 POC) | Drop au sol uniquement -- mob porteur C2, destruction 2eme mort C2 |
 | Lock-On | ✅ VALIDE PIE | J-LockOn + J-LockMove complets |
 | Strafe lock-on | ✅ VALIDE PIE | ABP_Manny_Platforming + BS_Unarmed_Strafe (placeholder) |
 | Deplacement en lock-on | ✅ VALIDE PIE | Move() via CameraRotation, Rotation Rate -1 |
@@ -60,6 +63,7 @@ C4 — Alpha Test
 | Stats & Progression | ✅ DESIGN VALIDE | 7 stats, hybride, Essence+PO, formules, elements -- Stats_Progression.md |
 | Effets de statut | ✅ DESIGN VALIDE | 8 effets par deite, interactions -- Combat_StatusEffects.md |
 | Corruption Magique | ✅ VALIDE PIE | BP_CorruptionComponent, tracking deites, purge, barre HUD -- 31/05/2026 |
+| EssenceMana (EssenceValue) | ✅ VALIDE PIE (C1 POC) | Perte mort + drop + pickup + HUD -- 02/06/2026 |
 | Economie & Drops | ✅ DESIGN VALIDE | Double monnaie, Seiken drops, Mana, equipement -- Economy_Drops.md |
 | Lore & Cast | ✅ DESIGN VALIDE enrichi | Structure actes, Armes Mana, Hub, Corruption heros -- Lore_ShadowOfMana.md |
 | Archi armes/combo/inventaire | ✅ VALIDE PIE | ComboManager source verite, InventoryComponent, EquipWeapon refacto -- 29/05/2026 |
@@ -71,49 +75,50 @@ C4 — Alpha Test
 
 **Objectif :** couloir → 2-3 mobs → fontaine → arene boss. Epee + Lumina. Corruption et Essence en draft. Pas de son ni d'anim avancee. On teste la synergie des mecaniques.
 
+**Philosophie POC C1 :** chaque jalon vise la mecanique validee en PIE, pas le polish. Les valeurs sont placeholder, les assets sont placeholder, les animations sont placeholder. Tout ce qui est marque "POC" sera enrichi en C2.
+
 ### Jalons completes C1
 
-| Jalon | Statut | Date |
-|---|---|---|
-| COMBAT-LockOn | ✅ VALIDE PIE | 15/05/2026 |
-| COMBAT-Camera | ✅ VALIDE PIE | 17/05/2026 |
-| COMBAT-LockMove | ✅ VALIDE PIE | 18/05/2026 |
-| COMBAT-ComboFix | ✅ VALIDE PIE | 18/05/2026 |
-| COMBAT-CollisionFix | ✅ VALIDE PIE | 18/05/2026 |
-| COMBAT-HitFeel | 🔧 PARTIEL | 18/05/2026 -- knockback+shake OK, gamepad+hitstop reportes |
-| COMBAT-HitFlashEnemies | ❌ ABANDONNE | 21/05/2026 |
-| COMBAT-InputsUI | ✅ VALIDE PIE | 23/05/2026 |
-| MAGIC-RadialMagie | ✅ VALIDE PIE | 25/05/2026 |
-| MAGIC-ProgressionDesign | ✅ DESIGN VALIDE | 25/05/2026 |
-| MAGIC-DataLayer | ✅ VALIDE PIE | 25/05/2026 |
-| MAGIC-UnlockSystem | ✅ VALIDE PIE | 27/05/2026 |
-| COMBAT-CleanupDettes | ✅ COMPLET | 27/05/2026 |
-| DESIGN-StatsProgression | ✅ DESIGN VALIDE | 28/05/2026 |
-| DESIGN-StatusEffects | ✅ DESIGN VALIDE | 28/05/2026 |
-| DESIGN-Corruption | ✅ DESIGN VALIDE | 28/05/2026 |
-| DESIGN-Economy | ✅ DESIGN VALIDE | 28/05/2026 |
-| DESIGN-Lore | ✅ DESIGN VALIDE enrichi | 29/05/2026 |
-| COMBAT-WeaponArchitecture | ✅ VALIDE PIE | 29/05/2026 |
-| DESIGN-WeaponProgression | ✅ DESIGN VALIDE | 30/05/2026 |
-| HUD-Core | ✅ VALIDE PIE | 31/05/2026 |
-| DESIGN-SaveDesign | ✅ DESIGN VALIDE | 31/05/2026 |
-| COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 |
-| SYS-CorruptionSystem | ✅ VALIDE PIE | 31/05/2026 |
+| Jalon | Statut | Date | Mode |
+|---|---|---|---|
+| COMBAT-LockOn | ✅ VALIDE PIE | 15/05/2026 | -- |
+| COMBAT-Camera | ✅ VALIDE PIE | 17/05/2026 | -- |
+| COMBAT-LockMove | ✅ VALIDE PIE | 18/05/2026 | -- |
+| COMBAT-ComboFix | ✅ VALIDE PIE | 18/05/2026 | -- |
+| COMBAT-CollisionFix | ✅ VALIDE PIE | 18/05/2026 | -- |
+| COMBAT-HitFeel | 🔧 PARTIEL | 18/05/2026 | knockback+shake OK, gamepad+hitstop reportes C2 |
+| COMBAT-HitFlashEnemies | ❌ ABANDONNE | 21/05/2026 | -- |
+| COMBAT-InputsUI | ✅ VALIDE PIE | 23/05/2026 | -- |
+| MAGIC-RadialMagie | ✅ VALIDE PIE | 25/05/2026 | -- |
+| MAGIC-ProgressionDesign | ✅ DESIGN VALIDE | 25/05/2026 | -- |
+| MAGIC-DataLayer | ✅ VALIDE PIE | 25/05/2026 | -- |
+| MAGIC-UnlockSystem | ✅ VALIDE PIE | 27/05/2026 | -- |
+| COMBAT-CleanupDettes | ✅ COMPLET | 27/05/2026 | -- |
+| DESIGN-StatsProgression | ✅ DESIGN VALIDE | 28/05/2026 | -- |
+| DESIGN-StatusEffects | ✅ DESIGN VALIDE | 28/05/2026 | -- |
+| DESIGN-Corruption | ✅ DESIGN VALIDE | 28/05/2026 | -- |
+| DESIGN-Economy | ✅ DESIGN VALIDE | 28/05/2026 | -- |
+| DESIGN-Lore | ✅ DESIGN VALIDE enrichi | 29/05/2026 | -- |
+| COMBAT-WeaponArchitecture | ✅ VALIDE PIE | 29/05/2026 | -- |
+| DESIGN-WeaponProgression | ✅ DESIGN VALIDE | 30/05/2026 | -- |
+| HUD-Core | ✅ VALIDE PIE | 31/05/2026 | -- |
+| DESIGN-SaveDesign | ✅ DESIGN VALIDE | 31/05/2026 | -- |
+| COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 | -- |
+| SYS-CorruptionSystem | ✅ VALIDE PIE | 31/05/2026 | Calibrage +5/sort = POC, affinage SESSION-Economie |
+| SYS-EssenceMana | ✅ VALIDE PIE | 02/06/2026 | POC : drop au sol uniquement, respawn PlayerStart, drop indefini |
 
 ### Jalons restants C1
 
-| Jalon | Prefixe | Contenu | Dependances |
-|---|---|---|---|
-| HUD-Quickslot | HUD | Integration 3 slots quickslot dans UI_HUD_Main -- affichage, binding, mise a jour | HUD-Core ✅ |
-| SYS-EssenceMana | SYS | Perte a la mort, mob porteur, recuperation DS-like, bonus Corruption | SYS-CorruptionSystem ✅ |
-| SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | DESIGN-SaveDesign ✅, SYS-EssenceMana |
-| MAGIC-TreeModule | MAGIC | Arbre talents Lumina (sorts Lumina existants ✅), placeholder print pour effets | MAGIC-UnlockSystem ✅ |
-| ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire placeholder | DESIGN-StatsProgression ✅ |
-| ENEMY-Boss1 | ENEMY | 1 boss, 1-2 patterns simples (magie placeholder, saut), arene | ENEMY-Base |
-| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | SYS-SaveGame, ENEMY-Boss1 |
-| ANIM-Pass1 | ANIM | Rename ABP_Manny_Platforming → ABP_Hero, roll en lock-on | -- |
+| Jalon | Prefixe | Contenu | Mode POC C1 | Dependances |
+|---|---|---|---|---|
+| SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | POC : 1 fontaine fixe, stats + Essence sauvegardees, flags narratifs C3 | DESIGN-SaveDesign ✅, SYS-EssenceMana ✅ |
+| MAGIC-TreeModule | MAGIC | Arbre talents Lumina, deblocage sorts | POC : effets placeholder/print -- vrais effets C2 | MAGIC-UnlockSystem ✅ |
+| ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire | POC : valeurs hardcodees -- calibrage et types C2 | DESIGN-StatsProgression ✅ |
+| ENEMY-Boss1 | ENEMY | 1 boss, 1-2 patterns simples | POC : gros mob avec saut + magie placeholder -- patterns enrichis C2 | ENEMY-Base |
+| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | POC : geometrie BSP ou kit, assets placeholder -- vraie zone C2 | SYS-SaveGame, ENEMY-Boss1 |
+| ANIM-Pass1 | ANIM | Rename ABP, roll en lock-on | POC : roll fonctionnel -- montages finaux C2 | -- |
 
-**Critere de completion C1 :** la MAP-C1Level est jouable de bout en bout -- spawn, combattre, mourir, respawn a la fontaine, tuer le boss.
+**Critere de completion C1 :** la MAP-C1Level est jouable de bout en bout -- spawn, combattre, mourir, respawn a la fontaine, tuer le boss. Tout en placeholder, tout fonctionnel.
 
 ---
 
@@ -129,8 +134,10 @@ C4 — Alpha Test
 | COMBAT-HitFeel-Full | Vibration gamepad, hitstop (complete le partiel C1) |
 | SYS-StatusEffects | Quelques effets de base (Poison, Burn, Buff) testables en combat |
 | SYS-ForgeSystem | Forge draft -- upgrade arme niveau 1→2, materiaux drops |
+| SYS-EssenceMana-Full | Mob porteur Essence, destruction drop 2eme mort, calibrage valeurs |
 | ENEMY-Types | 2-3 types ennemis avec stats differentes, ResistanceElementaire |
 | ENEMY-AI-Pass1 | Comportements ennemis enrichis (distance, patrol, aggro) |
+| ANIM-DeathMontage | AnimMontage mort reelle heros |
 | MAP-Zone1 | Premiere vraie zone (territoire Gnome ou village heros) |
 | MAGIC-Deities2-3 | Luna + Gnome deblocables, sorts placeholder |
 | UI-RadialRefacto | Refonte curseur Radial, position initiale correcte |
@@ -214,7 +221,7 @@ C4 — Alpha Test
 | Calibrage PO/Essence/prix marchands | SESSION-Economie | ❌ Ouvert |
 | Calibrage couts purge Corruption (75-99% et 100%) | SESSION-Economie | ❌ Ouvert |
 | Calibrage montee Corruption par sort (+5 actuel) | SESSION-Economie | ❌ Ouvert |
-| Cout Essence purge Corruption | SYS-EssenceMana (C1) | ❌ Ouvert |
+| Cout Essence purge Corruption | SYS-SaveGame (C1) | ❌ Ouvert |
 | Compagnons : mecanique en combat + mort permanente ? | SESSION C3 | ❌ Ouvert |
 | Distribution future : Steam / itch.io / perso | C4 | ❌ Ouvert |
 | Touchpad PS5 : carte, journal, autre ? | C3/C4 | ⏳ Reserve C3/C4 |
@@ -229,8 +236,9 @@ C4 — Alpha Test
 | StatusEffects : quand implementer ? | -- | ✅ Resolu : C2 (SYS-StatusEffects) |
 | SaveDesign : spec Fontaine de Fee | DESIGN-SaveDesign | ✅ Resolu : voir SaveSystem.md |
 | Slots de save | DESIGN-SaveDesign | ✅ Resolu : multi-slots inter-parties, 1 slot par partie |
-| Essence au sol vs mob porteur | DESIGN-SaveDesign | ✅ Resolu : environnement=sol, ennemi=mob porteur, boss=sol |
+| Essence au sol vs mob porteur | DESIGN-SaveDesign | ✅ Resolu : environnement=sol C1, mob porteur C2, boss=sol |
 | PurgeCorruption semantique | SYS-CorruptionSystem | ✅ Resolu : remet a 0 (pas soustraction) -- CostAmount = futur cout Essence |
+| EssenceValue : perte mort + recuperation | SYS-EssenceMana | ✅ Resolu VALIDE PIE (02/06/2026) -- POC C1 |
 
 ---
 
@@ -244,4 +252,4 @@ C4 — Alpha Test
 - MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques
 - MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
 - MAJ 31/05/2026 : SYS-CorruptionSystem VALIDE PIE -- BP_CorruptionComponent, tracking deites, purge HUD operationnels
-- MAJ 31/05/2026 : ajout HUD-Quickslot dans jalons restants C1
+- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE -- BP_EssenceDrop, flux mort/respawn PC, mode POC C1 documente sur tous les jalons restants
