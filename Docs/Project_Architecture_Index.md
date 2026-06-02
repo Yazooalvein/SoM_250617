@@ -13,11 +13,11 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 31/05/2026 |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 02/06/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 31/05/2026 |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 31/05/2026 |
-| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 29/05/2026 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 02/06/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 02/06/2026 |
+| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 02/06/2026 |
 | Planning sessions | Docs/Planning_Sessions.md | A verifier |
 | Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 30/05/2026 |
 | Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
@@ -60,35 +60,39 @@ A mettre a jour a chaque creation ou modification de document.
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique (31/05/2026)
+## Jalons Cycle 1 -- etat synthetique (02/06/2026)
 
-| Jalon | Statut |
-|---|---|
-| J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | ✅ Complets |
-| C1-CollisionFix | ✅ Complet VALIDE PIE |
-| C1-HitFeel | 🔧 Partiel (knockback + shake OK, gamepad manque, hitstop reporte) |
-| C1-HitFlashEnemies | ❌ Abandonne (21/05/2026) |
-| C1-CleanupDettes | ✅ Complet (27/05/2026) |
-| C1-InputsUI | ✅ Complet VALIDE PIE (23/05/2026) |
-| C1-RadialMagie | ✅ Complet VALIDE PIE (25/05/2026) |
-| C1-MagicProgressionDesign | ✅ Design valide (25/05/2026) |
-| C1-MagicDataLayer | ✅ Complet VALIDE PIE (25/05/2026) |
-| C1-MagicUnlockSystem | ✅ Complet VALIDE PIE (27/05/2026) |
-| C1-WeaponArchitecture + Refacto | ✅ Complet VALIDE PIE (29/05/2026) |
-| C1-HUDCore | ✅ Complet VALIDE PIE (31/05/2026) |
-| DESIGN-StatsProgression | ✅ Design valide (28/05/2026) |
-| DESIGN-StatusEffects | ✅ Design valide (28/05/2026) |
-| DESIGN-Corruption | ✅ Design valide (28/05/2026) |
-| DESIGN-Economy | ✅ Design valide (28/05/2026) |
-| DESIGN-Lore | ✅ Design valide enrichi (30/05/2026) |
-| DESIGN-WeaponArchitecture | ✅ Design valide (29/05/2026) |
-| DESIGN-WeaponProgression | ✅ Design valide (30/05/2026) |
-| DESIGN-SaveDesign | ✅ Design valide (31/05/2026) |
-| C1-BowPOC | ⏳ A faire |
-| C1-WeaponSwitching | ⏳ A faire |
-| C1-SFXCombat | ⏳ A faire |
-| C1-MagicTreeModule | ⏳ A faire |
-| C1-AnimationsPass1 | ⏳ A faire (fin C1) |
+| Jalon | Statut | Mode |
+|---|---|---|
+| J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | ✅ Complets | -- |
+| COMBAT-CollisionFix | ✅ VALIDE PIE | -- |
+| COMBAT-HitFeel | 🔧 Partiel | knockback+shake OK, gamepad+hitstop reportes C2 |
+| COMBAT-HitFlashEnemies | ❌ Abandonne (21/05/2026) | -- |
+| COMBAT-CleanupDettes | ✅ Complet (27/05/2026) | -- |
+| COMBAT-InputsUI | ✅ VALIDE PIE (23/05/2026) | -- |
+| MAGIC-RadialMagie | ✅ VALIDE PIE (25/05/2026) | -- |
+| MAGIC-ProgressionDesign | ✅ Design valide (25/05/2026) | -- |
+| MAGIC-DataLayer | ✅ VALIDE PIE (25/05/2026) | -- |
+| MAGIC-UnlockSystem | ✅ VALIDE PIE (27/05/2026) | -- |
+| COMBAT-WeaponArchitecture | ✅ VALIDE PIE (29/05/2026) | -- |
+| HUD-Core | ✅ VALIDE PIE (31/05/2026) | -- |
+| DESIGN-StatsProgression | ✅ Design valide (28/05/2026) | -- |
+| DESIGN-StatusEffects | ✅ Design valide (28/05/2026) | -- |
+| DESIGN-Corruption | ✅ Design valide (28/05/2026) | -- |
+| DESIGN-Economy | ✅ Design valide (28/05/2026) | -- |
+| DESIGN-Lore | ✅ Design valide enrichi (30/05/2026) | -- |
+| DESIGN-WeaponArchitecture | ✅ Design valide (29/05/2026) | -- |
+| DESIGN-WeaponProgression | ✅ Design valide (30/05/2026) | -- |
+| DESIGN-SaveDesign | ✅ Design valide (31/05/2026) | -- |
+| COMBAT-SwordMoveset | ✅ VALIDE PIE (31/05/2026) | -- |
+| SYS-CorruptionSystem | ✅ VALIDE PIE (31/05/2026) | POC : calibrage +5/sort -> SESSION-Economie |
+| SYS-EssenceMana | ✅ VALIDE PIE (02/06/2026) | POC : drop au sol, respawn PlayerStart, drop indefini |
+| SYS-SaveGame | ⏳ A faire | POC : 1 fontaine, stats+Essence -- flags narratifs C3 |
+| MAGIC-TreeModule | ⏳ A faire | POC : effets placeholder/print -- vrais effets C2 |
+| ENEMY-Base | ⏳ A faire | POC : valeurs hardcodees -- calibrage C2 |
+| ENEMY-Boss1 | ⏳ A faire | POC : saut + magie placeholder -- patterns C2 |
+| MAP-C1Level | ⏳ A faire | POC : geometrie BSP/kit -- vraie zone C2 |
+| ANIM-Pass1 | ⏳ A faire | POC : roll fonctionnel -- montages finaux C2 |
 
 ---
 
@@ -108,3 +112,4 @@ A mettre a jour a chaque creation ou modification de document.
 - MAJ 29/05/2026 : jalons C1 remis a jour (C1-WeaponArchitecture complet, tous DESIGN valides), ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md dans index, dates mises a jour
 - MAJ 30/05/2026 : ajout Weapons_Progression.md, DESIGN-WeaponProgression valide
 - MAJ 31/05/2026 : ajout SaveSystem.md, DESIGN-SaveDesign valide, C1-HUDCore complet, jalons mis a jour
+- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE, colonne Mode POC ajoutee sur tous les jalons C1, dates mises a jour
