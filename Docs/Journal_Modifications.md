@@ -5,154 +5,71 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
-### 02/06/2026 -- SYS-EssenceMana -- VALIDE PIE
+### 03/06/2026 -- SYS-SaveGame -- VALIDE PIE
 
-#### BP_EssenceDrop -- VALIDE PIE
-- Cree dans Content/Systems/Essence/
-- Composants : SphereComponent (root, OverlapAllDynamic), StaticMesh (NoCollision), PointLight
-- Variables : EssenceValue (Int64), bCanBePickedUp (Bool, default false)
-- BeginPlay : Delay(1.5s) -> SET bCanBePickedUp = true (evite pickup instantane au spawn)
-- ActorBeginOverlap : Branch(bCanBePickedUp) -> Cast to HC -> GET AttributeSetRef -> Add_Int64Int64(EssenceMana + EssenceValue) -> Conv_Int64ToDouble -> SetStatValue("EssenceValue", total) -> DestroyActor
-- Bug resolu : drop detruit avant SET EssenceValue -- cause : heroe overlap instantane au spawn (drop spawne a l'interieur du HC) -- fix : bCanBePickedUp + Delay 1.5s en BeginPlay
-- Bug resolu : Sphere ne generait plus d'overlap -- cause : StaticMesh avec collision bloquait -- fix : StaticMesh Collision Presets = NoCollision
+#### Architecture save -- BPI_Saveable + BP_SaveGame_SoM
+- BPI_Saveable : interface SaveData(SaveGame) + LoadData(SaveGame) dans Content/Systems/Save/
+- BP_SaveGame_SoM : conteneur de donnees pur, extends SaveGame -- pas de logique
+- Decision archi cle : sauvegarder LockedDeities (delta) plutot que UnlockedSpells (Map complexe) -- reconstruction depuis DT_Deities au load via UnlockDeity() -- robuste aux modifs DataTable
+- BPI_Saveable implemente sur 4 composants : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
+- HP/ST/MP non sauvegardes -- restaures a max directement au load
 
-#### BP_AttributeSet_Base -- Fix EssenceValue -- VALIDE PIE
-- Renommage EssenceMana -> EssenceValue (Int64) partout dans le projet
-- Bug critique resolu : case EssenceValue dans Switch SetStatValue avait 0 connexions exec -- cause : fils exec manquants des deux cotes du SET node -- fix : rebranchement Switch.EssenceValue -> SET EssenceValue -> Call OnStatChanged
-- Bug critique resolu : HUD_OnStatChanged case EssenceValue avait 0 connexions exec -- cause : meme probleme fils exec -- fix : rebranchement Switch.EssenceValue -> SET EssenceValue (HUD) -> UpdateEssenceText
+#### BP_MagicComponent -- LoadData
+- SET LockedDeities + SpellUsageCounts -> GetDataTableRowNames(DT_Deities) -> ForEachLoop -> si NOT IN LockedDeities -> UnlockDeity(RowName)
+- Reconstruction propre de UnlockedSpells depuis DT_Deities
 
-#### Flux mort heros -- BP_SoM_HeroCharacter -- VALIDE PIE
-- DisableInput : pin PlayerController desormais cable (Get Player Controller index 0)
-- AM_Death : AnimMontage placeholder deja cable (decouvert via audit T3D)
-- Flux complet : bIsDead=true -> DisableInput -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
+#### BP_SoM_GameMode -- OnFountainRest
+- Variables : CurrentSaveGame (BP_SaveGame_SoM), CurrentSlotName (String, Slot_1)
+- CollectSaveData(FountainID) : CreateSaveGameObject -> metas + ActivatedFountains -> GetComponentsByInterface(BPI_Saveable) -> ForEachLoop -> K2Node_Message SaveData
+- CollectFountainTransform(FountainID) : GetAllActorsOfClass(BP_Fountain_Actor)[0] -> GetTransform -> SET LastFountainTransform (C1 = index 0, filtre par ID -> C2)
+- WriteSaveAndApplyFountainEffects() : SaveGameToSlot -> SetStatValue HP/ST/MP=Max -> PurgeCorruption(0.0)
+- OnFountainRest = 3 calls en sequence -- GameMode ne connait pas les details des composants
 
-#### Flux respawn -- BP_SoM_PlayerController -- VALIDE PIE
-- BeginPlay : Get Player Character -> Cast to HC -> SET PlayerCharacterRef -> Bind Event to OnPlayerDeath -> OnHeroDied
-- Custom Event OnHeroDied :
-  - SpawnActor(BP_EssenceDrop, HC_Location + Z100, AlwaysSpawn) -> SET EssenceValue = AttributeSet.EssenceValue
-  - SetStatValue("EssenceValue", 0.0) -- remet Essence a zero
-  - StartCameraFade (0->1, 1.0s, black, bHoldWhenFinished=true)
-  - Delay(1.5s)
-  - SetStatValue(HealthCurrent = HealthMax), SetStatValue(StaminaCurrent = StaminaMax), SetStatValue(ManaCurrent = ManaMax)
-  - SET bIsDead = false sur HC
-  - GetActorOfClass(PlayerStart) -> GetActorLocation -> TeleportTo HC
-  - StartCameraFade (1->0, 0.5s) -- fade retour
-  - EnableInput (Get Player Controller)
-- Respawn placeholder : teleport au PlayerStart -- remplace par LastFountainTransform dans SYS-SaveGame (C1)
+#### BP_Fountain_Actor -- fix overlap
+- ActorBeginOverlap -> GetComponentByClass(BP_FountainComponent, Target=self) -> OnPlayerInteract
+- Bug resolu : Target du GetComponentByClass branche sur HC au lieu de self -> Accessed None -- fix : Target = self (la Fontaine)
+- Cast to BP_FountainComponent superflu -- GetComponentByClass retourne deja le bon type
+
+#### BP_SoM_PlayerController -- OnHeroDied -- respawn Fontaine
+- Apres SET bIsDead=false : GetGameMode -> Cast GameMode -> GET CurrentSaveGame -> IsValid
+  - TRUE : GetComponentsByInterface(BPI_Saveable) -> ForEachLoop LoadData -> SetActorLocation(LastFountainTransform.Location) -> fade -> EnableInput
+  - FALSE (premiere mort) : PlayerStart -> TeleportTo -> fade -> EnableInput
+- Dette resolue : Respawn PlayerStart hardcode remplace par LastFountainTransform
 
 #### Dettes ajoutees
-- ANIM-DeathMontage (C2) : AnimMontage mort reelle a creer et brancher
-- Respawn PlayerStart hardcode -> remplacer par LastFountainTransform dans SYS-SaveGame (C1)
-- Mob porteur Essence -> C2 (C1 = toujours drop au sol)
-- Destruction drop a la 2eme mort -> C2 (C1 = drop indefini)
+- SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData -- doublon a nettoyer (non bloquant)
+- CollectFountainTransform prend index 0 -- filtrage par FountainID -> C2
 
 #### Etat final
-SYS-EssenceMana VALIDE PIE. Mort -> drop Essence au sol -> fade -> respawn PlayerStart -> fade retour. Pickup drop -> restitution Essence + HUD mis a jour.
+SYS-SaveGame VALIDE PIE. Overlap Fontaine -> save + restauration HP/ST/MP/Corruption. Mort -> drop Essence -> respawn Fontaine (LastFountainTransform). Premiere mort sans save -> respawn PlayerStart.
+
+---
+
+### 02/06/2026 -- SYS-EssenceMana -- VALIDE PIE
+
+#### Etat final
+BP_EssenceDrop VALIDE PIE. Mort -> drop Essence + fade -> respawn PlayerStart. Pickup -> restitution Essence + HUD. EssenceValue renomme depuis EssenceMana.
 
 ---
 
 ### 31/05/2026 -- SYS-CorruptionSystem -- VALIDE PIE
 
-#### BP_CorruptionComponent -- VALIDE PIE
-- Cree dans Content/Systems/Corruption/
-- Variables : DeityUsageMap (TMap<Name, int32>)
-- Fonctions : InitCorruption, TrackDeityUsage(DeityName), GetWeakDeity() -> Name, PurgeCorruption(CostAmount)
-- Ajoute sur BP_SoM_HeroCharacter via panneau Components
-
-#### TrackDeityUsage -- logique
-- Map_Find(DeityUsageMap, DeityName) -> bFound -> Branch
-- TRUE (deja present) : Map_Add avec valeur + 1 (ecrase)
-- FALSE (nouveau) : Map_Add avec valeur 1
-- Apres Map_Add : GetOwner -> Cast to HC -> GET AttributeSetRef -> Corruption + 5.0 -> FClamp(0,100) -> SetStatValue("Corruption", value)
-- Bug resolu : OwnerAttributeSet None apres premier sort -- cause : ordre BeginPlay non garanti entre composants -- fix : recup AttributeSetRef dynamiquement via GetOwner/Cast au moment de l'appel (pas de variable stockee)
-
-#### PurgeCorruption -- logique
-- Semantique : remet Corruption a 0 directement (purge totale), CostAmount reserve pour futur cout Essence
-- SetStatValue("Corruption", 0.0) -> Map_Clear(DeityUsageMap)
-- Bug resolu : PurgeCorruption(0.0) ne faisait rien (Corruption - 0 = Corruption) -- cause : mauvaise semantique initiale (soustraction) -- fix : remise a zero directe
-
-#### GetWeakDeity -- logique
-- Map_Keys(DeityUsageMap) -> ForEachLoop -> Map_Find(value) -> Branch(value > LocalMaxValue) -> SET LocalMaxValue + SET LocalWeakDeity
-- Retourne la deite la plus utilisee depuis la derniere purge
-
-#### Branchement BP_MagicComponent -- VALIDE PIE
-- IncrementSpellUsage : apres Map_Add SpellUsageCounts -> GetOwner -> Cast to HC -> GetComponentByClass(BP_CorruptionComponent) -> Cast -> TrackDeityUsage(DeityID)
-- DeityID provient du BreakStruct FSoM_SpellData
-
-#### UI_HUD_Main -- Fix CorruptionBar -- VALIDE PIE
-- CorruptionBar manquait de couleur Tint dans Fill Image -> ajoute (violet)
-- Get_CorruptionBar_Percent pas reliee -> fonction marquee Pure + branchee sur Percent
-
-#### BP_DebugFountain -- VALIDE PIE
-- Actor debug dans Content/Debug/
-- ActorBeginOverlap -> OtherActor == GetPlayerCharacter -> Cast to HC -> GetComponentByClass(BP_CorruptionComponent) -> PurgeCorruption(0.0)
-- Test : marcher dessus remet Corruption a 0 + reset DeityUsageMap
-
 #### Etat final
-SYS-CorruptionSystem VALIDE PIE. Sorts Lumina montent la Corruption (+5/sort), barre HUD se met a jour, fontaine debug purge a 0. Tracking deites operationnel. Prochain jalon : SYS-EssenceMana.
+BP_CorruptionComponent VALIDE PIE. TrackDeityUsage, PurgeCorruption, GetWeakDeity operationnels.
 
 ---
 
 ### 31/05/2026 -- COMBAT-SwordMoveset -- CLOS VALIDE PIE
 
-#### Audit combo Sword_01 -- VALIDE PIE
-- DT_Combo_Sword : Start -> Light1 -> Light2 + Heavy1, montages AM_Light_Sword_1/2 et AM_Heavy_Sword_1 branches
-- ComboManager : double lookup propre (CurrentStepID -> NextSteps -> AttackType), InitComboTree filtre par WeaponID ET LevelMin
-- EquipWeapon : flux complet SET CurrentWeaponID/Level/StepID/CanAttack -> GetDataTableRow -> InitComboTree
-- Chaine combo Light1 -> Light2 et Light1 -> Heavy1 validees PIE
-- RotateTowardLockTarget presente dans ComboManager -- feeling lock-on a ameliorer ulterieurement (non bloquant)
-
-#### BP_AttributeSet_Base -- TenaciteEtat -- VALIDE
-- Ajout variable TenaciteEtat (Float, default 25.0, Instance Editable)
-- SetStatValue case TenaciteEtat : FClamp(0, 100, Value) -> SET TenaciteEtat -> OnStatChanged
-- Meme pattern que les autres stats -- Switch case 12 branche sur K2Node_VariableSet_13
-
-#### Dettes restantes
-- Lock-on feeling pendant attaques : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou jalon dedie C2
-- NextStepID et AnimToPlay : variables declarees non utilisees, candidats a suppression -> nettoyage futur
-- DebugPrint HandleAttack "Can Attack & reset combo" : a conditionner a un flag debug avant ship
-
 #### Etat final
-COMBAT-SwordMoveset CLOS. Combo epee fonctionnel (Light x2 + Heavy x1), TenaciteEtat dans AttributeSet (base 25).
+Combo epee fonctionnel (Light x2 + Heavy x1). TenaciteEtat dans AttributeSet (base 25).
 
 ---
 
 ### 31/05/2026 -- SaveDesign -- DESIGN VALIDE
 
-#### Fontaine de Fee -- lore et mecanique -- DESIGN VALIDE
-- Justification narrative : la Fee "grave" le souvenir du monde aux Fontaines (pas le heros qui sauvegarde)
-- Fontaines contextuelles : apparaissent dans le monde a des moments cles (post-boss, entree zone, apres cinematique) -- remplace le concept de "save silencieuse sur jalon narratif"
-- Jalons narratifs : sauvegardent la progression uniquement, ne deplacent pas le respawn point
-- Respawn : ennemis normaux oui, boss et mini-boss jamais
-- Interaction Fontaine : restore HP/ST/MP + purge Corruption (cout variable) + regenere la Fee + respawn ennemis
-
-#### Systeme Corruption / Essence / Fontaine -- DESIGN VALIDE
-- Cout depenses Essence : 0-74% = x1.0 / 75-99% = x1.15 / 100% = inutilisable
-- Cout purge Corruption a la Fontaine : 0-74% = gratuit / 75-99% = petit cout Essence / 100% = grand cout Essence
-- Montee niveau deite : 0-74% = normal / 75-99% = cout +15% / 100% = bloque
-- Calibrage exact des couts de purge -> session Economie/Drops
-- Tension de design : double penalite economique si Corruption haute (depenses + purge)
-
-#### Essence au sol -- mecanique mort -- DESIGN VALIDE
-- Mort par environnement -> Essence tombe au sol (objet physique ramassable)
-- Mort par ennemi -> mob fatal porte l'Essence (doit etre tue pour recuperer)
-- Exception boss/mini-boss -> Essence tombe au sol (jamais re-tuables)
-- Essence non recuperee avant 2eme mort -> perdue definitivement
-
-#### Slots de sauvegarde -- DESIGN VALIDE
-- Multi-parties : plusieurs slots (ex. 3), chaque slot = une partie distincte
-- Intra-partie : slot unique, ecrasement automatique -- souls-like strict
-
-#### Architecture technique -- DESIGN VALIDE
-- BP_SaveGame_SoM : structure complete (stats, inventaire, magie, progression monde, Essence au sol)
-- BP_FountainComponent : FountainID Name editable, bIsActivated, OnPlayerInteract()
-- Convention nommage FountainID : Fountain_[Acte]_[Zone]_[Index]
-- Flux save : GameMode.OnFountainRest(FountainID) -> collecte -> SaveGameToSlot
-- Flux mort : dropper Essence -> LoadGameFromSlot -> restaurer -> teleporter a LastFountainTransform
-- Nouveau fichier : Docs/Architecture/SaveSystem.md
-
 #### Etat final
-DESIGN-SaveDesign VALIDE. Spec complete dans Docs/Architecture/SaveSystem.md.
+DESIGN-SaveDesign VALIDE. Spec dans Docs/Architecture/SaveSystem.md.
 
 ---
 
@@ -163,105 +80,32 @@ C1-HUDCore VALIDE. Architecture event-driven HP/ST/MP/Essence/Corruption operati
 
 ---
 
-### 30/05/2026 -- Session design -- Weapons_Progression -- DESIGN VALIDE
+### 30/05/2026 -- DESIGN-WeaponProgression -- VALIDE
 
 #### Etat final
-Session design productive. Weapons_Progression.md cree et pousse. Index et docs mis a jour.
+Weapons_Progression.md cree et pousse.
 
 ---
 
-### 29/05/2026 -- Session design Lore -- Structure narrative + Armes Mana + Hub -- DESIGN VALIDE
+### 29/05/2026 -- Session design Lore + C1-WeaponArchitecture -- CLOTURE
 
 #### Etat final
-Session lore productive. Structure des 4 actes clarifiee et documentee. Systeme Armes Mana pose. Hub reconstruction defini.
+WeaponArchitecture clos. Lore actes/Armes Mana/Hub documente.
 
 ---
 
-### 29/05/2026 -- C1-WeaponArchitecture -- CLOTURE
+### 28/05/2026 -- Sessions design -- Stats / StatusEffects / Corruption / Economy / Lore
 
 #### Etat final
-C1-WeaponArchitecture clos. Rotation Radial fonctionnelle. Curseur position initiale reporte en dette RadialRefacto.
+Sessions design completes. Specs dans fichiers Architecture/ et Lore_ShadowOfMana.md.
 
 ---
 
-### 29/05/2026 -- C1-WeaponArchitecture -- Refacto EquipWeapon + BP_InventoryComponent -- VALIDE PIE
-
-#### Etat final
-Refacto EquipWeapon valide PIE. ComboManager = source de verite arme. InventoryComponent cree et branche.
+### 27/05/2026 -- C1-CleanupDettes + MagicUnlockSystem + RadialUnlock -- VALIDE PIE
 
 ---
 
-### 29/05/2026 -- Session design -- Archi WeaponArchitecture + Inventaire + TenaciteEtat -- DESIGN VALIDE
-
-#### Etat final
-4 decisions actees. C1-WeaponArchitecture peut demarrer sans ambiguite d'architecture.
-
----
-
-### 28/05/2026 -- C1-WeaponArchitecture -- Etapes 5-6-7 + Radial curseur -- PARTIEL
-
-#### Etat final
-Etapes 5 et 6 completes. Etape 7 partielle -- curseur OK premiere ouverture, bug reouverture ouvert.
-
----
-
-### 28/05/2026 -- Session design -- Lore, Cast, Fee, Ombre, Deites -- DESIGN VALIDE
-
-#### Etat final
-DESIGN-Lore VALIDE (provisoire). Spec dans Docs/Lore_ShadowOfMana.md.
-
----
-
-### 28/05/2026 -- Session design -- Economie, Drops, Consommables, Mana -- DESIGN VALIDE
-
-#### Etat final
-Double monnaie, drops Seiken, Mana, equipement. Spec dans Economy_Drops.md.
-
----
-
-### 28/05/2026 -- Session design -- Effets de statut & Corruption Magique -- DESIGN VALIDE
-
-#### Etat final
-8 effets par deite, Corruption Phase 1/2, bonus Essence. Spec dans Combat_StatusEffects.md.
-
----
-
-### 28/05/2026 -- Session design -- Stats & Progression personnage -- DESIGN VALIDE
-
-#### Etat final
-7 stats heros, progression hybride, Essence de Mana, formules degats. Spec dans Stats_Progression.md.
-
----
-
-### 28/05/2026 -- Session planning -- Refacto armes/combo note
-
----
-
-### 27/05/2026 -- C1-CleanupDettes COMPLET
-
----
-
-### 27/05/2026 -- RadialUnlock VALIDE PIE
-
----
-
-### 27/05/2026 -- C1-MagicUnlockSystem VALIDE PIE
-
----
-
-### 26/05/2026 -- Session design -- Lore, Corruption, Fontaine de Fee
-
----
-
-### 26/05/2026 -- Session design -- Magic_Progression DESIGN
-
----
-
-### 25/05/2026 -- Data layer deites + sortie mode dummy magie -- VALIDE PIE
-
----
-
-### 25/05/2026 -- Session design + outils IA
+### 25-26/05/2026 -- Data layer deites + Magic_Progression DESIGN
 
 ---
 
@@ -269,35 +113,7 @@ Double monnaie, drops Seiken, Mana, equipement. Spec dans Economy_Drops.md.
 
 ---
 
-### 23/05/2026 -- Session design -- Architecture IMC complete
-
----
-
-### 21/05/2026 -- Session design & documentation
-
----
-
-### 19/05/2026 -- C1-HitFlashEnemies -- ARCHITECTURE COMPLETE
-
----
-
-### 18/05/2026 -- C1-HitFeel PARTIEL -- VALIDE PIE
-
----
-
-### 18/05/2026 -- C1-CollisionFix COMPLET -- VALIDE PIE
-
----
-
-### 18/05/2026 -- J-ComboFix COMPLET -- VALIDE PIE
-
----
-
-### 18/05/2026 -- J-TestBed COMPLET -- VALIDE PIE
-
----
-
-### 18/05/2026 -- J-LockMove COMPLET -- VALIDE PIE
+### 18-21/05/2026 -- CollisionFix / HitFeel / ComboFix / TestBed / LockMove
 
 ---
 
@@ -305,39 +121,15 @@ Double monnaie, drops Seiken, Mana, equipement. Spec dans Economy_Drops.md.
 
 ---
 
-### 15/05/2026 -- J-Renommage COMPLET
+### 15/05/2026 -- J-lock + J-Renommage COMPLET
 
 ---
 
-### 15/05/2026 -- J-lock COMPLET -- VALIDE PIE
+### 14/05/2026 -- Session design Roadmap + J-Nettoyage + ART + MUS
 
 ---
 
-### 14/05/2026 -- Session design -- Roadmap globale refondee
-
----
-
-### 14/05/2026 -- J-Nettoyage COMPLET
-
----
-
-### 14/05/2026 -- Session creative J-ART ; Hero PLACEHOLDER COMPLET
-
----
-
-### 14/05/2026 -- Session creative J-MUS (exploration workflow)
-
----
-
-### 12-13/05/2026 -- Jalon J-13 COMPLET -- Radial Menu + Quickslot VALIDE PIE
-
----
-
-### 12/05/2026 -- Jalon J-15 -- UI_HUD_Main FINALISE
-
----
-
-### 12/05/2026 -- Jalons J-10 a J-14 -- POC Systeme Magie VALIDE PIE
+### 12-13/05/2026 -- J-13 Radial Menu + J-15 HUD_Main + J-10 a J-14 POC Magie
 
 ---
 
@@ -361,4 +153,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 02/06/2026
+- Derniere mise a jour : 03/06/2026
