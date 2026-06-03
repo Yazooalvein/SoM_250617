@@ -1,9 +1,9 @@
 # SaveSystem -- Shadow of Mana
-# Derniere mise a jour : 31/05/2026
+# Derniere mise a jour : 03/06/2026
 
 ---
 
-## Statut : DESIGN VALIDE (31/05/2026)
+## Statut : VALIDE PIE (03/06/2026)
 
 ---
 
@@ -16,7 +16,7 @@ La Fee porte un fragment d'ame (celui de la soeur du heros). Ce fragment est ins
 
 Ce n'est pas le heros qui sauvegarde. C'est la Fee qui se souvient.
 
-Les Fontaines se "reveillent" au fur et a mesure que le Mana se restaure -- cohÃ©rent avec la progression narrative (liberation des deites, restauration des zones).
+Les Fontaines se "reveillent" au fur et a mesure que le Mana se restaure -- coherent avec la progression narrative (liberation des deites, restauration des zones).
 
 ---
 
@@ -34,27 +34,25 @@ Les Fontaines se "reveillent" au fur et a mesure que le Mana se restaure -- cohÃ
 
 ---
 
-## 3. Mecanique Fontaine -- Interaction de base
+## 3. Mecanique Fontaine -- Interaction de base (C1)
 
-Le joueur approche une Fontaine -> prompt d'interaction -> ecran de transition court -> effets appliques :
+C1 : declenchement automatique par overlap (pas de prompt). C2 : prompt d'interaction + animation.
 
-| Effet | Detail |
-|---|---|
-| HP / ST / MP restaures a 100% | Instantane |
-| Corruption purgee (cout variable, voir section 4) | Remise a 0 |
-| Fee regeneree | Reset de ses etats |
-| Ennemis normaux respawn | Immediat a la reprise |
-| Boss / mini-boss | Jamais respawn |
-| Point de respawn mis a jour | Mort -> retour ici, Essence perdue |
-| Montee niveau deite disponible | Sauf Corruption >= 100 |
+| Effet | Detail | Statut C1 |
+|---|---|---|
+| HP / ST / MP restaures a 100% | Instantane | VALIDE |
+| Corruption purgee (cout 0 en C1) | Remise a 0 via PurgeCorruption(0.0) | VALIDE (cout -> SESSION-Economie) |
+| Fee regeneree | Reset de ses etats | C2 |
+| Ennemis normaux respawn | Immediat a la reprise | C2 |
+| Boss / mini-boss | Jamais respawn | -- |
+| Point de respawn mis a jour | LastFountainTransform | VALIDE |
+| Montee niveau deite disponible | Sauf Corruption >= 100 | C2 |
 
 ---
 
 ## 4. Systeme Corruption / Essence / Fontaine
 
 ### Cout des depenses Essence selon Corruption
-
-Toutes les depenses en Essence (montee niveau deite, achats, rituels...) sont affectees par le niveau de Corruption :
 
 | Corruption | Modificateur cout Essence |
 |---|---|
@@ -67,18 +65,10 @@ Toutes les depenses en Essence (montee niveau deite, achats, rituels...) sont af
 | Corruption au moment du repos | Cout de purge |
 |---|---|
 | 0 -- 74% | Gratuit |
-| 75 -- 99% | Petit cout en Essence (a calibrer -- session Economie) |
-| 100% | Grand cout en Essence (a calibrer -- session Economie) |
+| 75 -- 99% | Petit cout en Essence (a calibrer -- SESSION-Economie) |
+| 100% | Grand cout en Essence (a calibrer -- SESSION-Economie) |
 
-La purge remet toujours la Corruption a 0, quel que soit le cout.
-
-### Montee niveau deite a la Fontaine
-
-| Corruption | Acces montee niveau deite |
-|---|---|
-| 0 -- 74% | Disponible, cout normal |
-| 75 -- 99% | Disponible, cout +15% |
-| 100% | Bloque -- la Fee ne peut pas effectuer d'evolution |
+C1 : purge toujours gratuite (PurgeCorruption(0.0)). Couts -> SESSION-Economie.
 
 ### Tension de design
 
@@ -88,56 +78,76 @@ Corruption monte vers 100%
   -> Purge a la Fontaine coute de l'Essence
   -> Moins d'Essence disponible car depensee plus vite
   -> Double penalite economique si on attend trop longtemps
-
-Purger souvent (avant 75%) = aller souvent a la Fontaine = ennemis qui respawn
-Purger rarement = Corruption haute = penalites economiques cumulees
 ```
-
-Le calibrage exact des couts de purge sera defini en session Economie/Drops.
 
 ---
 
 ## 5. Essence de Mana -- comportement a la mort
 
-| Scenario de mort | Comportement Essence |
-|---|---|
-| Mort par environnement (chute, piege, zone) | Essence tombe au sol a l'endroit de la mort -- objet physique ramassable |
-| Mort par ennemi | Le mob qui a porte le coup fatal porte l'Essence -- doit etre tue pour recuperer |
-| Mob porteur est un boss / mini-boss | Exception : Essence tombe au sol (boss jamais re-tuable) |
+| Scenario de mort | C1 | C2+ |
+|---|---|---|
+| Mort par environnement | Drop au sol (BP_EssenceDrop) | idem |
+| Mort par ennemi | Drop au sol (C1) | Mob porteur |
+| Mort par boss / mini-boss | Drop au sol | idem (boss jamais re-tuable) |
 
-- Si le joueur meurt avant de recuperer son Essence : Essence definitivement perdue
-- La Fontaine elle-meme ne redonne pas l'Essence -- elle est uniquement le point de respawn
+- Essence non recuperee avant 2eme mort : perdue definitivement (C2 -- C1 = drop indefini)
+- La Fontaine ne redonne pas l'Essence -- uniquement point de respawn
 
 ---
 
 ## 6. Slots de sauvegarde
 
-- **Multi-parties** : plusieurs slots disponibles (ex. 3 slots), chaque slot = une partie distincte
-- **Intra-partie** : un seul slot actif, ecrasement automatique -- pas de save manuelle multiple
-- Souls-like strict a l'interieur d'une partie
+- **Multi-parties** : 3 slots, chaque slot = une partie distincte
+- **Intra-partie** : slot unique, ecrasement automatique -- souls-like strict
+- Nom slot courant : stocke dans GameMode.CurrentSlotName (String, default "Slot_1")
 
 ---
 
-## 7. Architecture technique -- BP_SaveGame_SoM
+## 7. Architecture technique -- VALIDE PIE (03/06/2026)
 
-### Structure de donnees
+### Principe -- BPI_Saveable
+
+Chaque systeme est responsable de ses propres donnees de persistance.
+Le GameMode ne connait pas les details -- il itere sur l'interface.
+
+```
+BPI_Saveable
+  SaveData(SaveGame : BP_SaveGame_SoM)   -- ecriture dans le SaveGame
+  LoadData(SaveGame : BP_SaveGame_SoM)   -- lecture et reconstruction
+```
+
+Systemes qui implementent BPI_Saveable :
+| Composant | SaveData ecrit | LoadData reconstruit |
+|---|---|---|
+| BP_InventoryComponent | DiscoveredWeapons | ForEachLoop AddWeapon |
+| BP_ComboManagerComponent | CurrentWeaponID + CurrentWeaponLevel | EquipWeapon(ID, Level) -> InitComboTree |
+| BP_MagicComponent | LockedDeities + SpellUsageCounts | SET + UnlockDeity depuis DT_Deities |
+| BP_AttributeSet_Base | EssenceValue | SET EssenceValue |
+| BP_QuestComponent (C4) | NarrativeFlags | -- |
+| BP_ForgeComponent (C3) | WeaponLevels | -- |
+
+HP/ST/MP non persistees -- restaurees a Max au load (inutile de sauvegarder l'etat instantane).
+
+### Decision cle -- LockedDeities vs UnlockedSpells
+
+On sauvegarde **LockedDeities** (Array<Name>, delta = ce qui est bloque) et non UnlockedSpells (Map<Name, FSoM_DeitySpells>).
+Au load : GetDataTableRowNames(DT_Deities) -> ForEachLoop -> si NOT IN LockedDeities -> UnlockDeity(RowName).
+Raison : robuste aux modifications futures de DT_Deities, pas de desync possible.
+
+### Structure BP_SaveGame_SoM (implementee)
 
 ```
 BP_SaveGame_SoM (extends SaveGame)
 |
-+-- SaveSlotName : String               -- "Slot_1", "Slot_2", "Slot_3"
-+-- SaveVersion : Int                   -- pour migrations futures
-+-- LastFountainID : Name               -- ID de la derniere Fontaine activee
-+-- LastFountainTransform : Transform   -- position de respawn precise
++-- [Meta]
+|   +-- SaveSlotName : String          -- "Slot_1", "Slot_2", "Slot_3"
+|   +-- SaveVersion : Int              -- pour migrations futures
+|   +-- LastFountainID : Name          -- ID de la derniere Fontaine activee
+|   +-- LastFountainTransform : Transform -- position de respawn precise
 |
 +-- [Stats heros]
-|   +-- HealthCurrent : Float
-|   +-- StaminaCurrent : Float
-|   +-- ManaCurrent : Float
-|   +-- EssenceMana : Int64            -- Essence sur le heros (pas celle au sol)
-|   +-- Corruption : Float
-|   +-- bCorruptionUnlocked : Bool
-|   +-- HeroLevel : Int
+|   +-- EssenceValue : Int64           -- Essence sur le heros (souls-like)
+|   +-- HeroLevel : Int                -- (C2 -- pas encore incremente)
 |
 +-- [Inventaire]
 |   +-- DiscoveredWeapons : Array<Name>
@@ -145,77 +155,107 @@ BP_SaveGame_SoM (extends SaveGame)
 |   +-- CurrentWeaponLevel : Int
 |
 +-- [Magie]
-|   +-- UnlockedDeities : Array<Name>
-|   +-- DeitySpellData : Map<Name, FSoM_DeitySpells>
+|   +-- LockedDeities : Array<Name>    -- deites bloquees (delta)
 |   +-- SpellUsageCounters : Map<Name, Int>
 |
 +-- [Progression monde]
 |   +-- ActivatedFountains : Array<Name>
 |   +-- CompletedNarrativeFlags : Array<Name>
-|   +-- MoralChoiceMade : EChoiceResult
 |
 +-- [Essence au sol]
     +-- DroppedEssenceAmount : Int64
     +-- DroppedEssenceLocation : Vector
 ```
 
-### Flux de sauvegarde (interaction Fontaine)
+Note : HealthCurrent/StaminaCurrent/ManaCurrent/Corruption/bCorruptionUnlocked/MoralChoiceMade
+preserves dans la struct pour C2/C3 -- non utilises en C1.
+
+### Flux de sauvegarde (interaction Fontaine) -- C1
 
 ```
-Joueur interagit avec Fontaine
-  -> GameMode.OnFountainRest(FountainID)
-    -> Collecter toutes les donnees (AttributeSet, InventoryComponent, MagicComponent...)
-    -> Remplir BP_SaveGame_SoM
-    -> SaveGameToSlot("Slot_X", 0)
-    -> Broadcast RestoreEffects (HP/ST/MP full + purge Corruption avec cout)
-    -> Marquer Fontaine comme activee (ActivatedFountains)
-    -> Respawn ennemis normaux de la zone
+ActorBeginOverlap BP_Fountain_Actor
+  -> GetComponentByClass(BP_FountainComponent, Target=self)
+  -> OnPlayerInteract()
+    -> GetGameMode -> Cast to BP_SoM_GameMode
+    -> OnFountainRest(FountainID)
+      -> CollectSaveData(FountainID)
+           CreateSaveGameObject -> SET CurrentSaveGame
+           SET LastFountainID, Array_Add(ActivatedFountains, FountainID)
+           SET CurrentSlotName
+           Cast HC -> GetComponentsByInterface(BPI_Saveable)
+           ForEachLoop -> K2Node_Message SaveData(CurrentSaveGame)
+      -> CollectFountainTransform(FountainID)
+           GetAllActorsOfClass(BP_Fountain_Actor)[0] -> GetTransform
+           SET CurrentSaveGame.LastFountainTransform
+           (C1 = index 0, filtrage par FountainID -> C2)
+      -> WriteSaveAndApplyFountainEffects()
+           SaveGameToSlot(CurrentSaveGame, CurrentSlotName, 0)
+           SetStatValue(HP/ST/MP = Max)
+           PurgeCorruption(0.0)
 ```
 
-### Flux de chargement (mort / reprise)
+### Flux de chargement (mort) -- C1
 
 ```
-OnPlayerDeath
-  -> Dropper Essence au sol OU marquer mob porteur
-  -> LoadGameFromSlot("Slot_X", 0)
-  -> Restaurer stats depuis SaveGame
-  -> Teleporter heros a LastFountainTransform
-  -> Rejouer animation "reveil a la Fontaine"
+OnHeroDied (BP_SoM_PlayerController)
+  -> SpawnActor(BP_EssenceDrop) -> SET EssenceValue
+  -> SetStatValue(EssenceValue, 0)
+  -> CameraFade(0->1, noir)
+  -> Delay(1.5s)
+  -> SetStatValue(HP/ST/MP = Max), SET bIsDead=false
+  -> GetGameMode -> Cast -> GET CurrentSaveGame -> IsValid ?
+      TRUE  : GetComponentsByInterface(BPI_Saveable) -> ForEachLoop LoadData
+              -> SetActorLocation(BreakTransform(LastFountainTransform).Location)
+      FALSE : GetActorOfClass(PlayerStart) -> TeleportTo HC
+  -> CameraFade(1->0, retour) -> EnableInput
 ```
 
 ---
 
 ## 8. BP_FountainComponent
 
-Actor Component attache a chaque Fontaine BP dans le niveau.
-
 | Variable / Fonction | Detail |
 |---|---|
 | FountainID : Name | Editable dans l'editeur -- identifiant unique |
-| bIsActivated : Bool | Premiere activation = animation speciale + particules differentes |
-| OnPlayerInteract() | Appelle GameMode.OnFountainRest(FountainID) |
+| bIsActivated : Bool | (C2 -- animation speciale premiere activation) |
+| OnPlayerInteract() | Cast to BP_SoM_GameMode -> OnFountainRest(FountainID) |
+
+### Gotcha implementation
+
+- `GetComponentByClass` dans BP_Fountain_Actor : **Target = self (la Fontaine)**, pas le HC
+- `GetComponentsByInterface` + `K2Node_Message` = appel interface sans Cast explicite -- pattern correct
+- Le Cast to BP_FountainComponent apres GetComponentByClass est superflu si la classe est specifiee
 
 ### Convention de nommage FountainID
 
 ```
-Fountain_A1_Village          -- Fontaine village du heros
-Fountain_A1_Gnome_01         -- Premiere Fontaine territoire Gnome
-Fountain_A1_Ombre_Entry      -- Entree Sanctuaire d'Ombre
-Fountain_A2_Hub_01           -- Premiere Fontaine Hub
-Fountain_A2_PostBoss_General -- Fontaine apres boss General
-...
+Fountain_A1_Village
+Fountain_A1_Gnome_01
+Fountain_A1_Ombre_Entry
+Fountain_A2_Hub_01
+Fountain_A2_PostBoss_General
 ```
 
 ---
 
-## 9. Jalon d'implementation
+## 9. Dettes C1 -> C2+
 
-Ce design est la spec pour le jalon **C2-SaveGame**.
-La logique Corruption (purge, couts) sera implementee dans **C2-CorruptionSystem**.
-La logique Essence complete (collecte, perte, recuperation) sera dans **C3-EssenceMana**.
+| Dette | Cible |
+|---|---|
+| CollectFountainTransform prend index 0 (pas filtre par FountainID) | C2 |
+| Overlap automatique (pas de prompt d'interaction) | C2 |
+| PurgeCorruption gratuite (cout 0) | SESSION-Economie |
+| Destruction drop Essence a la 2eme mort | C2 |
+| Mob porteur Essence | C2 |
+| SetStatValue HP/ST/MP dans OnHeroDied ET AttributeSet.LoadData (doublon) | C2 |
+| Animation "reveil a la Fontaine" | C2 |
+| Respawn ennemis normaux a la Fontaine | MAP-C1Level |
+| HeroLevel non incremente (variable presente, logique absente) | C2 |
+| QuestComponent, ForgeComponent (BPI_Saveable a implementer) | C3/C4 |
 
 ---
 
 ## Historique
 
-- Creation : 31/05/2026 -- session SaveDesign complete
+- Creation : 31/05/2026 -- session SaveDesign complete (DESIGN VALIDE)
+- MAJ 03/06/2026 -- SYS-SaveGame VALIDE PIE : architecture BPI_Saveable implementee, flux complets documentes, dettes C2 listees

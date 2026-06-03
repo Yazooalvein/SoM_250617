@@ -1,370 +1,267 @@
 # Decisions Architecturales -- Shadow of Mana
 
-Ce fichier centralise toutes les decisions importantes prises sur le projet :
-design, architecture technique, choix d'implementation, abandons.
+Ce fichier centralise toutes les decisions importantes prises sur le projet.
 Objectif : retrouver en 30 secondes POURQUOI une chose a ete faite sans fouiller le journal.
 
 Format : chaque decision = date + contexte + decision + raison + consequences.
 
 ---
 
+## PATTERNS ETABLIS -- Constitution technique du projet
+
+Ces regles s'appliquent a TOUT nouveau systeme. Les lire avant de concevoir quoi que ce soit.
+
+### [PERMANENT] Persistance -- BPI_Saveable
+**Regle** : Tout systeme ayant un etat a persister entre les sessions implemente BPI_Saveable.
+SaveData() ecrit dans BP_SaveGame_SoM. LoadData() reconstruit l'etat depuis les donnees sauvegardees.
+Le GameMode itere sur GetComponentsByInterface(BPI_Saveable) -- il ne connait pas les details.
+**Raison** : Decouплage total. Ajouter un nouveau systeme = implementer l'interface, zero modification du GameMode.
+**Systemes actuels** : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
+**Systemes futurs** : BP_QuestComponent (C4), BP_ForgeComponent (C3), BP_CorruptionComponent si etat persistant
+**Ne pas faire** : Collecter les donnees directement dans GameMode.OnFountainRest par type concret.
+
+### [PERMANENT] Modification de stats -- SetStatValue
+**Regle** : Toute modification de stat passe par SetStatValue(StatName, Value). Zero exception.
+Notification via OnStatChanged. L'UI ne poll jamais.
+**Raison** : Un seul point de modification = debug trivial, pas de desync UI possible.
+**Ne pas faire** : SET direct sur une variable de stat depuis un Blueprint externe.
+
+### [PERMANENT] Etat metier -- jamais dans HC
+**Regle** : BP_SoM_HeroCharacter = coordinateur leger uniquement. Tout etat metier vit dans un composant dedie.
+Si une donnee peut appartenir a un composant existant, elle y va.
+Si aucun composant n'est adapte, creer un nouveau composant avant d'ajouter a HC.
+**Raison** : HC devient un God Object si on y accumule de l'etat. Chaque composant est testable et remplacable independamment.
+**Composants actuels** : BP_ComboManagerComponent (arme+combat), BP_InventoryComponent (armes connues),
+BP_MagicComponent (sorts+deites), BP_CorruptionComponent (corruption), BP_CombatLockOnComponent (lock-on)
+**Ne pas faire** : Ajouter une variable d'etat directement sur HC sans passer par un composant.
+
+### [PERMANENT] Source de verite unique
+**Regle** : Toute donnee a un et un seul proprietaire. Jamais dupliquer une donnee entre deux systemes.
+| Donnee | Proprietaire unique |
+|---|---|
+| Arme equipee | ComboManager.CurrentWeaponID |
+| Armes connues | InventoryComponent.DiscoveredWeapons |
+| Etat magie (sorts, deites) | MagicComponent |
+| Stats heros | AttributeSet |
+| Etat corruption | CorruptionComponent |
+| Save courante | GameMode.CurrentSaveGame |
+**Ne pas faire** : Stocker CurrentWeaponID a la fois dans HC et dans ComboManager.
+
+### [PERMANENT] Extensibilite par interface Blueprint
+**Regle** : Des qu'un comportement va concerner plusieurs systemes heterogenes, creer une interface Blueprint.
+Ne pas brancher en dur sur des types concrets quand une interface suffit.
+**Raison** : Un nouveau systeme = implementer l'interface, pas modifier tous les appelants.
+**Interfaces actuelles** : BPI_Saveable
+**Interfaces futures probables** : BPI_Damageable, BPI_Interactable, BPI_StatusEffectable
+**Ne pas faire** : Switch sur des types concrets pour appeler des comportements communs.
+
+### [PERMANENT] Points d'entree uniques
+**Regle** : Toute action significative a un unique point d'entree nomme explicitement.
+Ne jamais contourner ces points d'entree, meme "pour aller plus vite".
+| Action | Point d'entree unique |
+|---|---|
+| Changer l'arme equipee | ComboManager.EquipWeapon(WeaponID, WeaponLevel) |
+| Modifier une stat | AttributeSet.SetStatValue(StatName, Value) |
+| Declencher une save | GameMode.OnFountainRest(FountainID) |
+| Lancer un sort | MagicComponent.CastSpell(SpellID) |
+| Ajouter une arme connue | InventoryComponent.AddWeapon(WeaponID) |
+**Ne pas faire** : Appeler SaveGameToSlot directement depuis un Blueprint quelconque.
+
+### [PERMANENT] Sauvegarde -- sauvegarder le delta, pas l'etat derive
+**Regle** : Ne jamais sauvegarder une donnee qui peut etre reconstruite depuis une source existante (DataTable, calcul).
+Sauvegarder uniquement ce qui ne peut pas etre recalcule : le delta, les flags, les compteurs.
+**Exemple concret** : LockedDeities (Array<Name>) est sauvegarde, pas UnlockedSpells (Map<Name, FSoM_DeitySpells>).
+Au load : reconstruction depuis DT_Deities via UnlockDeity() pour chaque deite non bloquee.
+**Raison** : Robuste aux modifications futures des DataTables. Pas de desync possible entre SaveGame et source de verite.
+**Ne pas faire** : Sauvegarder une Map complexe qui est une vue calculee depuis une DataTable.
+
+---
+
 ## ARMES & INVENTAIRE
 
 ### [29/05/2026] Source de verite arme courante -- ComboManager
-**Contexte** : Doublon entre HC.ChoosenWeapon (FName) et ComboManager.CurrentWeaponID (FName).
-Aucun des deux n'etait officiellement "le patron". Logique EquipWeapon eparpillee HC / ComboManager / UI_Radial / PC.
+**Contexte** : Doublon entre HC.ChoosenWeapon et ComboManager.CurrentWeaponID.
 **Decision** : BP_ComboManagerComponent = source de verite unique pour l'arme courante et le niveau arme.
-HC.ChoosenWeapon est supprime. EquipWeapon vit sur ComboManager. HC delegue, ne stocke pas.
-**Raison** : Coherent avec la philosophie de factorisation du projet (LockOn, Magie, Combo = Components dedies).
-HC devient un coordinateur leger. ComboManager possede tout ce qui est "arme + combat".
-SaveGame lira ComboManager.CurrentWeaponID directement -- une ligne de plus, pas un probleme archi.
-**Consequences** :
-- Supprimer HC.ChoosenWeapon dans C1-WeaponArchitecture
-- EquipWeapon migre sur BP_ComboManagerComponent
-- Tout appelant (Radial, PC, HC) passe par ComboManager.EquipWeapon
-- Ne jamais recreer de variable arme courante sur HC
+HC.ChoosenWeapon supprime. EquipWeapon vit sur ComboManager.
+**Raison** : Coherent avec la philosophie composants dedies. HC delegue, ne stocke pas.
+**Consequences** : Tout appelant (Radial, PC, HC) passe par ComboManager.EquipWeapon. Ne jamais recreer de variable arme sur HC.
 
 ### [29/05/2026] DiscoveredWeapons -- migration vers InventoryComponent
-**Contexte** : DiscoveredWeapons (Array<FName>) etait sur HC. Avec la suppression de ChoosenWeapon,
-la question se pose de savoir ou vit la liste des armes connues du joueur.
-**Decision** : DiscoveredWeapons migre vers un BP_InventoryComponent dedie (a creer).
-Ce Component accueillera aussi : consommables Seiken, materiaux de craft, equipement (Casque/Armure/Accessoire).
-ComboManager ne connait que l'arme equipee, pas l'inventaire.
-**Raison** : ComboManager = combat/combo uniquement. L'inventaire est une donnee de progression du personnage,
-pas une donnee de combat. Le Radial interroge InventoryComponent pour peupler ses slots armes.
-Separation propre, extensible naturellement vers C5-Equipment et C5-ForgeSystem.
-**Consequences** :
-- Creer BP_InventoryComponent sur HC dans C1-WeaponArchitecture (ou jalon dedie)
-- Radial lit InventoryComponent.DiscoveredWeapons (pas HC, pas ComboManager)
-- DiscoveredWeapons supprime de HC
+**Decision** : DiscoveredWeapons migre vers BP_InventoryComponent.
+Component accueillera aussi : consommables Seiken, materiaux de craft, equipement.
+**Raison** : ComboManager = combat/combo uniquement. L'inventaire est une donnee de progression.
+**Consequences** : Radial interroge InventoryComponent.GetWeapons() pour peupler ses slots.
 
 ### [29/05/2026] Switch arme en cours de combo -- reset combo (punition)
-**Contexte** : Comportement non defini : que se passe-t-il si le joueur ouvre le Radial et change d'arme
-pendant un combo actif ?
-**Decision** : Switch arme = reset combo complet. ComboManager.EquipWeapon reinitialise l'etat combo
-immediatement, sans fenetre de grace ni conservation du step.
-**Raison** : Coherent avec l'identite Dark Souls du projet -- chaque action a un cout.
-Le slow-mo Radial (Time Dilation 0.2) est la seule concession accordee au joueur.
-Le Radial n'est pas grisce pendant un combo -- le joueur choisit consciemment de switcher.
-**Consequences** :
-- EquipWeapon appelle ResetCombo (ou equivalent) avant InitComboTree
-- Pas de logique de conservation de step cross-arme
-- Pas de grisage UI du Radial pendant combo
+**Decision** : Switch arme = reset combo complet. ComboManager.EquipWeapon reinitialise l'etat combo.
+**Raison** : Coherent avec l'identite Dark Souls. Pas de grisage UI Radial pendant combo.
 
 ---
 
 ## SYSTEME DE STATS & COMBAT
 
-### [29/05/2026] TenaciteEtat heros -- valeur de base + modificateurs
-**Contexte** : TenaciteEtat existait sur les ennemis (design Stats valide 28/05/2026) mais
-la valeur de base heros n'avait pas ete definie. Necessaire pour implementer BP_StatusEffectComponent.
-**Decision** : TenaciteEtat heros = 25 en valeur de base.
-Cle supplementaire dans BP_AttributeSet_Base (pas une 8eme stat visible).
-Modifiable par : equipement, buffs/debuffs, et Corruption (la Corruption reduit la TenaciteEtat).
-Passe obligatoirement par SetStatValue comme toutes les stats.
-**Raison** : Valeur basse = heros vulnerable par defaut aux effets de statut (Dark Souls style).
-La resistance se construit via equipement et gestion de la Corruption.
-Lien Corruption -> TenaciteEtat cree une boucle de pression : plus corrompu = plus vulnerable aux effets.
+### [29/05/2026] TenaciteEtat heros -- valeur de base 25
+**Decision** : TenaciteEtat heros = 25 en valeur de base. Cle supplementaire dans BP_AttributeSet_Base.
+Modifiable par equipement, buffs/debuffs, et Corruption.
+**Raison** : Heros vulnerable par defaut aux effets de statut (Dark Souls style).
+**Consequences** : BP_StatusEffectComponent lit TenaciteEtat via GetStatValue pour calculer la resistance.
+
+---
+
+## SAVE SYSTEM
+
+### [03/06/2026] Architecture save -- BPI_Saveable (pattern interface)
+**Contexte** : Premiere approche = GameMode collecte directement les donnees de chaque composant.
+Problem : God Function, couplage fort, chaque nouveau systeme = modification du GameMode.
+**Decision** : Architecture interface BPI_Saveable. Chaque composant est responsable de ses propres donnees.
+GameMode.OnFountainRest appelle uniquement GetComponentsByInterface + ForEachLoop SaveData/LoadData.
+**Raison** : Evolutivite maximale. BP_QuestComponent en C4 = implementer BPI_Saveable, zero modification ailleurs.
 **Consequences** :
-- Ajouter TenaciteEtat dans BP_AttributeSet_Base avec valeur par defaut 25
-- BP_StatusEffectComponent lit TenaciteEtat via GetStatValue pour calculer la resistance
-- Calibrage Corruption -> reduction TenaciteEtat : a definir en session Economie/Calibrage
+- Tout nouveau systeme persistant implemente BPI_Saveable
+- GameMode ne connait jamais les types concrets des composants
+- Voir Pattern PERMANENT ci-dessus
+
+### [03/06/2026] LockedDeities vs UnlockedSpells -- sauvegarder le delta
+**Contexte** : UnlockedSpells est une Map<Name, FSoM_DeitySpells> -- type complexe, vue calculee depuis DT_Deities.
+**Decision** : Sauvegarder LockedDeities (Array<Name>) uniquement.
+Au load : GetDataTableRowNames(DT_Deities) -> ForEachLoop -> NOT IN LockedDeities -> UnlockDeity(RowName).
+**Raison** : Si DT_Deities est modifie (nouvelle deite, reequilibrage), le load se reconstruit proprement.
+Sauvegarder UnlockedSpells = risque de desync si la DataTable change entre deux sessions.
+**Consequences** : Principe generalise -> Pattern PERMANENT "sauvegarder le delta, pas l'etat derive".
+
+### [03/06/2026] HP/ST/MP -- non persistees
+**Decision** : HealthCurrent, StaminaCurrent, ManaCurrent ne sont pas sauvegardees.
+Au load (apres mort), elles sont restaurees a leur valeur Max via SetStatValue.
+**Raison** : Le respawn restaure toujours a 100%. Sauvegarder l'etat instantane de combat est sans valeur.
+**Consequences** : AttributeSet.LoadData = SET EssenceValue uniquement + SetStatValue HP/ST/MP=Max.
 
 ---
 
 ## COMBAT & FEEDBACK
 
 ### [21/05/2026] Hit Flash ennemi -- ABANDONNE
-**Contexte** : Architecture DMI (Dynamic Material Instance) implementee sur BP_Enemy_Base.
-Le flash visuel ne fonctionnait pas car M_Mannequin est un material Engine partage, read-only en runtime.
-Solution identifiee : dupliquer en M_Enemy_Base. Mais cout vs benefice questionne.
-**Decision** : Abandonner le hit flash ennemi.
-**Raison** : CS_EnemyDeath (screen shake camera) + animation hit reaction dediee suffisent pour le feedback visuel.
-Le flash est un detail polish, pas une priorite sur la base de combat.
-**Consequences** : Architecture DMI reste dans le code mais non utilisee. CS_EnemyDeath = seul feedback visuel mort ennemi.
+**Decision** : Abandonner le hit flash ennemi. CS_EnemyDeath + animation hit reaction suffisent.
 
-### [18/05/2026] Hitstop -- REPORTE
-**Contexte** : Hitstop prevu dans C1-HitFeel (Game Time Dilation 0.05 pendant 2-3 frames).
+### [18/05/2026] Hitstop -- REPORTE C2
 **Decision** : Reporter apres C2-EnemyMesh + C1-SFXCombat.
-**Raison** : Impossible d'evaluer le feeling du hitstop sans animations de hit reaction et vrais SFX.
-Reference Dark Souls : le feedback vient du son + animation stagger, pas d'un hitstop global.
-**Consequences** : C1-HitFeel reste partiel. Hitstop evalue en C2 apres vrais assets.
+**Raison** : Impossible d'evaluer le feeling sans animations de hit reaction et vrais SFX.
 
 ### [18/05/2026] Knockback ennemi -- LaunchCharacter 400.0
-**Contexte** : Premiere valeur de knockback.
-**Decision** : 400.0 comme valeur initiale, override XY=true, Z=false.
-**Raison** : Valeur empirique, a tuner selon feeling.
-**Consequences** : Valeur exposee dans BP_Enemy_Base pour ajustement facile.
+**Decision** : 400.0 comme valeur initiale, override XY=true, Z=false. A tuner.
 
 ---
 
 ## ENNEMIS
 
-### [23/05/2026] WeaponClass ennemi -- ABANDONNE, arme integree par ennemi
-**Contexte** : BP_Enemy_Base avait une variable WeaponClass (hardcode BP_Enemy_Sword01)
-prevue pour gerer les armes des ennemis via un systeme similaire au hero.
-**Decision** : Supprimer toute notion de WeaponClass / systeme d'arme generique sur les ennemis.
-Chaque ennemi a ses attaques et comportements integres directement dans son Blueprint child.
-Pas de child BP dedie a la gestion d'arme.
-**Raison** : Les ennemis dans SoM ne sont pas des clones du hero. Chaque type d'ennemi a une
-identite combat propre (slime, chevalier, dragon...). Un systeme generique WeaponClass ajoute
-de la complexite inutile. L'arme visuelle (mesh) est une partie du mesh ennemi ou un composant
-statique sans logique separee.
-**Consequences** :
-- Supprimer WeaponClass de BP_Enemy_Base dans C2-EnemyMesh (ou des que touche)
-- Pas de DT_Weapons cote ennemi, pas de ComboManager cote ennemi
-- La dette "WeaponClass hardcode BP_Enemy_Sword01 (C2-EnemyMesh)" est CLOTUREE par cette decision
-**Point ouvert -- Magie ennemie** : les ennemis capables de magie s'appuieront probablement
-sur le meme referentiel que les sorts apprenables par le hero (meme DT_Spells ou sous-ensemble).
-Decision reportee a C2 quand un premier ennemi magique sera concu.
+### [23/05/2026] WeaponClass ennemi -- ABANDONNE
+**Decision** : Supprimer WeaponClass de BP_Enemy_Base. Chaque ennemi a ses attaques integrees.
+**Raison** : Les ennemis ne sont pas des clones du hero. Systeme generique WeaponClass = complexite inutile.
+**Point ouvert** : Magie ennemie -> probablement DT_Spells ou sous-ensemble. Decision reportee C2.
 
 ---
 
 ## LOCK-ON
 
 ### [21/05/2026] Cooldown switch cible -- source de verite = Component
-**Contexte** : Doublon detecte : LockOnSwitchCooldown dans BP_SoM_PlayerController
-et SwitchCooldown dans BP_CombatLockOnComponent.
 **Decision** : SwitchCooldown dans BP_CombatLockOnComponent = source de verite unique.
-Supprimer LockOnSwitchCooldown du PC.
-**Raison** : Le Component gere tout l'etat du lock-on (bisLockOnActive, CurrentTarget, AvailableTargets...).
-Le cooldown en fait partie logiquement. Le PC ne doit pas avoir d'etat lock-on en propre.
-**Consequences** : A implementer dans C1-CleanupDettes. Verifier que tout le code qui lisait
-LockOnSwitchCooldown PC pointe sur GetBP_CombatLockOnComponent -> SwitchCooldown.
+**Consequences** : Ne jamais creer LockOnSwitchCooldown dans le PC.
 
-### [15/05/2026] Strafe -- animations placeholder
-**Contexte** : Strafe gauche et droite en lock-on utilisent la meme animation (Jog_Left mirrored).
-**Decision** : Garder le placeholder jusqu'a C1-AnimationsPass1.
-**Raison** : Le systeme fonctionne, les animations distinctes sont un polish.
-**Consequences** : Dette notee dans C1-AnimationsPass1.
+### [15/05/2026] Strafe -- animations placeholder jusqu'a C1-AnimationsPass1
 
 ---
 
 ## CAMERA & MOUVEMENT
 
-### [18/05/2026] Roll en lock-on -- REPORTE
-**Contexte** : En lock-on, le roll part vers l'ennemi au lieu de suivre le stick.
-**Cause racine** : Root Motion en World Space + UseControllerRotationYaw=true force
-le character a regarder l'ennemi chaque frame, annulant SetActorRotation.
-**Decision** : Reporter la correction a C1-AnimationsPass1.
-**Solution prevue** : LaunchCharacter dans direction stick+camera + animation visuelle sans Root Motion (architecture DS/KH).
-**Consequences** : Roll hors lock-on fonctionne. Roll en lock-on visuellement incorrect jusqu'a C1-AnimationsPass1.
+### [18/05/2026] Roll en lock-on -- REPORTE ANIM-Pass1
+**Cause racine** : Root Motion World Space + UseControllerRotationYaw=true annule SetActorRotation.
+**Solution prevue** : LaunchCharacter direction stick+camera + animation visuelle sans Root Motion.
 
-### [17/05/2026] IA_Look -- deplace dans le PC
-**Contexte** : IA_Look etait dans BP_SoM_HeroCharacter.
-**Decision** : Deplacer dans BP_SoM_PlayerController (fonction Aim).
-**Raison** : La gestion camera appartient au Controller, pas au Character. Separation des responsabilites.
-**Consequences** : Ne jamais rebrancher IA_Look dans HeroCharacter.
+### [17/05/2026] IA_Look -- dans le PC (pas HC)
+**Raison** : La gestion camera appartient au Controller, pas au Character.
 
 ### [17/05/2026] UpdateLockOnRotation -- conditionnel V2
-**Contexte** : La camera suivait la cible meme quand le joueur regardait ailleurs.
-**Decision** : V2 avec bPlayerIsLooking + LookReturnDelay (1.5s) + LockOnReturnSpeed (3.0).
-**Raison** : Le joueur doit pouvoir regarder librement en lock-on, la camera revient
-automatiquement sur la cible apres un delai d'inactivite.
-**Consequences** : Branch(IsRolling) en guard : si rolling, pas de SetControlRotation.
+**Decision** : bPlayerIsLooking + LookReturnDelay (1.5s) + LockOnReturnSpeed (3.0).
+Branch(IsRolling) en guard : si rolling, pas de SetControlRotation.
 
 ---
 
 ## INPUTS
 
-### [23/05/2026] Architecture IMC -- liste definitive et modes d'activation
-**Contexte** : IMC_Prototype trop chargee (gameplay + radial melange). Refonte complete de l'architecture IMC.
-**Decision** : 5 IMC distincts, chacun a une responsabilite unique :
-
+### [23/05/2026] Architecture IMC -- 5 IMC distincts
 | IMC | Contenu | Mode |
 |---|---|---|
-| IMC_Gameplay | Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialOpen, Quickslots | Exclusif (base permanente) |
-| IMC_Radial | Rotate, Validate, Cancel, ChangeCat | Exclusif (remplace Gameplay pendant radial) |
-| IMC_Menu | Navigate, Confirm, Back | Exclusif (pause, mort, main menu) |
-| IMC_Dialogue | Confirm/Avance, Choix | CUMULATIF avec IMC_Gameplay |
+| IMC_Gameplay | Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialOpen, Quickslots | Exclusif |
+| IMC_Radial | Rotate, Validate, Cancel, ChangeCat | Exclusif |
+| IMC_Menu | Navigate, Confirm, Back | Exclusif |
+| IMC_Dialogue | Confirm/Avance, Choix | Cumulatif avec Gameplay |
 | IMC_Cutscene | IA_Skip | Exclusif |
 
-**Raison** : Voir detail complet dans historique 23/05.
-**Consequences** :
-- IMC_Prototype renomme IMC_Gameplay dans C1-InputsUI
-- OpenRadial : Remove IMC_Gameplay -> Add IMC_Radial (priority 1)
-- CloseRadial : Remove IMC_Radial -> Add IMC_Gameplay (priority 0)
-
-### [23/05/2026] IA Radial -- audit noms reels (correction doc)
-**Correction** :
-- `IA_UI_RadialMenu_ChangeCat` -> reel : `IA_UI_Radial_ChangeCat`
-- `IA_RadialMenu` -> reel : `IA_UI_Radial_Open`
-- Nouvelle IA identifiee : `IA_UI_Radial_Rotate`
-
-### [07/05/2026] Source unique InputActions
-**Decision** : Toutes les IA dans Content/Input/InputActions/ uniquement.
-**Consequences** : Ne jamais creer d'IA en dehors de ce dossier.
+### [07/05/2026] Source unique InputActions -- Content/Input/InputActions/ uniquement
 
 ---
 
 ## RADIAL MENU & MAGIE
 
-### [25/05/2026] ValidateRadial -- fonction dediee sur PC + condition CurrentCategory
-**Contexte** : ValidateSelection dans l'EventGraph du PC ne permettait pas de variables locales
-(TempSchoolID, TempSpellID) necessaires pour capturer SlotDataList[SelectedIndex].SlotID
-avant que PopulateMagicSpells efface SlotDataList.
-De plus, la condition N1/N2 utilisait CurrentMagicSchool == "None" -- mais PopulateMagicSpells
-commence par SET CurrentMagicSchool = "None", ce qui rendait la condition toujours vraie en N2.
-**Decision** :
-1. Extraire toute la logique de validation dans une fonction dediee "ValidateRadial" sur le PC.
-   Les variables locales TempSchoolID et TempSpellID (FName) y sont declarees.
-2. La condition N1/N2 utilise CurrentCategory (ERadialMode) et non CurrentMagicSchool :
-   - CurrentCategory == Weapons -> ValidateSelectedWeapon
-   - CurrentCategory == Deity -> capturer TempSchoolID -> SET CurrentCategory=Spell -> resets -> PopulateMagicSpells(TempSchoolID)
-   - CurrentCategory == Spell -> capturer TempSpellID -> CastSpell(TempSpellID) -> CloseRadial
-**Raison** :
-- Variables locales impossibles dans l'EventGraph, disponibles dans les fonctions.
-- CurrentCategory est fiable car elle n'est modifiee que par les actions explicites du joueur.
-  CurrentMagicSchool est remise a "None" par PopulateMagicSpells, la rendant inutilisable comme discriminant.
-**Consequences** :
-- L'EventGraph ne contient plus que : IA_UI_Radial_Validate -> IsValid(RadialMainRef) -> ValidateRadial
-- Ne jamais utiliser CurrentMagicSchool pour distinguer N1 de N2 dans la logique de validation
+### [25/05/2026] ValidateRadial -- fonction dediee PC + condition CurrentCategory
+**Decision** : Extraire la logique dans ValidateRadial(). Variables locales TempSchoolID et TempSpellID.
+Condition N1/N2 sur CurrentCategory (ERadialMode), pas CurrentMagicSchool.
 
-### [25/05/2026] ERadialMode -- enum a 3 valeurs
-**Decision** : NewEnumerator0=Weapons, NewEnumerator1=Deity, NewEnumerator2=Spell.
-Renommage Magic->Deity et ajout Spell comme valeur N2 distincte.
-**Raison** : Separation claire des trois modes du radial. Spell = niveau 2 magie, distinct de Deity = niveau 1.
+### [25/05/2026] ERadialMode -- 3 valeurs : Weapons / Deity / Spell
 
-### [25/05/2026] SwitchCategory -- logique 3 branches
-**Decision** :
-- CurrentCategory == Weapons -> passer en Deity -> PopulateMagicSchools
-- CurrentCategory == Deity -> passer en Weapons -> PopulateWeaponSlots
-- CurrentCategory == Spell -> passer en Deity -> PopulateMagicSchools (retour N2->N1)
-**Raison** : Le bouton SwitchCategory depuis Spell doit revenir en Deity, pas fermer le radial.
-La fermeture depuis Spell passe par Cancel (retour N1) puis Cancel a nouveau (fermeture).
+### [25/05/2026] UnlockDeity -- "Set Members in FSoM_DeitySpells" (pas Make)
+**Raison** : Make FSoM_DeitySpells a bDefaultValueIsIgnored=True sur SpellIDs -> bug silencieux.
 
-### [25/05/2026] UnlockDeity -- architecture finale avec Set Members in FSoM_DeitySpells
-**Contexte** : Bug critique : le pin SpellIDs du noeud Make FSoM_DeitySpells a
-bDefaultValueIsIgnored=True. UE5 ignore systematiquement la valeur connectee (MakeArray ou variable),
-ce qui produit un SpellIDs vide -> SlotDataList a 1 element au lieu de 4.
-**Decision** : Remplacer Make FSoM_DeitySpells par le noeud "Set Members in FSoM_DeitySpells".
-Architecture finale dans UnlockDeity (branche Map_Contains == FALSE) :
-  1. GET TempDeitySpells (FSoM_DeitySpells, variable membre simple -- pas un Array)
-  2. Set Members in FSoM_DeitySpells : StructRef=TempDeitySpells, SpellIDs=TempSpellsIDs
-  3. StructOut -> Map_Add(UnlockedSpells, Key=DeityName, Value=StructOut)
-**Raison** : Le noeud Set Members in struct ne souffre pas du bug bDefaultValueIsIgnored.
-Il modifie directement la struct en reference et passe la reference modifiee au Map_Add.
-**Consequences** :
-- TempDeitySpells doit etre de type FSoM_DeitySpells SIMPLE (pas Array de FSoM_DeitySpells)
-- TempSpellsIDs reste un Array<FName> avec 4 elements par defaut dans les Details
-- Ne jamais utiliser Make FSoM_DeitySpells pour alimenter un Map_Add
-
-### [23/05/2026] Radial Magie -- decisions actees pour C1-RadialMagie
-**Contexte** : Choix d'architecture pour les 2 niveaux magie du radial.
-
-**Decision 1 -- Validation N2 = CastSpell direct.**
-Raison : L'assignation quickslot se fait hors combat via le menu general uniquement.
-Le radial en combat = acces rapide pour lancer, pas pour organiser.
-Consequences : ValidateSelectedSpell -> CastSpell(SpellID) via MagicComponent. Pas de logique d'assignation dans le radial.
-
-**Decision 2 -- Source de verite ecoles = filtrage UnlockedSpells par ecole.**
-Raison : Les ecoles se debloquent implicitement en apprenant un premier sort.
-Ce modele est coherent avec une progression ou les sorts d'une meme ecole peuvent s'apprendre
-a des niveaux differents (pas forcement tous en meme temps).
-Pas de variable UnlockedSchools separee a maintenir.
-Consequences : PopulateMagicSchools = loop sur UnlockedSpells -> extraire Category -> dedupliquer -> generer slots N1.
-Une ecole disparait automatiquement du radial si tous ses sorts sont retires (cas edge, pas prioritaire).
-
-**Decision 3 -- SelectedIndex arme = dette separee (C1-CleanupDettes).**
-Raison : Fix mineur, ne bloque pas C1-RadialMagie. Sera traite avec LockOnSwitchCooldown PC.
-Consequences : Ajoute a la liste C1-CleanupDettes.
-
-**Point ouvert -- Magie ennemie.**
-Les ennemis magiques utiliseront probablement DT_Spells (ou sous-ensemble) du hero.
-Decision reportee a C2 quand un premier ennemi magique sera concu.
-
-### [21/05/2026] Architecture Radial Magie -- 2 niveaux imbriques
-**Decision** : N1 = ecoles (Lumina, Ondine, Ombre, Athanor, Sylphide, Gnome, Salamandre, Dryade) / N2 = sorts de l'ecole.
-Navigation B = retour N2->N1, pas fermeture directe.
-
-### [21/05/2026] SelectedIndex radial -- retour sur arme equipee (DETTE C1-CleanupDettes)
-**Decision** : SelectedIndex doit pointer sur ChoosenWeapon dans DiscoveredWeapons a l'ouverture.
-**Consequences** : Lookup ChoosenWeapon -> FindIndex dans DiscoveredWeapons. A traiter dans C1-CleanupDettes.
+### [21/05/2026] Architecture Radial Magie -- 2 niveaux imbriques N1=ecoles, N2=sorts
 
 ### [13/05/2026] Slow-mo radial -- Time Dilation 0.2
-**Decision** : Time Dilation 0.2 a l'ouverture. CloseRadialMenu doit toujours restaurer a 1.0.
 
 ---
 
 ## MAGIE -- PROGRESSION
 
 ### [23/05/2026] Montee de niveau des magies -- jalon design dedie
-**Contexte** : Sujet ouvert : montee en puissance des sorts (lineaire simple ou arbre de talent).
-**Decision** : Aucune implementation pour l'instant. Creer le jalon C1-MagicProgressionDesign (spec uniquement).
-**Raison** : Question de game design non triviale. Merite une session de design dediee avant de coder quoi que ce soit.
-**Consequences** : C1-MagicProgressionDesign ajoute a la roadmap apres C1-RadialMagie.
-Aucune variable "niveau de sort" a creer avant cette session.
+**Decision** : Aucune implementation avant la session design C1-MagicProgressionDesign.
 
-### [23/05/2026] UnlockedSpells -- stub test BeginPlay + dette systeme de deblocage
-**Contexte** : UnlockedSpells (TMap<FName, FSoM_DeitySpells> sur BP_MagicComponent) n'est jamais alimente
-au runtime. Les sorts Lumina existent dans DT_Spells mais aucun systeme ne les debloque.
-Pour valider C1-RadialMagie en PIE, il faut que le radial ait des donnees a afficher.
-**Decision** : Ajouter un remplissage test au BeginPlay de BP_MagicComponent :
-  - Key = "Lumina", Value = FSoM_DeitySpells{ SpellIDs = ["Lumina_Heal", "Lumina_Attack", "Lumina_Buff", "Lumina_Debuff"] }
-Ce stub est temporaire et sera retire quand le vrai systeme de deblocage existera.
-**Raison** : Pragmatisme -- valider le radial sans attendre C1-MagicProgressionDesign.
-**Consequences -- DETTE (C1-MagicUnlockSystem)** :
-- Creer un systeme de deblocage de sorts (appel a une fonction UnlockSpell(SchoolID, SpellID) sur MagicComponent)
-- Chaque nouvelle ecole ou sort appris doit passer par cette fonction
-- Si de nouvelles ecoles sont creees (Ondine, Ombre...), elles doivent avoir leur DT_Spells dedie
-  ET leurs SpellIDs doivent etre enregistres via UnlockSpell -- pas en dur dans BeginPlay
-- Retirer le stub BeginPlay test quand UnlockSpell est opere en jeu
-- Ce jalon C1-MagicUnlockSystem est a planifier apres C1-MagicProgressionDesign
+### [23/05/2026] UnlockedSpells -- stub test BeginPlay (DETTE C1-MagicUnlockSystem)
+**Decision** : Stub temporaire Lumina en BeginPlay MagicComponent. A retirer quand UnlockSpell en production.
 
 ---
 
 ## GAMEPLAY & NARRATION
 
 ### [23/05/2026] Dialogues quetes annexes -- personnage mobile
-**Decision** : Personnage mobile pendant les dialogues de quetes annexes.
-IMC_Dialogue = cumulatif avec IMC_Gameplay (priority 1).
-Distance check via Blueprint, pas via inputs. Detail a definir en C4-DialogueSystem.
+**Decision** : IMC_Dialogue cumulatif avec IMC_Gameplay. Distance check via Blueprint.
 
 ---
 
 ## SYSTEME DE STATS & COMBAT
 
 ### [07/05/2026] SetStatValue -- unique point de modification
-**Decision** : SetStatValue(StatName, Value) = UNIQUE point de modification de toutes les stats.
-OnStatChanged = dispatcher de notification.
-**Consequences** : Jamais modifier une stat directement.
+**Decision** : SetStatValue(StatName, Value) = UNIQUE point de modification. OnStatChanged = dispatcher.
 
 ### [07/05/2026] UI HUD -- zero polling
-**Decision** : UI_HUD_Main entierement event-driven via OnStatChanged. Zero Tick polling.
+**Decision** : UI_HUD_Main entierement event-driven via OnStatChanged.
 
 ### [18/05/2026] ComboManager -- HandleAttack sans parametre ChoosenWeapon
 **Decision** : ComboManager lit CurrentWeaponID en interne. Pas de parametre externe.
-**Consequences** : EquipWeapon appelle InitComboTree(WeaponID, WeaponLevel).
 
 ---
 
 ## ASSETS & PIPELINE
 
 ### [11/05/2026] AnimGraph via MCP -- INTERDIT
-**Decision** : Ne jamais creer d'etat AnimGraph via l'outil add_state du MCP.
-**Raison** : add_state produit des shells corrompus non utilisables.
-**Consequences** : Toute creation d'etat AnimGraph = manuelle dans l'editeur UE5.7. Regle absolue.
+**Decision** : Ne jamais creer d'etat AnimGraph via add_state MCP. Toujours manuel dans UE5.7.
 
 ### [14/05/2026] LevelMin DT_Combo -- valeur 0
-**Decision** : LevelMin = 0 sur toutes les rows DT_Combo (pas 1).
-**Consequences** : Toute nouvelle row DT_Combo doit avoir LevelMin = 0 par defaut.
+**Decision** : LevelMin = 0 sur toutes les rows DT_Combo.
 
 ---
 
 ## Historique
 
 - Creation : 21/05/2026
-- 23/05/2026 : architecture IMC, dialogues mobiles, correction noms IA
-- 23/05/2026 : architecture ennemis sans WeaponClass
-- 23/05/2026 : decisions C1-RadialMagie actees (CastSpell direct, filtrage UnlockedSpells, SelectedIndex en dette)
-- 23/05/2026 : jalon C1-MagicProgressionDesign cree (design uniquement)
-- 23/05/2026 : stub test UnlockedSpells BeginPlay + dette C1-MagicUnlockSystem
-- 25/05/2026 : ERadialMode 3 valeurs (Weapons/Deity/Spell), SwitchCategory 3 branches
-- 25/05/2026 : bug bDefaultValueIsIgnored Make FSoM_DeitySpells -> fix Set Members in struct
-- 25/05/2026 : architecture finale UnlockDeity (TempDeitySpells simple + Set Members)
-- 25/05/2026 : ValidateRadial fonction dediee PC + condition CurrentCategory pour N1/N2
-- 25/05/2026 : C1-RadialMagie VALIDE PIE
-- 29/05/2026 : ComboManager = source verite arme courante, HC.ChoosenWeapon supprime
-- 29/05/2026 : DiscoveredWeapons -> BP_InventoryComponent (armes + consommables + craft + equip)
-- 29/05/2026 : Switch arme en combo = reset combo complet (punition, pas de grisage)
-- 29/05/2026 : TenaciteEtat heros base 25, impactee par Corruption + debuffs via SetStatValue
+- 23/05/2026 : architecture IMC, dialogues, correction noms IA, ennemis sans WeaponClass
+- 25/05/2026 : ERadialMode, SwitchCategory, bug Make FSoM_DeitySpells, ValidateRadial
+- 29/05/2026 : ComboManager source verite arme, DiscoveredWeapons -> InventoryComponent, TenaciteEtat 25
+- 03/06/2026 : SECTION PATTERNS ETABLIS ajoutee (constitution technique permanente)
+- 03/06/2026 : decisions SYS-SaveGame : BPI_Saveable, LockedDeities vs UnlockedSpells, HP/ST/MP non persistees

@@ -13,10 +13,10 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 02/06/2026 |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 03/06/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 02/06/2026 |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 02/06/2026 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 03/06/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 03/06/2026 |
 | Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 02/06/2026 |
 | Planning sessions | Docs/Planning_Sessions.md | A verifier |
 | Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 30/05/2026 |
@@ -28,6 +28,7 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Module / Systeme | Fichier | Statut |
 |---|---|---|
+| Decisions architecturales & Patterns | Decisions.md | Mis a jour 03/06/2026 |
 | Index inputs & controles | Input_Architecture.md | Mis a jour 21/05 |
 | Radial Menu | RadialMenu_Architecture.md | Mis a jour 21/05 |
 | Magic System | Magic_System.md | POC valide |
@@ -39,8 +40,7 @@ A mettre a jour a chaque creation ou modification de document.
 | Stats & Progression design | Stats_Progression.md | Mis a jour 29/05/2026 |
 | Effets statut & Corruption | Combat_StatusEffects.md | Mis a jour 29/05/2026 |
 | Economie & Drops | Economy_Drops.md | Design valide 28/05 |
-| Save System & Fontaine de Fee | SaveSystem.md | Design valide 31/05/2026 |
-| Decisions architecturales | Decisions.md | Mis a jour 29/05/2026 |
+| Save System & Fontaine de Fee | SaveSystem.md | VALIDE PIE 03/06/2026 |
 | Combat System | Combat_Architecture.md | Stable |
 | Damage & Collision | Damage_Collision_Architecture.md | Stable |
 | Lock-On | LockOn_Architecture.md | Stable |
@@ -54,20 +54,20 @@ A mettre a jour a chaque creation ou modification de document.
 | Ennemi weapon collision | Enemy_WeaponCollision_And_Damage.md | Stable |
 | Animation weapon | Animation_WeaponIntegration.md | Stable |
 | Gameplay de base | BasicGameplay_Architecture.md | Stable |
-| Audio | (a creer -- C1-SFXCombat) | Pas commence |
-| Quetes | (a creer -- C4-QuestSystem) | Pas commence |
-| Dialogue | (a creer -- C4-DialogueSystem) | Pas commence |
+| Audio | (a creer -- AUDIO-C1SFX) | Pas commence |
+| Quetes | (a creer -- NAR-QuestSystem C4) | Pas commence |
+| Dialogue | (a creer -- NAR-DialogueSystem C4) | Pas commence |
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique (02/06/2026)
+## Jalons Cycle 1 -- etat synthetique (03/06/2026)
 
-| Jalon | Statut | Mode |
+| Jalon | Statut | Notes C1 |
 |---|---|---|
 | J-LockOn, J-Camera, J-LockMove, J-TestBed, J-ComboFix | ✅ Complets | -- |
 | COMBAT-CollisionFix | ✅ VALIDE PIE | -- |
-| COMBAT-HitFeel | 🔧 Partiel | knockback+shake OK, gamepad+hitstop reportes C2 |
-| COMBAT-HitFlashEnemies | ❌ Abandonne (21/05/2026) | -- |
+| COMBAT-HitFeel | Partiel | knockback+shake OK, hitstop reporte C2 |
+| COMBAT-HitFlashEnemies | Abandonne (21/05/2026) | -- |
 | COMBAT-CleanupDettes | ✅ Complet (27/05/2026) | -- |
 | COMBAT-InputsUI | ✅ VALIDE PIE (23/05/2026) | -- |
 | MAGIC-RadialMagie | ✅ VALIDE PIE (25/05/2026) | -- |
@@ -85,14 +85,14 @@ A mettre a jour a chaque creation ou modification de document.
 | DESIGN-WeaponProgression | ✅ Design valide (30/05/2026) | -- |
 | DESIGN-SaveDesign | ✅ Design valide (31/05/2026) | -- |
 | COMBAT-SwordMoveset | ✅ VALIDE PIE (31/05/2026) | -- |
-| SYS-CorruptionSystem | ✅ VALIDE PIE (31/05/2026) | POC : calibrage +5/sort -> SESSION-Economie |
-| SYS-EssenceMana | ✅ VALIDE PIE (02/06/2026) | POC : drop au sol, respawn PlayerStart, drop indefini |
-| SYS-SaveGame | ⏳ A faire | POC : 1 fontaine, stats+Essence -- flags narratifs C3 |
-| MAGIC-TreeModule | ⏳ A faire | POC : effets placeholder/print -- vrais effets C2 |
-| ENEMY-Base | ⏳ A faire | POC : valeurs hardcodees -- calibrage C2 |
-| ENEMY-Boss1 | ⏳ A faire | POC : saut + magie placeholder -- patterns C2 |
-| MAP-C1Level | ⏳ A faire | POC : geometrie BSP/kit -- vraie zone C2 |
-| ANIM-Pass1 | ⏳ A faire | POC : roll fonctionnel -- montages finaux C2 |
+| SYS-CorruptionSystem | ✅ VALIDE PIE (31/05/2026) | calibrage +5/sort -> SESSION-Economie |
+| SYS-EssenceMana | ✅ VALIDE PIE (02/06/2026) | drop au sol C1, mob porteur C2 |
+| SYS-SaveGame | ✅ VALIDE PIE (03/06/2026) | BPI_Saveable, LastFountainTransform, overlap auto C1 |
+| MAGIC-TreeModule | A faire | effets placeholder/print C1 |
+| ENEMY-Base | A faire | valeurs hardcodees C1 |
+| ENEMY-Boss1 | A faire | saut + magie placeholder C1 |
+| MAP-C1Level | A faire | geometrie BSP/kit C1 |
+| ANIM-Pass1 | A faire | roll fonctionnel C1 |
 
 ---
 
@@ -101,15 +101,17 @@ A mettre a jour a chaque creation ou modification de document.
 - Tout ajout de doc = ajouter ici
 - Statut = reflete l'etat reel
 - Nommage coherent avec les conventions du projet
+- Decisions.md = a lire en debut de session pour respecter les patterns etablis
 
 ---
 
 ## Historique
 
 - Creation : 17/06/2025
-- MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes, nouveaux fichiers references
-- MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md, Lore mis a jour
-- MAJ 29/05/2026 : jalons C1 remis a jour (C1-WeaponArchitecture complet, tous DESIGN valides), ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md dans index, dates mises a jour
-- MAJ 30/05/2026 : ajout Weapons_Progression.md, DESIGN-WeaponProgression valide
-- MAJ 31/05/2026 : ajout SaveSystem.md, DESIGN-SaveDesign valide, C1-HUDCore complet, jalons mis a jour
-- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE, colonne Mode POC ajoutee sur tous les jalons C1, dates mises a jour
+- MAJ 21/05/2026 : resynchro complete, jalons C1 ajoutes
+- MAJ 26/05/2026 : ajout Magic_Progression.md, Planning_Sessions.md
+- MAJ 29/05/2026 : jalons C1 remis a jour, ajout Stats_Progression.md + Combat_StatusEffects.md + Economy_Drops.md + Decisions.md
+- MAJ 30/05/2026 : ajout Weapons_Progression.md
+- MAJ 31/05/2026 : ajout SaveSystem.md, DESIGN-SaveDesign valide, HUD-Core complet
+- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE
+- MAJ 03/06/2026 : SYS-SaveGame VALIDE PIE, SaveSystem.md mis a jour, Decisions.md enrichi (Patterns Etablis + BPI_Saveable)
