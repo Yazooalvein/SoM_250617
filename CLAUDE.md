@@ -91,6 +91,74 @@ Prefixes :
 | `Docs/Architecture/RadialMenu_Architecture.md` | Quand le radial evolue |
 | `Docs/Lore_ShadowOfMana.md` | Quand le lore ou le cast change |
 | `Docs/Project_Architecture_Index.md` | Quand un nouveau fichier doc est cree |
+| `Docs/Blueprints/INDEX.md` | Quand un snapshot BP est cree ou mis a jour |
+| `Docs/Blueprints/[BP].md` | Apres chaque jalon modifiant ce Blueprint |
+
+---
+
+## Blueprint Snapshot Layer -- PROTOCOLE PERMANENT
+
+### Pourquoi
+Claude n'a pas acces aux fichiers binaires Blueprint. Sans snapshots textuels, il travaille
+a l'aveugle et peut proposer une architecture incompatible avec l'existant.
+Ce layer garantit que Claude a toujours une vision exacte de l'etat reel du projet.
+
+### Structure
+```
+Docs/
+  Blueprints/
+    INDEX.md                     <- liste tous les BPs documentes + date snapshot
+    BP_AttributeSet_Base.md
+    BP_SoM_HeroCharacter.md
+    BP_SoM_PlayerController.md
+    BP_ComboManagerComponent.md
+    BP_MagicComponent.md
+    BP_InventoryComponent.md
+    BP_CorruptionComponent.md
+    BP_EssenceDrop.md
+    BP_SoM_GameMode.md
+    UI_HUD_Main.md
+    UI_Radial_Main.md
+    ... (ajoutes au fur et a mesure)
+  DataTables/
+    DT_StatList.md
+    DT_Weapons.md
+    DT_Combo_Sword.md
+    DT_Deities.md
+    DT_Spells.md
+  Structs/
+    StatStruct.md
+    FSoM_SpellData.md
+```
+
+### Format d'un fichier snapshot
+Chaque fichier `Docs/Blueprints/[BP].md` contient :
+-役 (role), Path UE5
+- Variables : Nom | Type | Categorie | Notes
+- Fonctions : Nom | Inputs | Outputs | Notes
+- Dependances : qui appelle ce BP, qui il appelle
+- Dettes actives liees a ce BP
+- Date et jalon du dernier snapshot
+
+### Quand mettre a jour
+- **Fin de chaque jalon** qui modifie un BP -> mettre a jour le fichier snapshot correspondant
+- **Pas a chaque commit** -- granularite = jalon
+- **Nouveau BP cree** -> creer son snapshot avant la fin de la session
+- **INDEX.md** -> mis a jour en meme temps que chaque snapshot
+
+### Qui fait quoi
+- **Agent UnrealClaude** : produit les donnees brutes (blueprint_query T3D)
+- **Claude.ai** : formate les snapshots en Markdown et committe
+- **Nico** : ne touche pas a ces fichiers manuellement
+
+### Regle de lecture en debut de jalon
+Avant de concevoir quoi que ce soit sur un BP, Claude lit son snapshot dans `Docs/Blueprints/`.
+Si le snapshot est absent ou date de plus d'un jalon, demander un audit agent avant de continuer.
+
+### Commit message pour les snapshots
+```
+doc: Blueprints/[BP].md - snapshot [NomJalon]
+```
 
 ---
 
@@ -182,6 +250,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - TenaciteEtat : base 25, variable Float dans AttributeSet, SetStatValue case 12, FClamp(0,100)
 - Essence de Mana (EssenceValue) : compteur absolu Int64, souls-like -- perdue a la mort, recuperable via BP_EssenceDrop
 - Voir Docs/Architecture/Stats_Progression.md
+- Voir Docs/Blueprints/BP_AttributeSet_Base.md pour le snapshot complet
 
 ### Corruption Magique -- VALIDE PIE (31/05/2026)
 - Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
@@ -270,6 +339,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - [x] SYS-CorruptionSystem VALIDE PIE (31/05/2026)
 - [x] SYS-EssenceMana VALIDE PIE (02/06/2026)
 - [x] SYS-SaveGame VALIDE PIE (03/06/2026)
+- [x] INFRA-BlueprintSnapshotLayer : protocole + INDEX + premier snapshot BP_AttributeSet_Base (04/06/2026)
 
 ## Dettes techniques
 
@@ -291,14 +361,19 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - **Destruction drop a la 2eme mort** -> C2 (C1 = drop indefini)
 - **SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData** -- doublon a nettoyer
 - **CollectFountainTransform prend index 0** -- filtrage par FountainID -> C2
+- **BP_AttributeSet_Base** : ErrorType=1 sur 8 SET nodes (GUIDs obsoletes) -> corriger dans SYS-StatSystem
+- **BP_AttributeSet_Base** : bug HealthMax guard FMin.B non connecte -> clamp vers 0 au lieu de HealthCurrent -> corriger dans SYS-StatSystem
+- **DT_StatList / StatStruct / EStatType / EElementType** : assets existants non branches sur BP_AttributeSet_Base -> connecter dans SYS-StatSystem
+- **BP_AttributeSet_Base** : variables natives non initialisees via DT_StatList -> SYS-StatSystem
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
-2. **ENEMY-Base** : stats sur BP_Enemy_Base
-3. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
-4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
-5. **ANIM-Pass1** : rename ABP, roll en lock-on
+1. **SYS-StatSystem** : refacto BP_AttributeSet_Base -- TMap + DT_StatList + GetStatValue + corriger ErrorType=1 + bug HealthMax
+2. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
+3. **ENEMY-Base** : stats sur BP_Enemy_Base (reutilise BP_AttributeSet_Base refactorise)
+4. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+5. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+6. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
@@ -374,6 +449,11 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Deite C1 = Lumina (sorts existants, effets placeholder/print en combat)
 - ENEMY-Boss1 C1 : gros mob, 1-2 patterns simples, pas d'anim avancee
 - Critere fin C1 : MAP-C1Level jouable de bout en bout (spawn -> mobs -> fontaine -> boss)
+- BP_AttributeSet_Base : ConsumeStamina et HandleStaminaRegen lisent les variables natives en GET direct (pas via GetStatValue) -- normal pour les fonctions internes du composant
+- BP_AttributeSet_Base : DT_StatList / StatStruct / EStatType / EElementType existent dans le projet mais ne sont PAS encore branches -- SYS-StatSystem
+- BP_AttributeSet_Base : ErrorType=1 sur HealthMax, StaminaMax, ManaMax, StaminaCostJump, StaminaRegenRate, StaminaRegenDelay, StaminaRegenInterval, StaminaCurrent (GUIDs obsoletes apres migration)
+- BP_AttributeSet_Base : bug HealthMax guard -- FMin node present mais pin B non connecte, clamp vers 0 au lieu de HealthCurrent
+- SYS-StatSystem : variables natives a conserver comme cache synchronise (lecteurs internes), TMap = source de verite, GetStatValue(Name)->double = nouveau lecteur externe
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
 - Pour effets statut/corruption : voir Docs/Architecture/Combat_StatusEffects.md
@@ -381,6 +461,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Pour decisions archi : voir Docs/Architecture/Decisions.md
 - Pour progression armes : voir Docs/Architecture/Weapons_Progression.md
 - Pour save system : voir Docs/Architecture/SaveSystem.md
+- Pour snapshots Blueprint : voir Docs/Blueprints/INDEX.md
 
 ---
 
@@ -389,7 +470,8 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Session claude.ai
 1. Nico dit : "on travaille sur SoM"
 2. Lire CLAUDE.md + Journal_Modifications.md
-3. Resume etat actuel + proposition suite
+3. Si la session touche un BP specifique : lire son snapshot dans Docs/Blueprints/
+4. Resume etat actuel + proposition suite
 
 ### Session UnrealClaude
 1. Tools -> Claude Assistant -> NOUVELLE session
@@ -398,4 +480,4 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 ---
 
-*Derniere mise a jour : 03/06/2026*
+*Derniere mise a jour : 04/06/2026*
