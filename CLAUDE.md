@@ -230,6 +230,16 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - HP/ST/MP non persistees -- restaurees a max au load via GetStatValue(Max)
 - Voir Docs/Architecture/SaveSystem.md
 
+### Fontaine de Fee -- DESIGN VALIDE (05/06/2026)
+- BP_FountainComponent : bIsActivated (Bool, default false)
+- 1ere interaction (bIsActivated=false) : animation activation + SET bIsActivated=true + regen HP/ST/MP + save spawn. PAS de menu, PAS de respawn ennemis.
+- Interactions suivantes (bIsActivated=true) : ouvre UI_FountainMenu (mini-menu)
+- UI_FountainMenu -- Se reposer : regen HP/ST/MP + save + respawn ennemis zone + PurgeCorruption + restock objets
+- UI_FountainMenu -- Menu Inventaire : quickslots + upgrade magie/deites + level up hero (depense Essence)
+- Essence = monnaie unique pour tout (level up + magie + purge Corruption) -> tension intentionnelle
+- Visuel C1 : changement couleur/materiau sur bIsActivated. Vision ART future : racines Mana poussant a l'activation (Fee), Fee se reposant dans la Fontaine lors des interactions. A elaborer en ART-Fontaine.
+- A IMPLEMENTER : UI-FountainMenu (C1) -- refacto BP_FountainComponent overlap -> interaction volontaire
+
 ### Flux mort / respawn -- VALIDE PIE (03/06/2026)
 - HC : bIsDead=true -> DisableInput -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
 - PC BeginPlay : Cast HC -> SET PlayerCharacterRef -> Bind OnPlayerDeath -> OnHeroDied
@@ -314,10 +324,18 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 Aucun -- prochain jalon a definir.
 
+## Prochains jalons C1 (dans l'ordre recommande)
+
+1. **ENEMY-DropSystem** : mort ennemi -> spawn Essence + chance objet
+2. **UI-FountainMenu** : refacto BP_FountainComponent + mini-menu deux interactions
+3. **ENEMY-Base** : stats sur BP_Enemy_Base
+4. **ENEMY-Boss1** : 1 boss, 1-2 patterns
+5. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+
 ## Dettes techniques
 
-- **Roll en lock-on** -> ANIM-Pass1 (C1)
-- **Rename ABP_Manny_Platforming -> ABP_Hero** -> ANIM-Pass1 (C1)
+- **Roll en lock-on** -> ANIM-Pass1 (C2)
+- **Rename ABP_Manny_Platforming -> ABP_Hero** -> ANIM-Pass1 (C2)
 - **WeaponClass hardcode BP_Enemy_Sword01** -> ENEMY-Types (C2)
 - **Retopo hero 246K -> 10-15K** -> ART-Hero
 - **Radial curseur position initiale a l'ouverture** -> UI-RadialRefacto (C2)
@@ -331,22 +349,9 @@ Aucun -- prochain jalon a definir.
 - **Mob porteur Essence** -> C2
 - **SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData** -- doublon a nettoyer
 - **CollectFountainTransform prend index 0** -- filtrage par FountainID -> C2
-- **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2)
-
-## Prochains jalons C1 (dans l'ordre recommande)
-
-1. **MAGIC-TreeModule** : arbre talents Lumina
-2. **ENEMY-Base** : stats sur BP_Enemy_Base
-3. **ENEMY-Boss1** : 1 boss, 1-2 patterns
-4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
-5. **ANIM-Pass1** : rename ABP, roll en lock-on
-
-## Sessions design a planifier
-
-- **SESSION-Noms** : tous les personnages
-- **SESSION-LoreDeites** : rituels par deite, cout Essence
-- **SESSION-ZonesA1** : structure zones, Fontaines
-- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge
+- **BP_FountainComponent trigger overlap -> interaction volontaire** -> UI-FountainMenu (C1)
+- **Cout Essence Se reposer en Fontaine** -> a calibrer SESSION-Economie
+- **MAGIC-TreeModule** -> reporte C2
 
 ---
 
@@ -385,6 +390,8 @@ Aucun -- prochain jalon a definir.
 - BPI_Saveable : GetComponentsByInterface + K2Node_Message = appel interface sans Cast explicite
 - LockedDeities sauvegarde (delta) / UnlockedSpells reconstruit depuis DT_Deities au load
 - Git : si conflit LFS -> git checkout origin/main -- Docs/ + commit + push --force-with-lease
+- Fontaine : bIsActivated=false -> 1ere interaction = regen/save SANS menu. bIsActivated=true -> mini-menu
+- Essence = monnaie unique (level up + upgrade magie + purge Corruption) -- tension intentionnelle
 
 ---
 
@@ -403,4 +410,4 @@ Aucun -- prochain jalon a definir.
 
 ---
 
-*Derniere mise a jour : 04/06/2026*
+*Derniere mise a jour : 05/06/2026*

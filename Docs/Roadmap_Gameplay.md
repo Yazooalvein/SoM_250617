@@ -31,7 +31,7 @@ C4 — Alpha Test
 
 ---
 
-## Modules existants (etat au 02/06/2026)
+## Modules existants (etat au 05/06/2026)
 
 | Module | Etat | Notes |
 |--------|------|-------|
@@ -67,7 +67,7 @@ C4 — Alpha Test
 | Economie & Drops | ✅ DESIGN VALIDE | Double monnaie, Seiken drops, Mana, equipement -- Economy_Drops.md |
 | Lore & Cast | ✅ DESIGN VALIDE enrichi | Structure actes, Armes Mana, Hub, Corruption heros -- Lore_ShadowOfMana.md |
 | Archi armes/combo/inventaire | ✅ VALIDE PIE | ComboManager source verite, InventoryComponent, EquipWeapon refacto -- 29/05/2026 |
-| Save System | ✅ DESIGN VALIDE | Fontaine de Fee, BP_SaveGame_SoM, Corruption/Essence/Fontaine -- SaveSystem.md |
+| Save System | ✅ VALIDE PIE | BPI_Saveable, BP_SaveGame_SoM, flux fontaine/respawn -- 03/06/2026 |
 
 ---
 
@@ -106,17 +106,19 @@ C4 — Alpha Test
 | COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 | -- |
 | SYS-CorruptionSystem | ✅ VALIDE PIE | 31/05/2026 | Calibrage +5/sort = POC, affinage SESSION-Economie |
 | SYS-EssenceMana | ✅ VALIDE PIE | 02/06/2026 | POC : drop au sol uniquement, respawn PlayerStart, drop indefini |
+| INFRA-BlueprintSnapshotLayer | ✅ COMPLET | 04/06/2026 | -- |
+| SYS-StatSystem | ✅ VALIDE PIE | 04/06/2026 | TMap stats, Option B GetStatValue, validation complete |
+| SYS-SaveGame | ✅ VALIDE PIE | 03/06/2026 | BPI_Saveable, BP_FountainComponent, flux save/load/respawn |
 
 ### Jalons restants C1
 
 | Jalon | Prefixe | Contenu | Mode POC C1 | Dependances |
 |---|---|---|---|---|
-| SYS-SaveGame | SYS | BP_SaveGame_SoM, BP_FountainComponent, flux save/load/respawn | POC : 1 fontaine fixe, stats + Essence sauvegardees, flags narratifs C3 | DESIGN-SaveDesign ✅, SYS-EssenceMana ✅ |
-| MAGIC-TreeModule | MAGIC | Arbre talents Lumina, deblocage sorts | POC : effets placeholder/print -- vrais effets C2 | MAGIC-UnlockSystem ✅ |
+| ENEMY-DropSystem | ENEMY | Mort ennemi -> spawn BP_EssenceDrop + chance objet simple. Table de drop basique sur BP_Enemy_Base. | POC : valeurs hardcodees, 1 type d'objet max -- calibrage C2 | SYS-EssenceMana ✅ |
+| UI-FountainMenu | UI | Refacto BP_FountainComponent : bIsActivated + interaction volontaire. 1ere activation : regen/save sans menu. Activations suivantes : mini-menu (Se reposer / Menu Inventaire). Se reposer = regen HP/ST/MP + save + respawn ennemis + PurgeCorruption + restock. Menu Inventaire = quickslots + upgrade magie/deites + level up hero (Essence). | POC : UI liste sommaire, pas d'icones -- polish C2 | SYS-SaveGame ✅, SYS-CorruptionSystem ✅ |
 | ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire | POC : valeurs hardcodees -- calibrage et types C2 | DESIGN-StatsProgression ✅ |
 | ENEMY-Boss1 | ENEMY | 1 boss, 1-2 patterns simples | POC : gros mob avec saut + magie placeholder -- patterns enrichis C2 | ENEMY-Base |
-| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | POC : geometrie BSP ou kit, assets placeholder -- vraie zone C2 | SYS-SaveGame, ENEMY-Boss1 |
-| ANIM-Pass1 | ANIM | Rename ABP, roll en lock-on | POC : roll fonctionnel -- montages finaux C2 | -- |
+| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | POC : geometrie BSP ou kit, assets placeholder -- vraie zone C2 | UI-FountainMenu, ENEMY-Boss1 |
 
 **Critere de completion C1 :** la MAP-C1Level est jouable de bout en bout -- spawn, combattre, mourir, respawn a la fontaine, tuer le boss. Tout en placeholder, tout fonctionnel.
 
@@ -128,6 +130,8 @@ C4 — Alpha Test
 
 | Jalon | Contenu |
 |---|---|
+| MAGIC-TreeModule | Arbre talents Lumina, deblocage sorts via noeuds. Effets placeholder en C1, vrais effets en C2. |
+| ANIM-Pass1 | Rename ABP_Manny_Platforming -> ABP_Hero. Roll fonctionnel en lock-on (LaunchCharacter + animation visuelle). |
 | COMBAT-BowPOC | Arc basique, 1 type de tir |
 | COMBAT-WeaponSwitching | Switch epee/arc via Radial en combat |
 | COMBAT-SFX | Sons placeholder combat |
@@ -141,6 +145,7 @@ C4 — Alpha Test
 | MAP-Zone1 | Premiere vraie zone (territoire Gnome ou village heros) |
 | MAGIC-Deities2-3 | Luna + Gnome deblocables, sorts placeholder |
 | UI-RadialRefacto | Refonte curseur Radial, position initiale correcte |
+| UI-FountainMenu-Polish | Polish UI mini-menu Fontaine : icones, navigation fluide, animations |
 | ART-Enemies | Meshes ennemis basiques |
 
 ---
@@ -186,6 +191,7 @@ C4 — Alpha Test
 | ART-Weapons | Assets armes Mana (Sword_01, 2HSword_01, Arc_01, Lance_01, Axe_01...) |
 | ART-MagicIcons | Icones deites (8 ecoles) + icones sorts |
 | ART-NPC | Pretresse, Suivante, Forgeron placeholders |
+| ART-Fontaine | Vision : racines arbre Mana poussant a l'activation (Fee), Fee se reposant dans la Fontaine lors des interactions. A elaborer quand pipeline ART confirme. |
 | MAP-Test/Hub/Start | Maps terrain UE5 |
 | MUS-1/2/3 | Themes musicaux (workflow Suno etabli) |
 | SESSION-Noms | Tous les personnages -- Soeur ET Fee ENSEMBLE ⚠️, ville hub |
@@ -221,10 +227,11 @@ C4 — Alpha Test
 | Calibrage PO/Essence/prix marchands | SESSION-Economie | ❌ Ouvert |
 | Calibrage couts purge Corruption (75-99% et 100%) | SESSION-Economie | ❌ Ouvert |
 | Calibrage montee Corruption par sort (+5 actuel) | SESSION-Economie | ❌ Ouvert |
-| Cout Essence purge Corruption | SYS-SaveGame (C1) | ❌ Ouvert |
+| Cout Essence Se reposer (purge Corruption) en Fontaine | UI-FountainMenu (C1) | ❌ Ouvert |
 | Compagnons : mecanique en combat + mort permanente ? | SESSION C3 | ❌ Ouvert |
 | Distribution future : Steam / itch.io / perso | C4 | ❌ Ouvert |
 | Touchpad PS5 : carte, journal, autre ? | C3/C4 | ⏳ Reserve C3/C4 |
+| Vision ART Fontaine definitive | ART-Fontaine | ⏳ En maturation |
 | Menu pause : pause complete ? | -- | ✅ Resolu : pause complete |
 | Corruption 75 : depuis derniere purge ? | Combat_StatusEffects | ✅ Resolu : depuis derniere purge |
 | Garcon Loup : deite ? | Lore_ShadowOfMana | ✅ Resolu : sans deite, recoit Ondine |
@@ -239,6 +246,11 @@ C4 — Alpha Test
 | Essence au sol vs mob porteur | DESIGN-SaveDesign | ✅ Resolu : environnement=sol C1, mob porteur C2, boss=sol |
 | PurgeCorruption semantique | SYS-CorruptionSystem | ✅ Resolu : remet a 0 (pas soustraction) -- CostAmount = futur cout Essence |
 | EssenceValue : perte mort + recuperation | SYS-EssenceMana | ✅ Resolu VALIDE PIE (02/06/2026) -- POC C1 |
+| MAGIC-TreeModule : perimetre C1 ? | -- | ✅ Resolu : reporte C2 -- Lumina 4 sorts suffit pour POC C1 |
+| ANIM-Pass1 : perimetre C1 ? | -- | ✅ Resolu : reporte C2 -- dette technique, pas bloquant pour POC |
+| Fontaine : trigger automatique ou interaction ? | UI-FountainMenu | ✅ Resolu : interaction volontaire, 1ere activation = regen/save sans menu |
+| Fontaine : menu accessible partout ou lieu dedie ? | UI-FountainMenu | ✅ Resolu : Fontaine uniquement (style DS) |
+| Essence : monnaie unique pour level/magie/purge ? | UI-FountainMenu | ✅ Resolu : oui, tension intentionnelle (style DS souls) |
 
 ---
 
@@ -253,3 +265,4 @@ C4 — Alpha Test
 - MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
 - MAJ 31/05/2026 : SYS-CorruptionSystem VALIDE PIE -- BP_CorruptionComponent, tracking deites, purge HUD operationnels
 - MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE -- BP_EssenceDrop, flux mort/respawn PC, mode POC C1 documente sur tous les jalons restants
+- MAJ 05/06/2026 : replanification C1 -- ENEMY-DropSystem et UI-FountainMenu ajoutes, MAGIC-TreeModule et ANIM-Pass1 reportes C2, spec Fontaine completee (deux interactions, mini-menu, Essence monnaie unique)

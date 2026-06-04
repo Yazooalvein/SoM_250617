@@ -15,7 +15,7 @@ Ces regles s'appliquent a TOUT nouveau systeme. Les lire avant de concevoir quoi
 **Regle** : Tout systeme ayant un etat a persister entre les sessions implemente BPI_Saveable.
 SaveData() ecrit dans BP_SaveGame_SoM. LoadData() reconstruit l'etat depuis les donnees sauvegardees.
 Le GameMode itere sur GetComponentsByInterface(BPI_Saveable) -- il ne connait pas les details.
-**Raison** : Decouплage total. Ajouter un nouveau systeme = implementer l'interface, zero modification du GameMode.
+**Raison** : Decouplage total. Ajouter un nouveau systeme = implementer l'interface, zero modification du GameMode.
 **Systemes actuels** : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
 **Systemes futurs** : BP_QuestComponent (C4), BP_ForgeComponent (C3), BP_CorruptionComponent si etat persistant
 **Ne pas faire** : Collecter les donnees directement dans GameMode.OnFountainRest par type concret.
@@ -45,6 +45,7 @@ BP_MagicComponent (sorts+deites), BP_CorruptionComponent (corruption), BP_Combat
 | Stats heros | AttributeSet |
 | Etat corruption | CorruptionComponent |
 | Save courante | GameMode.CurrentSaveGame |
+| Etat activation Fontaine | BP_FountainComponent.bIsActivated |
 **Ne pas faire** : Stocker CurrentWeaponID a la fois dans HC et dans ComboManager.
 
 ### [PERMANENT] Extensibilite par interface Blueprint
@@ -74,6 +75,59 @@ Sauvegarder uniquement ce qui ne peut pas etre recalcule : le delta, les flags, 
 Au load : reconstruction depuis DT_Deities via UnlockDeity() pour chaque deite non bloquee.
 **Raison** : Robuste aux modifications futures des DataTables. Pas de desync possible entre SaveGame et source de verite.
 **Ne pas faire** : Sauvegarder une Map complexe qui est une vue calculee depuis une DataTable.
+
+---
+
+## FONTAINE DE FEE -- DESIGN (05/06/2026)
+
+### [05/06/2026] Interaction Fontaine -- deux etats, un seul type d'interaction
+**Contexte** : Discussion design systeme Fontaine -- trigger automatique overlap vs interaction volontaire + menu.
+**Decision** :
+- Toute interaction avec la Fontaine est volontaire (touche/bouton dedie, pas overlap automatique).
+- bIsActivated=false (1ere fois) : animation activation + SET bIsActivated=true + regen HP/ST/MP + save spawn. Pas de menu, pas de respawn ennemis. Identique a l'allumage d'un feu de camp DS.
+- bIsActivated=true (fois suivantes) : ouvre UI_FountainMenu.
+**Raison** : Reproduire la tension DS -- la 1ere activation est gratuite, les suivantes ont un cout (respawn ennemis). Coherence avec l'identite du jeu.
+**Consequences** : Refacto BP_FountainComponent -- supprimer le trigger overlap actuel, ajouter logique interaction + bIsActivated. A faire dans UI-FountainMenu (C1).
+
+### [05/06/2026] UI_FountainMenu -- deux actions
+**Decision** :
+- **Se reposer** : regen HP/ST/MP + save + respawn ennemis zone + PurgeCorruption + restock objets.
+- **Menu Inventaire** : quickslots + upgrade magie/deites + level up hero (depense Essence).
+**Raison** : Separer l'action "dangereuse" (respawn + purge) du menu de gestion. Le joueur choisit consciemment.
+**Consequences** : UI draft en C1 (listes texte, pas d'icones). Polish en C2 (UI-FountainMenu-Polish).
+
+### [05/06/2026] Essence -- monnaie unique
+**Decision** : L'Essence est la monnaie unique pour tout : montee de niveau hero, upgrade magie/deites, purge Corruption.
+**Raison** : Tension intentionnelle -- chaque depense d'Essence exclut les autres (style DS souls). Simplicite economique en C1.
+**Point ouvert** : Calibrage des couts -> SESSION-Economie.
+
+### [05/06/2026] Acces au menu de gestion -- Fontaine uniquement
+**Decision** : Le menu inventaire/magie/level n'est accessible qu'aux Fontaines. Pas de menu pause global pour ces fonctions.
+**Raison** : Coherent avec l'identite DS. Les Fontaines ont un role fort (repos, gestion, progression). Cree de la tension en combat (pas de gestion a la volee).
+
+### [05/06/2026] Vision ART Fontaine -- note de maturation
+**Idee** : Racines de l'arbre Mana poussant a l'activation (animees par la Fee). Fee se reposant dans la Fontaine lors des interactions.
+**Statut** : En maturation. Pas de pipeline ART confirme. Session ART-Fontaine a planifier quand Nico est pret.
+**C1** : Changement couleur/materiau sur bIsActivated suffit.
+
+---
+
+## REPLANIFICATION C1 (05/06/2026)
+
+### [05/06/2026] MAGIC-TreeModule -- reporte C2
+**Decision** : MAGIC-TreeModule sort du scope C1 et passe en C2.
+**Raison** : Lumina avec ses 4 sorts de base suffit pour valider le POC C1. L'arbre de talents est du contenu, pas une mecanique bloquante pour la boucle de jeu C1.
+**Consequences** : C1 se concentre sur la boucle core (combat + drops + fontaine + boss).
+
+### [05/06/2026] ANIM-Pass1 -- reporte C2
+**Decision** : ANIM-Pass1 (rename ABP + roll en lock-on) sort du scope C1 et passe en C2.
+**Raison** : Dette technique et amelioration, pas bloquant pour le POC C1. Le roll hors lock-on fonctionne. ABP_Manny_Platforming est fonctionnel meme mal nomme.
+**Consequences** : Dettes associees maintenues dans la liste dettes C2.
+
+### [05/06/2026] ENEMY-DropSystem -- ajoute en C1
+**Decision** : Nouveau jalon C1 -- mort ennemi spawn BP_EssenceDrop + chance objet simple.
+**Raison** : Sans drop ennemi, tuer un ennemi n'a pas de retour tangible. Indispensable pour que MAP-C1Level soit satisfaisante a jouer.
+**Architecture** : BP_Enemy_Base.OnDeath -> SpawnActor(BP_EssenceDrop) avec EssenceValue configurable. Table de drop simple (1 type d'objet max en C1). Calibrage valeurs en C2.
 
 ---
 
@@ -166,13 +220,13 @@ Au load (apres mort), elles sont restaurees a leur valeur Max via SetStatValue.
 **Decision** : SwitchCooldown dans BP_CombatLockOnComponent = source de verite unique.
 **Consequences** : Ne jamais creer LockOnSwitchCooldown dans le PC.
 
-### [15/05/2026] Strafe -- animations placeholder jusqu'a C1-AnimationsPass1
+### [15/05/2026] Strafe -- animations placeholder jusqu'a C2-ANIM-Pass1
 
 ---
 
 ## CAMERA & MOUVEMENT
 
-### [18/05/2026] Roll en lock-on -- REPORTE ANIM-Pass1
+### [18/05/2026] Roll en lock-on -- REPORTE ANIM-Pass1 (C2)
 **Cause racine** : Root Motion World Space + UseControllerRotationYaw=true annule SetActorRotation.
 **Solution prevue** : LaunchCharacter direction stick+camera + animation visuelle sans Root Motion.
 
@@ -265,3 +319,5 @@ Condition N1/N2 sur CurrentCategory (ERadialMode), pas CurrentMagicSchool.
 - 29/05/2026 : ComboManager source verite arme, DiscoveredWeapons -> InventoryComponent, TenaciteEtat 25
 - 03/06/2026 : SECTION PATTERNS ETABLIS ajoutee (constitution technique permanente)
 - 03/06/2026 : decisions SYS-SaveGame : BPI_Saveable, LockedDeities vs UnlockedSpells, HP/ST/MP non persistees
+- 05/06/2026 : section FONTAINE DE FEE -- design deux interactions, UI_FountainMenu, Essence monnaie unique, vision ART
+- 05/06/2026 : section REPLANIFICATION C1 -- MAGIC-TreeModule et ANIM-Pass1 reportes C2, ENEMY-DropSystem et UI-FountainMenu ajoutes C1

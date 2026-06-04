@@ -5,6 +5,37 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 05/06/2026 -- DESIGN-ReplanificationC1 -- session design
+
+#### Replanification jalons C1
+- MAGIC-TreeModule reporte C2 : Lumina 4 sorts suffit pour POC C1, arbre talents = contenu pas mecanique bloquante
+- ANIM-Pass1 reporte C2 : dette technique, ABP_Manny_Platforming fonctionnel meme mal nomme
+- ENEMY-DropSystem ajoute C1 : mort ennemi -> spawn BP_EssenceDrop + chance objet -- retour tangible indispensable
+- UI-FountainMenu ajoute C1 : refacto BP_FountainComponent + mini-menu deux interactions
+
+#### Design Fontaine de Fee -- VALIDE
+- Interaction volontaire (pas overlap automatique) -- refacto BP_FountainComponent a prevoir
+- bIsActivated=false (1ere fois) : animation + regen HP/ST/MP + save spawn -- pas de menu, pas de respawn
+- bIsActivated=true (suivantes) : ouvre UI_FountainMenu
+- UI_FountainMenu.Se reposer : regen + save + respawn ennemis zone + PurgeCorruption + restock objets
+- UI_FountainMenu.Menu Inventaire : quickslots + upgrade magie/deites + level up hero (Essence)
+- Essence = monnaie unique (level + magie + purge) -- tension intentionnelle style DS
+- Acces menu gestion : Fontaine uniquement (pas de menu pause global pour ces fonctions)
+- Visuel C1 : changement couleur/materiau sur bIsActivated
+- Vision ART future : racines arbre Mana poussant a l'activation (Fee), Fee se reposant dans la Fontaine -- note en maturation, session ART-Fontaine a planifier
+
+#### Nouvel ordre jalons C1 restants
+1. ENEMY-DropSystem
+2. UI-FountainMenu (+ refacto BP_FountainComponent)
+3. ENEMY-Base
+4. ENEMY-Boss1
+5. MAP-C1Level
+
+#### Etat final
+Session design pure. Aucun Blueprint modifie. Roadmap, CLAUDE.md et Decisions.md mis a jour.
+
+---
+
 ### 04/06/2026 -- SYS-StatSystem -- VALIDE PIE
 
 #### SYS-StatSystem CLOS -- validation PIE complete
@@ -146,4 +177,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 04/06/2026
+- Derniere mise a jour : 05/06/2026
