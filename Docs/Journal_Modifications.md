@@ -5,42 +5,59 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
-### 04/06/2026 -- SYS-StatSystem -- EN COURS (WIP)
+### 04/06/2026 -- SYS-StatSystem (session 2) -- HUD VALIDE PIE
+
+#### HUD HP/ST/MP/Essence -- VALIDE PIE
+- Migration Option B complete : tous les lecteurs de stats passent par GetStatValue, plus aucun GET variable native dans les BPs consommateurs
+- UI_HUD_Main : RefreshAllStats creee, HUD_OnStatChanged simplifie (switch supprime), InitHUD reçoit AttributeSetRef en input pin et SET HUD.AttributeSetRef avant RefreshAllStats
+- UpdateStatText : 6 GET natifs remplaces par GetStatValue (HealthCurrent, HealthMax, StaminaCurrent, StaminaMax, ManaCurrent, ManaMax)
+- BP_MagicComponent.ConsumeMana : GET ManaCurrent natif -> GetStatValue("ManaCurrent")
+- BP_SoM_PlayerController.OnHeroDied : GET HealthMax/StaminaMax/ManaMax natifs -> GetStatValue
+- BP_SoM_GameMode.WriteSaveAndApplyFountainEffects : GET HealthMax/ManaMax natifs -> GetStatValue
+- BP_Spell_Heal.ApplyEffect : GET HealthCurrent/HealthMax natifs -> GetStatValue
+
+#### Bug critique resolu : HealthMax = 0 apres InitAttributesFromDatatable
+- Cause : guard HealthMax dans SetStatValue contenait FMin(Value, GetStatValue("HealthCurrent")) -- HealthCurrent absent de la Map au moment du ForEach -> GetStatValue retourne 0 -> FMin(100, 0) = 0 -> HealthMax SET a 0
+- Fix : suppression du FMin dans le guard HealthMax -- Value connecte directement au SET HealthMax natif sans borne
+- Lecon : variables natives Max (HealthMax, StaminaMax, ManaMax) sont les seules a conserver dans BP_AttributeSet_Base -- les Current viennent uniquement de la Map
+
+#### Bug diagnostique : AttributeSetRef null dans UI_HUD_Main
+- Cause : InitHUD appelait RefreshAllStats sans avoir SET HUD.AttributeSetRef au prealable
+- Fix : ajout input pin AttributeSetRef sur InitHUD + SET en premier noeud avant RefreshAllStats
+- Gotcha : le SET doit etre fait dans InitHUD, pas dans le CreateWidget -- le pin Expose ne suffit pas
+
+#### Reste a faire (prochaine session)
+- Migrer ConsumeStamina / HandleStaminaRegen / StartStaminaRegen -> GetStatValue
+- BP_CorruptionComponent : supprimer pre-clamp redondant (0,100) dans TrackDeityUsage
+- Snapshots BP_AttributeSet_Base.md + UI_HUD_Main.md mis a jour
+
+#### Notes techniques
+- Variables natives a conserver dans BP_AttributeSet_Base : HealthMax, StaminaMax, ManaMax uniquement -- les Current vivent uniquement dans StatValues (TMap)
+- Guard HealthMax dans SetStatValue : Value -> SET HealthMax natif directement, sans FMin ni GetStatValue
+- InitHUD doit recevoir AttributeSetRef en parametre et le SET avant tout appel a RefreshAllStats
+- Stamina/Mana s'affichaient malgre AttributeSetRef null car OnStatChanged du tick staminaregen creait les entrees Map apres coup -- HealthCurrent n'a pas ce mecanisme
+- Option B = migration GetStatValue partout : pas de SET variables natives dans Default path de SetStatValue
+
+---
+
+### 04/06/2026 -- SYS-StatSystem (session 1) -- EN COURS
 
 #### Decisions architecture
 - Option B retenue : refacto complet BP_AttributeSet_Base -- TMap<Name, Float> x3 + GetStatValue + SetStatValue guards
 - StatMinValues + StatMaxValues : deux Maps supplementaires peuplees par InitStats, lues par SetStatValue Default
 - InitStats(StatDataTable : DataTable) : parametre passe par HC, pas stocke dans AttributeSet
 - SetStatValue Default : pas de Switch residuel -- FClamp via StatMinValues/StatMaxValues
-- ConsumeStamina / HandleStaminaRegen / StartStaminaRegen : migrer vers GetStatValue (prochaine session)
 - Variables natives conservees comme cache synchronise pour lecteurs UI externes (dette C2)
 - BP_CorruptionComponent : OwnerAttributeSet supprimee, variables locales dans chaque fonction
 
-#### Realise cette session
+#### Realise
 - DT_StatList : 3 rows ajoutees (EssenceValue, Corruption, TenaciteEtat)
 - BP_CorruptionComponent : OwnerAttributeSet supprimee -> variables locales dans InitCorruption, TrackDeityUsage, PurgeCorruption
 - BP_AttributeSet_Base : variables StatValues, StatMinValues, StatMaxValues (TMap<Name, Float>) ajoutees
-- BP_AttributeSet_Base : InitStats() complete -- GetDataTableRowNames -> ForEach -> GetDataTableRow -> BreakStruct -> Map_Add x3
-- BP_AttributeSet_Base : GetStatValue(Name)->double complete (Pure) -- Map_Find -> Branch(Found) -> Return / DebugPrint
-- BP_AttributeSet_Base : SetStatValue -- 3 guards complets (EssenceValue, Corruption, HealthMax) + Default (MinValues/MaxValues/FClamp)
-- Bug HealthMax fixe : FMin.B = GET HealthCurrent (etait non connecte -> clamp vers 0)
-
-#### Reste a faire (prochaine session)
-- Brancher CallDelegate OnStatChanged sur les 6 Map_Add.then de SetStatValue
-- Migrer ConsumeStamina vers GetStatValue("StaminaCurrent") / GetStatValue("StaminaMax")
-- Migrer HandleStaminaRegen vers GetStatValue (StaminaCurrent, StaminaMax, StaminaRegenRate, StaminaRegenInterval)
-- Migrer StartStaminaRegen vers GetStatValue (StaminaCurrent, StaminaMax)
-- Adapter HC.InitAttributesFromDatatable : Construct BP_AttributeSet_Base -> InitStats(StatsDataTable) -> SetStatValue Current=Max
-- BP_SoM_GameMode : ajouter SetStatValue("StaminaCurrent", StaminaMax) dans WriteSaveAndApplyFountainEffects
-- BP_CorruptionComponent : supprimer pre-clamp redondant (0,100) dans TrackDeityUsage
-- Validation PIE complete
-- Mettre a jour snapshot Docs/Blueprints/BP_AttributeSet_Base.md post-jalon
-
-#### Notes techniques
-- search_nodes UnrealClaude : utiliser "Set Stat Value" avec espaces (pas "SetStatValue")
-- Variables locales MinValue/MaxValue dans SetStatValue pour stocker resultats Map_Find
-- FClamp Default path no-max : pin Max = 340282299999999994960115009090224128000 (MAX_FLT accepte par UE5)
-- Git : push doc avant push BP -> conflit LFS -> resolution : git checkout origin/main -- Docs/ + commit + push --force-with-lease
+- BP_AttributeSet_Base : InitStats() complete
+- BP_AttributeSet_Base : GetStatValue(Name)->double complete (Pure)
+- BP_AttributeSet_Base : SetStatValue -- 3 guards (EssenceValue, Corruption, HealthMax) + Default
+- SetStatValue : 6 CallDelegate OnStatChanged branches sur Map_Add.then
 
 ---
 
@@ -67,17 +84,11 @@ Suivi precis de toutes les evolutions majeures du projet.
 #### BP_Fountain_Actor -- fix overlap
 - ActorBeginOverlap -> GetComponentByClass(BP_FountainComponent, Target=self) -> OnPlayerInteract
 - Bug resolu : Target du GetComponentByClass branche sur HC au lieu de self -> Accessed None -- fix : Target = self (la Fontaine)
-- Cast to BP_FountainComponent superflu -- GetComponentByClass retourne deja le bon type
 
 #### BP_SoM_PlayerController -- OnHeroDied -- respawn Fontaine
 - Apres SET bIsDead=false : GetGameMode -> Cast GameMode -> GET CurrentSaveGame -> IsValid
   - TRUE : GetComponentsByInterface(BPI_Saveable) -> ForEachLoop LoadData -> SetActorLocation(LastFountainTransform.Location) -> fade -> EnableInput
   - FALSE (premiere mort) : PlayerStart -> TeleportTo -> fade -> EnableInput
-- Dette resolue : Respawn PlayerStart hardcode remplace par LastFountainTransform
-
-#### Dettes ajoutees
-- SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData -- doublon a nettoyer (non bloquant)
-- CollectFountainTransform prend index 0 -- filtrage par FountainID -> C2
 
 #### Etat final
 SYS-SaveGame VALIDE PIE. Overlap Fontaine -> save + restauration HP/ST/MP/Corruption. Mort -> drop Essence -> respawn Fontaine (LastFountainTransform). Premiere mort sans save -> respawn PlayerStart.

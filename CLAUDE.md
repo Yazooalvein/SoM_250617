@@ -237,17 +237,19 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Flux mort / respawn -- VALIDE PIE (03/06/2026)
 - HC : bIsDead=true -> DisableInput -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
 - PC BeginPlay : Cast HC -> SET PlayerCharacterRef -> Bind OnPlayerDeath -> OnHeroDied
-- OnHeroDied : SpawnActor(BP_EssenceDrop) -> SET EssenceValue -> SetStatValue(EssenceValue, 0) -> CameraFade(noir) -> Delay(1.5s) -> Reset HP/ST/MP -> SET bIsDead=false -> IsValid(SaveGame) ? Fontaine : PlayerStart -> CameraFade(retour) -> EnableInput
+- OnHeroDied : SpawnActor(BP_EssenceDrop) -> SET EssenceValue -> SetStatValue(EssenceValue, 0) -> CameraFade(noir) -> Delay(1.5s) -> Reset HP/ST/MP via GetStatValue(Max) -> SET bIsDead=false -> IsValid(SaveGame) ? Fontaine : PlayerStart -> CameraFade(retour) -> EnableInput
 
-### Stats heros -- SYS-StatSystem EN COURS (04/06/2026)
+### Stats heros -- SYS-StatSystem PARTIELLEMENT VALIDE PIE (04/06/2026)
 - BP_AttributeSet_Base : TMap<Name, Float> StatValues + StatMinValues + StatMaxValues
-- InitStats(StatDataTable : DataTable) : peuple les 3 Maps depuis DT_StatList
+- Variables natives conservees : HealthMax, StaminaMax, ManaMax UNIQUEMENT -- les Current vivent dans StatValues uniquement
 - GetStatValue(Name) -> double (Pure) : Map_Find + debug si absent
-- SetStatValue : 3 guards (EssenceValue, Corruption, HealthMax) + Default (FClamp via Maps)
-- Variables natives conservees comme cache synchronise (lecteurs UI) -- dette C2
-- ConsumeStamina/HandleStaminaRegen/StartStaminaRegen : migration vers GetStatValue = prochaine session
-- DT_StatList : 14 rows (11 originales + EssenceValue + Corruption + TenaciteEtat)
-- Voir Docs/Blueprints/BP_AttributeSet_Base.md (snapshot a mettre a jour fin SYS-StatSystem)
+- SetStatValue : 3 guards (EssenceValue, Corruption, HealthMax) + Default (FClamp via Maps) + 6 CallDelegate OnStatChanged
+- Guard HealthMax : Value -> SET HealthMax natif DIRECTEMENT, sans FMin ni GetStatValue(HealthCurrent)
+- UI_HUD_Main : RefreshAllStats + InitHUD(AttributeSetRef) -> tout passe par GetStatValue, plus aucun GET natif
+- Consommateurs migres vers GetStatValue : BP_MagicComponent.ConsumeMana, BP_SoM_PlayerController.OnHeroDied, BP_SoM_GameMode.WriteSaveAndApplyFountainEffects, BP_Spell_Heal.ApplyEffect
+- HUD HP/ST/MP/Essence VALIDE PIE
+- Reste : migrer ConsumeStamina/HandleStaminaRegen/StartStaminaRegen + snapshots BPs
+- Voir Docs/Blueprints/BP_AttributeSet_Base.md
 - Voir Docs/Architecture/Stats_Progression.md
 
 ### Corruption Magique -- VALIDE PIE (31/05/2026)
@@ -279,10 +281,13 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
 - Deite C1 : Lumina
 
-### UI / HUD -- VALIDE (02/06/2026)
-- UI_HUD_Main : event-driven, finalise
-- Get_CorruptionBar_Percent doit etre marquee Pure
-- UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString
+### UI / HUD -- VALIDE PIE (04/06/2026)
+- UI_HUD_Main : event-driven, HP/ST/MP/Essence/Corruption VALIDE PIE
+- RefreshAllStats : recalcule tous les pourcentages via GetStatValue
+- InitHUD(AttributeSetRef) : SET HUD.AttributeSetRef -> RefreshAllStats -> UpdateStatText
+- UpdateStatText : GetStatValue pour les 6 stats texte (Current/Max x3)
+- CorruptionPercent : GetStatValue("Corruption") / 100 (Progress Bar attend 0..1)
+- EssenceValue : GetStatValue -> Conv_DoubleToString
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -315,14 +320,13 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
   - [x] StatValues + StatMinValues + StatMaxValues ajoutees
   - [x] InitStats() complete
   - [x] GetStatValue() complete (Pure)
-  - [x] SetStatValue : guards EssenceValue + Corruption + HealthMax + Default
-  - [ ] SetStatValue : brancher CallDelegate OnStatChanged sur 6 Map_Add.then
+  - [x] SetStatValue : guards EssenceValue + Corruption + HealthMax + Default + 6 CallDelegate
+  - [x] HUD HP/ST/MP/Essence VALIDE PIE -- migration Option B complete
+  - [x] Bug HealthMax = 0 resolu (guard FMin supprime)
   - [ ] Migrer ConsumeStamina / HandleStaminaRegen / StartStaminaRegen -> GetStatValue
-  - [ ] Adapter HC.InitAttributesFromDatatable
-  - [ ] BP_SoM_GameMode : SetStatValue StaminaCurrent dans WriteSaveAndApplyFountainEffects
   - [ ] BP_CorruptionComponent : supprimer pre-clamp TrackDeityUsage
-  - [ ] Validation PIE
-  - [ ] Snapshot BP_AttributeSet_Base.md mis a jour
+  - [ ] Snapshots BP_AttributeSet_Base.md + UI_HUD_Main.md mis a jour
+  - [ ] Validation PIE complete (magie + fontaine + mort)
 
 ## Dettes techniques
 
@@ -341,12 +345,13 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - **Mob porteur Essence** -> C2
 - **SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData** -- doublon a nettoyer
 - **CollectFountainTransform prend index 0** -- filtrage par FountainID -> C2
-- **BP_AttributeSet_Base variables natives** : lecteurs UI_HUD_Main via variables natives -> migrer vers GetStatValue (C2)
+- **BP_AttributeSet_Base variables natives** : StaminaMax + ManaMax a conserver, HealthCurrent/StaminaCurrent/ManaCurrent SUPPRIMEES des natives (vivent dans StatValues uniquement) -> nettoyage fin SYS-StatSystem
 - **BP_CorruptionComponent TrackDeityUsage** : pre-clamp redondant (0,100) a supprimer (SYS-StatSystem)
+- **ConsumeStamina / HandleStaminaRegen / StartStaminaRegen** : migration vers GetStatValue -> SYS-StatSystem
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **SYS-StatSystem** : TERMINER (prochaine session) -- CallDelegate + migration ConsumeStamina + HC.InitAttributesFromDatatable + PIE
+1. **SYS-StatSystem** : TERMINER -- ConsumeStamina migration + pre-clamp + snapshots BPs
 2. **MAGIC-TreeModule** : arbre talents Lumina
 3. **ENEMY-Base** : stats sur BP_Enemy_Base
 4. **ENEMY-Boss1** : 1 boss, 1-2 patterns
@@ -366,6 +371,10 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 - SetStatValue = unique point de modification stats
 - GetStatValue(Name) -> double (Pure) = lecteur universel depuis SYS-StatSystem
+- Variables natives BP_AttributeSet_Base : HealthMax, StaminaMax, ManaMax UNIQUEMENT -- HealthCurrent/StaminaCurrent/ManaCurrent vivent UNIQUEMENT dans StatValues (TMap)
+- Guard HealthMax dans SetStatValue : Value -> SET HealthMax natif DIRECTEMENT, sans FMin ni GetStatValue(HealthCurrent) -- sinon HealthMax = 0 si HealthCurrent absent de la Map
+- InitHUD doit recevoir AttributeSetRef en parametre et SET HUD.AttributeSetRef avant RefreshAllStats
+- Option B = tous les lecteurs de stats passent par GetStatValue -- aucun GET variable native hors BP_AttributeSet_Base
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
 - SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT
 - T3D export = meilleur outil d'audit Blueprint
@@ -386,8 +395,6 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - BP_CorruptionComponent : NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner->Cast
 - BP_EssenceDrop : StaticMesh doit etre NoCollision sinon bloque overlaps SphereComponent
 - BP_EssenceDrop : bCanBePickedUp obligatoire (Delay 1.5s)
-- HUD_OnStatChanged Switch : 8 cases
-- UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString
 - BP_FountainComponent : GetComponentByClass Target = self (la Fontaine, pas le HC)
 - BPI_Saveable : GetComponentsByInterface + K2Node_Message = appel interface sans Cast explicite
 - LockedDeities sauvegarde (delta) / UnlockedSpells reconstruit depuis DT_Deities au load
