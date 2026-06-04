@@ -133,7 +133,7 @@ Docs/
 
 ### Format d'un fichier snapshot
 Chaque fichier `Docs/Blueprints/[BP].md` contient :
--役 (role), Path UE5
+- Role, Path UE5
 - Variables : Nom | Type | Categorie | Notes
 - Fonctions : Nom | Inputs | Outputs | Notes
 - Dependances : qui appelle ce BP, qui il appelle
@@ -208,14 +208,15 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Valeurs par defaut renseignees en Details panel instance HC (dette -> BeginPlay a terme)
 - Radial lit GetWeapons() pour peupler les slots armes
 
-### BP_CorruptionComponent -- VALIDE PIE (31/05/2026)
+### BP_CorruptionComponent -- VALIDE PIE (31/05/2026) -- MIS A JOUR SYS-StatSystem
 - Variables : DeityUsageMap (TMap<Name, int32>)
 - Fonctions : InitCorruption, TrackDeityUsage(DeityName), GetWeakDeity()->Name, PurgeCorruption(CostAmount)
 - TrackDeityUsage : incremente DeityUsageMap + Corruption +5.0 par sort (valeur C1, a calibrer)
 - PurgeCorruption : remet Corruption a 0 + Map_Clear(DeityUsageMap) -- CostAmount reserve pour futur cout Essence
 - GetWeakDeity : retourne la deite la plus utilisee depuis la derniere purge
 - Branche dans IncrementSpellUsage (BP_MagicComponent) -> TrackDeityUsage(DeityID)
-- Gotcha : ne pas stocker AttributeSetRef en variable -- recup dynamiquement via GetOwner/Cast a chaque appel (ordre BeginPlay non garanti)
+- GOTCHA : OwnerAttributeSet SUPPRIMEE -- variables locales AttributeSet dans chaque fonction (InitCorruption, TrackDeityUsage, PurgeCorruption)
+- Pre-clamp redondant (0,100) dans TrackDeityUsage A SUPPRIMER (prochaine session)
 
 ### BP_EssenceDrop -- VALIDE PIE (02/06/2026)
 - Cree dans Content/Systems/Essence/
@@ -228,15 +229,9 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 ### Save System -- VALIDE PIE (03/06/2026)
 - BPI_Saveable : interface SaveData(SaveGame) + LoadData(SaveGame) -- Content/Systems/Save/
-- BP_SaveGame_SoM : conteneur pur, extends SaveGame -- variables : LastFountainID, LastFountainTransform, EssenceValue, HeroLevel, DiscoveredWeapons, CurrentWeaponID/Level, LockedDeities, SpellUsageCounters, ActivatedFountains, CompletedNarrativeFlags, DroppedEssenceAmount/Location
+- BP_SaveGame_SoM : conteneur pur, extends SaveGame
 - BPI_Saveable sur : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
 - HP/ST/MP non persistees -- restaurees a max au load
-- LockedDeities sauvegarde (pas UnlockedSpells) -- reconstruction depuis DT_Deities via UnlockDeity() au load
-- BP_FountainComponent : FountainID (Name, editable), bIsActivated, OnPlayerInteract() -> GameMode.OnFountainRest(FountainID)
-- BP_Fountain_Actor : ActorBeginOverlap -> GetComponentByClass(BP_FountainComponent, self) -> OnPlayerInteract
-- GameMode.OnFountainRest : CollectSaveData + CollectFountainTransform + WriteSaveAndApplyFountainEffects
-- Respawn : IsValid(CurrentSaveGame) ? SetActorLocation(LastFountainTransform) : TeleportTo(PlayerStart)
-- Convention FountainID : Fountain_[Acte]_[Zone]_[Index]
 - Voir Docs/Architecture/SaveSystem.md
 
 ### Flux mort / respawn -- VALIDE PIE (03/06/2026)
@@ -244,36 +239,26 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - PC BeginPlay : Cast HC -> SET PlayerCharacterRef -> Bind OnPlayerDeath -> OnHeroDied
 - OnHeroDied : SpawnActor(BP_EssenceDrop) -> SET EssenceValue -> SetStatValue(EssenceValue, 0) -> CameraFade(noir) -> Delay(1.5s) -> Reset HP/ST/MP -> SET bIsDead=false -> IsValid(SaveGame) ? Fontaine : PlayerStart -> CameraFade(retour) -> EnableInput
 
-### Stats heros -- DESIGN VALIDE (28/05/2026)
-- 7 stats : Vitalite, Attaque, Defense, Magie, Resistance, Endurance, Vitesse
-- Cles supplementaires BP_AttributeSet_Base : Level, EssenceValue, PiecesOr, ChanceCritique, Corruption, ManaMax, ManaCurrent, TenaciteEtat
-- TenaciteEtat : base 25, variable Float dans AttributeSet, SetStatValue case 12, FClamp(0,100)
-- Essence de Mana (EssenceValue) : compteur absolu Int64, souls-like -- perdue a la mort, recuperable via BP_EssenceDrop
+### Stats heros -- SYS-StatSystem EN COURS (04/06/2026)
+- BP_AttributeSet_Base : TMap<Name, Float> StatValues + StatMinValues + StatMaxValues
+- InitStats(StatDataTable : DataTable) : peuple les 3 Maps depuis DT_StatList
+- GetStatValue(Name) -> double (Pure) : Map_Find + debug si absent
+- SetStatValue : 3 guards (EssenceValue, Corruption, HealthMax) + Default (FClamp via Maps)
+- Variables natives conservees comme cache synchronise (lecteurs UI) -- dette C2
+- ConsumeStamina/HandleStaminaRegen/StartStaminaRegen : migration vers GetStatValue = prochaine session
+- DT_StatList : 14 rows (11 originales + EssenceValue + Corruption + TenaciteEtat)
+- Voir Docs/Blueprints/BP_AttributeSet_Base.md (snapshot a mettre a jour fin SYS-StatSystem)
 - Voir Docs/Architecture/Stats_Progression.md
-- Voir Docs/Blueprints/BP_AttributeSet_Base.md pour le snapshot complet
 
 ### Corruption Magique -- VALIDE PIE (31/05/2026)
 - Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
 - Logique metier dans BP_CorruptionComponent
-- Corruption monte +5.0 par sort (calibrage C1)
 - Voir Docs/Architecture/Combat_StatusEffects.md
-
-### Economie & Drops -- DESIGN VALIDE (28/05/2026)
-- Double monnaie, consommables Seiken, forge narrative, Mana sans regen
-- Voir Docs/Architecture/Economy_Drops.md
-
-### Progression Armes -- DESIGN VALIDE (30/05/2026)
-- Voir Docs/Architecture/Weapons_Progression.md
-
-### Lore & Cast -- DESIGN VALIDE enrichi (29/05/2026)
-- Voir Docs/Lore_ShadowOfMana.md pour le detail complet
-- Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE
-- Structure 4 actes, Armes Mana, Hub reconstruction, Sanctuaire d'Ombre
 
 ### Hero 3D
 - ABP actif : ABP_Manny_Platforming (pas ABP_Unarmed)
 - Mesh : Meshy_AI_Crimson_Scarf_Adventu_0513214252_texture
-- Rotation Rate Z = -1, LastAxisX/LastAxisY doubles sur HeroCharacter
+- Rotation Rate Z = -1
 
 ### Camera -- VALIDE PIE (17/05/2026)
 - SpringArm : 350, Z 60, Lag 8 -- IA_Look dans PC -- UpdateLockOnRotation V2
@@ -281,37 +266,23 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Lock-On -- VALIDE PIE (15/05/2026)
 - BP_CombatLockOnComponent sur Character -- SwitchCooldown source unique
 
-### Ennemis
-- BP_Enemy_Base : stats a ajouter (ENEMY-Base -- C1)
-- BP_Enemy_TestBed : stats Instance Editable
-
 ### Combat -- VALIDE PIE (29/05/2026)
 - BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack, EquipWeapon
-- Flow : IA_Attack -> CanAttack -> HandleAttack -> PlayAttackMontage
 - CanAttack : source unique ComboManager
-- Switch arme en combo = reset combo complet (punition) -- pas de grisage Radial
 
 ### Armes -- VALIDE PIE (31/05/2026)
 - DT_Combo_Sword : Start -> Light1 -> Light2 + Heavy1
 - ComboManager.CurrentWeaponID = source unique arme equipee
-- ComboManager.EquipWeapon(WeaponID, WeaponLevel) = point d'entree unique
 - HC.EquipWeapon = spawn physique + InventoryComponent.AddWeapon + ComboManager.EquipWeapon
-
-### Radial Armes -- VALIDE PIE (29/05/2026)
-- PopulateWeaponSlots lit InventoryComponent.GetWeapons()
-- Mecanique : roue tourne sur arme equipee a l'ouverture, curseur fixe en haut (position 0)
-- Dette curseur : position initiale toujours slot 0 -> UI-RadialRefacto (C2)
 
 ### Magie -- VALIDE PIE (27/05/2026)
 - BP_MagicComponent : CastSpell, IsDeityAccessible, LockDeity, UnlockDeity, IncrementSpellUsage, LevelUpSpell
-- Deites (8) : Lumina, Luna, Ombre, Sylphide, Gnome, Salamandre, Ondine, Dryade
-- Deite C1 : Lumina (sorts existants, effets placeholder/print)
+- Deite C1 : Lumina
 
 ### UI / HUD -- VALIDE (02/06/2026)
 - UI_HUD_Main : event-driven, finalise
-- Get_CorruptionBar_Percent doit etre marquee Pure pour binding ProgressBar
+- Get_CorruptionBar_Percent doit etre marquee Pure
 - UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString
-- bCorruptionUnlocked dans AttributeSet : false=clamp50, true=clamp100
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -321,25 +292,37 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ## Jalons completes
 
 - [x] Jalons fondateurs (#1-#9, J-10 a J-15, J-RadialMenu, J-Cleanup) -- historique
-- [x] ART-Hero (partiel), MUS-Workflow -- historique
 - [x] COMBAT-LockOn, COMBAT-Camera, COMBAT-LockMove, COMBAT-ComboFix (15-18/05/2026)
-- [x] COMBAT-CollisionFix, COMBAT-HitFeel (partiel), COMBAT-HitFlashEnemies (abandonne) (18-21/05/2026)
 - [x] COMBAT-InputsUI VALIDE PIE (23/05/2026)
 - [x] MAGIC-RadialMagie, MAGIC-ProgressionDesign, MAGIC-DataLayer (25/05/2026)
 - [x] MAGIC-UnlockSystem, COMBAT-CleanupDettes (27/05/2026)
 - [x] DESIGN-StatsProgression, DESIGN-StatusEffects, DESIGN-Corruption, DESIGN-Economy (28/05/2026)
-- [x] DESIGN-Lore : cast races, Fee fragment ame soeur, Sanctuaire Ombre, ordre deites (28/05/2026)
 - [x] COMBAT-WeaponArchitecture COMPLET VALIDE PIE (29/05/2026)
-- [x] DESIGN-Lore enrichi : structure actes, Armes Mana, Hub reconstruction (29/05/2026)
 - [x] DESIGN-WeaponProgression (30/05/2026)
 - [x] HUD-Core VALIDE PIE (31/05/2026)
-- [x] DESIGN-SaveDesign : Fontaine de Fee, SaveGame, Corruption/Essence/Fontaine (31/05/2026)
-- [x] DESIGN-Roadmap : refonte cycles milestones jouables C1/C2/C3/C4, nommage thematique (31/05/2026)
+- [x] DESIGN-SaveDesign (31/05/2026)
 - [x] COMBAT-SwordMoveset CLOS VALIDE PIE (31/05/2026)
 - [x] SYS-CorruptionSystem VALIDE PIE (31/05/2026)
 - [x] SYS-EssenceMana VALIDE PIE (02/06/2026)
 - [x] SYS-SaveGame VALIDE PIE (03/06/2026)
-- [x] INFRA-BlueprintSnapshotLayer : protocole + INDEX + premier snapshot BP_AttributeSet_Base (04/06/2026)
+- [x] INFRA-BlueprintSnapshotLayer (04/06/2026)
+
+## Jalon en cours
+
+- [ ] **SYS-StatSystem** -- EN COURS (04/06/2026)
+  - [x] DT_StatList : 3 rows ajoutees
+  - [x] BP_CorruptionComponent : OwnerAttributeSet supprimee
+  - [x] StatValues + StatMinValues + StatMaxValues ajoutees
+  - [x] InitStats() complete
+  - [x] GetStatValue() complete (Pure)
+  - [x] SetStatValue : guards EssenceValue + Corruption + HealthMax + Default
+  - [ ] SetStatValue : brancher CallDelegate OnStatChanged sur 6 Map_Add.then
+  - [ ] Migrer ConsumeStamina / HandleStaminaRegen / StartStaminaRegen -> GetStatValue
+  - [ ] Adapter HC.InitAttributesFromDatatable
+  - [ ] BP_SoM_GameMode : SetStatValue StaminaCurrent dans WriteSaveAndApplyFountainEffects
+  - [ ] BP_CorruptionComponent : supprimer pre-clamp TrackDeityUsage
+  - [ ] Validation PIE
+  - [ ] Snapshot BP_AttributeSet_Base.md mis a jour
 
 ## Dettes techniques
 
@@ -353,115 +336,66 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - **DiscoveredWeapons par defaut via Details panel HC** -> migrer vers BeginPlay (C2)
 - **HUD Designer : TextBlock_Essence et CorruptionBar hors Overlay/SizeBox standard** -> UI-HUDPolish (C4)
 - **Calibrage couts purge Corruption** -> SESSION-Economie
-- **Calibrage montee Corruption par sort (+5 actuellement)** -> SESSION-Economie
 - **NextStepID et AnimToPlay dans ComboManager** : variables non utilisees -> nettoyage futur
-- **Lock-on feeling pendant attaques** : RotateTowardLockTarget a affiner -> ANIM-Pass1 ou C2
-- **ANIM-DeathMontage** : AnimMontage mort reelle -> ANIM-Pass1 (C2)
-- **Mob porteur Essence** -> C2 (C1 = drop au sol uniquement)
-- **Destruction drop a la 2eme mort** -> C2 (C1 = drop indefini)
+- **ANIM-DeathMontage** -> ANIM-Pass1 (C2)
+- **Mob porteur Essence** -> C2
 - **SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData** -- doublon a nettoyer
 - **CollectFountainTransform prend index 0** -- filtrage par FountainID -> C2
-- **BP_AttributeSet_Base** : ErrorType=1 sur 8 SET nodes (GUIDs obsoletes) -> corriger dans SYS-StatSystem
-- **BP_AttributeSet_Base** : bug HealthMax guard FMin.B non connecte -> clamp vers 0 au lieu de HealthCurrent -> corriger dans SYS-StatSystem
-- **DT_StatList / StatStruct / EStatType / EElementType** : assets existants non branches sur BP_AttributeSet_Base -> connecter dans SYS-StatSystem
-- **BP_AttributeSet_Base** : variables natives non initialisees via DT_StatList -> SYS-StatSystem
+- **BP_AttributeSet_Base variables natives** : lecteurs UI_HUD_Main via variables natives -> migrer vers GetStatValue (C2)
+- **BP_CorruptionComponent TrackDeityUsage** : pre-clamp redondant (0,100) a supprimer (SYS-StatSystem)
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **SYS-StatSystem** : refacto BP_AttributeSet_Base -- TMap + DT_StatList + GetStatValue + corriger ErrorType=1 + bug HealthMax
-2. **MAGIC-TreeModule** : arbre talents Lumina, effets placeholder/print
-3. **ENEMY-Base** : stats sur BP_Enemy_Base (reutilise BP_AttributeSet_Base refactorise)
-4. **ENEMY-Boss1** : 1 boss, 1-2 patterns (magie placeholder, saut)
+1. **SYS-StatSystem** : TERMINER (prochaine session) -- CallDelegate + migration ConsumeStamina + HC.InitAttributesFromDatatable + PIE
+2. **MAGIC-TreeModule** : arbre talents Lumina
+3. **ENEMY-Base** : stats sur BP_Enemy_Base
+4. **ENEMY-Boss1** : 1 boss, 1-2 patterns
 5. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
 6. **ANIM-Pass1** : rename ABP, roll en lock-on
 
 ## Sessions design a planifier
 
-- **SESSION-Noms** : tous les personnages -- Soeur ET Fee ENSEMBLE, ville hub
-- **SESSION-LoreDeites** : rituels par deite, cout Essence, confirmation ordre
-- **SESSION-ZonesA1** : structure zones, Fontaines, conflit Loup/DragonFolk
-- **SESSION-ZonesA2** : origine conflit Loup/DragonFolk, structure regions
-- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge Corruption
+- **SESSION-Noms** : tous les personnages
+- **SESSION-LoreDeites** : rituels par deite, cout Essence
+- **SESSION-ZonesA1** : structure zones, Fontaines
+- **SESSION-Economie** : calibrage PO/Essence, prix marchands, couts purge
 
 ---
 
 ## Notes techniques importantes
 
 - SetStatValue = unique point de modification stats
+- GetStatValue(Name) -> double (Pure) = lecteur universel depuis SYS-StatSystem
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
 - SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT
 - T3D export = meilleur outil d'audit Blueprint
+- search_nodes UnrealClaude : utiliser espaces ("Set Stat Value" pas "SetStatValue")
 - add_state MCP AnimGraph = shell corrompu -> creer manuellement
 - IA_Look dans PC (pas HeroCharacter)
-- Move() lock-on : GetPlayerCameraManager -> GetCameraRotation
-- LastAxisX/LastAxisY : doubles sur HeroCharacter, SET au Triggered IA_Move
 - LevelMin = 0 dans DT_Combo
 - HandleAttack sans parametre ChoosenWeapon
-- HC.CanAttack supprime -- source unique ComboManager.CanAttack
 - HC.ChoosenWeapon SUPPRIME -- source unique ComboManager.CurrentWeaponID
-- ComboManager.EquipWeapon(WeaponID, WeaponLevel) = point d'entree unique equipement arme
-- InitComboTree(WeaponData) = responsabilite unique : charger ComboStepMap (pas de SETs d'etat)
-- HC.EquipWeapon = spawn physique + InventoryComponent.AddWeapon + ComboManager.EquipWeapon
-- PopulateWeaponSlots lit InventoryComponent.GetWeapons() (pas HC.DiscoveredWeapons)
-- BP_InventoryComponent : Actor Component, Content/Systems/Inventory/
-- Switch arme en combo = reset combo complet, pas de grisage Radial
-- TenaciteEtat heros : base 25, Float dans AttributeSet, SetStatValue case 12, FClamp(0,100)
-- Radial roue tourne sur arme equipee a l'ouverture -- TargetRotation = -(EquippedIndex * AnglePerSlot)
-- Guard PopulateWeaponSlots : si CurrentWeaponID == None -> pas de rotation
-- Radial curseur position initiale : systeme heterogene -> reporte UI-RadialRefacto (C2)
+- PopulateWeaponSlots lit InventoryComponent.GetWeapons()
+- TenaciteEtat heros : base 25, Float dans AttributeSet
 - UnlockDeity : "Set Members in FSoM_DeitySpells" NON "Make FSoM_DeitySpells"
 - UnlockDeity Map_Contains : TRUE = deja present -> return
 - IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
 - DT_Deities BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
 - Athanor = Salamandre
 - Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE
-- Corruption Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
 - BP_CorruptionComponent : NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner->Cast
-- Corruption monte +5.0 par sort (C1 placeholder, calibrage -> SESSION-Economie)
-- PurgeCorruption : remet Corruption a 0 + Map_Clear DeityUsageMap
-- Get_CorruptionBar_Percent dans UI_HUD_Main : doit etre marquee Pure pour binding ProgressBar
-- EssenceValue : variable Int64 dans BP_AttributeSet_Base, souls-like, pas de Max
-- SetStatValue case EssenceValue : fils exec manquants = bug silencieux frequent -- toujours verifier exec in ET exec out du SET node
 - BP_EssenceDrop : StaticMesh doit etre NoCollision sinon bloque overlaps SphereComponent
-- BP_EssenceDrop : bCanBePickedUp obligatoire (Delay 1.5s) -- drop spawne a l'interieur du HC
-- HUD_OnStatChanged Switch : 8 cases -- EssenceValue (SET direct) + Corruption (NewValue/100)
+- BP_EssenceDrop : bCanBePickedUp obligatoire (Delay 1.5s)
+- HUD_OnStatChanged Switch : 8 cases
 - UpdateEssenceText : Conv_DoubleToInt64 -> Conv_Int64ToString
-- Menu pause = pause complete (pas Time Dilation) -- Time Dilation reserve radial uniquement
-- Touchpad PS5 : reserve C3/C4
-- Fee = fragment ame soeur insuffle par Ondine -- noms Fee ET Soeur a trouver ENSEMBLE
-- Forge narrative Seiken : upgrade N+1 conditionne par jalon narratif + materiaux
-- Armes Mana : jalon narratif + materiaux drop = double condition evolution
-- Epee Mana : brisee A1, evolution par etapes, etat final A3 = condition boss Demon Mana
-- Forgeron Nain : actif et utile tout au long du jeu
-- Liberation deite dans une region = changement esthetique visuel de la zone
-- Hub non reconstruit a l'arrivee A2 -- se reconstruit zone par zone
-- Heros = seul humanoide impacte physiquement par Corruption
-- Flammy : debloque fin A3/A4, acces lieux inaccessibles
-- SaveSystem : save via Fontaines physiques uniquement
-- Fontaines contextuelles : se reveillent post-boss / entree zone / apres cinematique
-- Essence mort : au sol C1 (mob porteur C2) / boss -> au sol
-- Corruption/Essence : 0-74% normal / 75-99% x1.15 / 100% bloque
-- BP_FountainComponent : GetComponentByClass Target = self (la Fontaine, pas le HC) -- erreur classique
+- BP_FountainComponent : GetComponentByClass Target = self (la Fontaine, pas le HC)
 - BPI_Saveable : GetComponentsByInterface + K2Node_Message = appel interface sans Cast explicite
-- LockedDeities sauvegarde (delta) / UnlockedSpells reconstruit depuis DT_Deities au load -- jamais sauvegarder la Map complexe
-- CollectFountainTransform C1 : prend BP_Fountain_Actor index 0 -- filtrage par FountainID -> C2
-- Doublon SetStatValue HP/ST/MP dans OnHeroDied ET AttributeSet.LoadData -- a nettoyer
-- Deite C1 = Lumina (sorts existants, effets placeholder/print en combat)
-- ENEMY-Boss1 C1 : gros mob, 1-2 patterns simples, pas d'anim avancee
-- Critere fin C1 : MAP-C1Level jouable de bout en bout (spawn -> mobs -> fontaine -> boss)
-- BP_AttributeSet_Base : ConsumeStamina et HandleStaminaRegen lisent les variables natives en GET direct (pas via GetStatValue) -- normal pour les fonctions internes du composant
-- BP_AttributeSet_Base : DT_StatList / StatStruct / EStatType / EElementType existent dans le projet mais ne sont PAS encore branches -- SYS-StatSystem
-- BP_AttributeSet_Base : ErrorType=1 sur HealthMax, StaminaMax, ManaMax, StaminaCostJump, StaminaRegenRate, StaminaRegenDelay, StaminaRegenInterval, StaminaCurrent (GUIDs obsoletes apres migration)
-- BP_AttributeSet_Base : bug HealthMax guard -- FMin node present mais pin B non connecte, clamp vers 0 au lieu de HealthCurrent
-- SYS-StatSystem : variables natives a conserver comme cache synchronise (lecteurs internes), TMap = source de verite, GetStatValue(Name)->double = nouveau lecteur externe
+- LockedDeities sauvegarde (delta) / UnlockedSpells reconstruit depuis DT_Deities au load
+- Git : si conflit LFS apres push doc avant push BP -> git checkout origin/main -- Docs/ + commit + push --force-with-lease
+- Pour snapshots Blueprint : voir Docs/Blueprints/INDEX.md
 - Pour lore complet : voir Docs/Lore_ShadowOfMana.md
 - Pour stats : voir Docs/Architecture/Stats_Progression.md
-- Pour effets statut/corruption : voir Docs/Architecture/Combat_StatusEffects.md
-- Pour economie/drops : voir Docs/Architecture/Economy_Drops.md
-- Pour decisions archi : voir Docs/Architecture/Decisions.md
-- Pour progression armes : voir Docs/Architecture/Weapons_Progression.md
 - Pour save system : voir Docs/Architecture/SaveSystem.md
-- Pour snapshots Blueprint : voir Docs/Blueprints/INDEX.md
 
 ---
 

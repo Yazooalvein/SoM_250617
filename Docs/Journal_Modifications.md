@@ -5,6 +5,45 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 04/06/2026 -- SYS-StatSystem -- EN COURS (WIP)
+
+#### Decisions architecture
+- Option B retenue : refacto complet BP_AttributeSet_Base -- TMap<Name, Float> x3 + GetStatValue + SetStatValue guards
+- StatMinValues + StatMaxValues : deux Maps supplementaires peuplees par InitStats, lues par SetStatValue Default
+- InitStats(StatDataTable : DataTable) : parametre passe par HC, pas stocke dans AttributeSet
+- SetStatValue Default : pas de Switch residuel -- FClamp via StatMinValues/StatMaxValues
+- ConsumeStamina / HandleStaminaRegen / StartStaminaRegen : migrer vers GetStatValue (prochaine session)
+- Variables natives conservees comme cache synchronise pour lecteurs UI externes (dette C2)
+- BP_CorruptionComponent : OwnerAttributeSet supprimee, variables locales dans chaque fonction
+
+#### Realise cette session
+- DT_StatList : 3 rows ajoutees (EssenceValue, Corruption, TenaciteEtat)
+- BP_CorruptionComponent : OwnerAttributeSet supprimee -> variables locales dans InitCorruption, TrackDeityUsage, PurgeCorruption
+- BP_AttributeSet_Base : variables StatValues, StatMinValues, StatMaxValues (TMap<Name, Float>) ajoutees
+- BP_AttributeSet_Base : InitStats() complete -- GetDataTableRowNames -> ForEach -> GetDataTableRow -> BreakStruct -> Map_Add x3
+- BP_AttributeSet_Base : GetStatValue(Name)->double complete (Pure) -- Map_Find -> Branch(Found) -> Return / DebugPrint
+- BP_AttributeSet_Base : SetStatValue -- 3 guards complets (EssenceValue, Corruption, HealthMax) + Default (MinValues/MaxValues/FClamp)
+- Bug HealthMax fixe : FMin.B = GET HealthCurrent (etait non connecte -> clamp vers 0)
+
+#### Reste a faire (prochaine session)
+- Brancher CallDelegate OnStatChanged sur les 6 Map_Add.then de SetStatValue
+- Migrer ConsumeStamina vers GetStatValue("StaminaCurrent") / GetStatValue("StaminaMax")
+- Migrer HandleStaminaRegen vers GetStatValue (StaminaCurrent, StaminaMax, StaminaRegenRate, StaminaRegenInterval)
+- Migrer StartStaminaRegen vers GetStatValue (StaminaCurrent, StaminaMax)
+- Adapter HC.InitAttributesFromDatatable : Construct BP_AttributeSet_Base -> InitStats(StatsDataTable) -> SetStatValue Current=Max
+- BP_SoM_GameMode : ajouter SetStatValue("StaminaCurrent", StaminaMax) dans WriteSaveAndApplyFountainEffects
+- BP_CorruptionComponent : supprimer pre-clamp redondant (0,100) dans TrackDeityUsage
+- Validation PIE complete
+- Mettre a jour snapshot Docs/Blueprints/BP_AttributeSet_Base.md post-jalon
+
+#### Notes techniques
+- search_nodes UnrealClaude : utiliser "Set Stat Value" avec espaces (pas "SetStatValue")
+- Variables locales MinValue/MaxValue dans SetStatValue pour stocker resultats Map_Find
+- FClamp Default path no-max : pin Max = 340282299999999994960115009090224128000 (MAX_FLT accepte par UE5)
+- Git : push doc avant push BP -> conflit LFS -> resolution : git checkout origin/main -- Docs/ + commit + push --force-with-lease
+
+---
+
 ### 03/06/2026 -- SYS-SaveGame -- VALIDE PIE
 
 #### Architecture save -- BPI_Saveable + BP_SaveGame_SoM
@@ -153,4 +192,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 03/06/2026
+- Derniere mise a jour : 04/06/2026
