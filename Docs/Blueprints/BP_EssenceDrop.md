@@ -1,49 +1,37 @@
 # BP_EssenceDrop -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Systems/Essence/BP_EssenceDrop`  
-**Type :** Actor
+**Path UE5 :** `/Game/Systems/Essence/BP_EssenceDrop`
+**Parent :** Actor
+**Noeuds totaux :** 22
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
+
+## Composants
+
+- SphereComponent (root, OverlapAllDynamic)
+- StaticMeshComponent (NoCollision obligatoire)
+- PointLight
 
 ## Variables
 
-| Nom | Type |
-|---|---|
-| EssenceValue | int64 |
-| bCanBePickedUp | bool |
-
-## Composants
-- SphereComponent (root, OverlapAllDynamic)
-- StaticMesh (NoCollision obligatoire)
-- PointLight
-
----
-
-## Flow ActorBeginOverlap
-
-```
-Branch(bCanBePickedUp)
--> Cast HC -> Get AttributeSetRef
--> Get AttributeSetRef.EssenceValue (int64) + self.EssenceValue (int64)
--> To Float (Integer64)           <- conversion 1 : int64 -> double
--> SetStatValue("EssenceValue", double)
-  [Dans Switch] Conv_DoubleToInt64 <- conversion 2 : double -> int64
-  -> SET AttributeSetRef.EssenceValue (int64)
--> DestroyActor
-```
-
----
-
-## Anomalies
-
-| Anomalie | Description | Impact |
+| Nom | Type | Notes |
 |---|---|---|
-| Double conversion int64 <-> double | Pickup : int64 -> double -> SetStatValue -> double -> int64. Perte de precision pour valeurs > 2^53 (~9 quadrillions) | Non critique C1 -- dette architecturale |
-| Gotcha StaticMesh | Doit etre en NoCollision sinon bloque overlaps SphereComponent | Comportement valide mais piege classique |
-| Gotcha bCanBePickedUp | Delay 1.5s obligatoire -- drop spawne a l'interieur du HC | Comportement valide |
+| EssenceValue | int64 | Valeur a transferer au pickup |
+| bCanBePickedUp | bool | Active apres Delay 1.5s en BeginPlay |
 
----
+## EventGraph
 
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- **BeginPlay :** Delay(1.5s) -> SET bCanBePickedUp=true
+- **ActorBeginOverlap :** Branch(bCanBePickedUp) -> Cast HC -> AttributeSetRef -> GetStatValue(EssenceValue) + valeur drop -> SetStatValue(EssenceValue) -> DestroyActor
+
+## Dependances
+
+**Appelle :** BP_AttributeSet_Base (GetStatValue + SetStatValue)
+**Spawn par :** BP_SoM_PlayerController (OnHeroDied), BP_Enemy_Base.OnDeath (a implementer -- ENEMY-DropSystem)
+
+## Notes techniques
+
+- StaticMesh NoCollision OBLIGATOIRE (sinon bloque le joueur)
+- bCanBePickedUp + Delay 1.5s OBLIGATOIRE (sinon pickup immediat avant que le drop soit visible)
+- EssenceValue configurable a la creation (SpawnActor -> SET EssenceValue)

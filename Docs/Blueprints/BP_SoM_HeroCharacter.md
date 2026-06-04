@@ -1,71 +1,64 @@
 # BP_SoM_HeroCharacter -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Characters/Players/Blueprint/BP_SoM_HeroCharacter`  
-**Type :** Character (Blueprint Only)  
-**EventGraph :** 287 nodes
+**Path UE5 :** `/Game/Characters/Players/Blueprint/BP_SoM_HeroCharacter`
+**Parent :** Character (Blueprint Only)
+**Noeuds totaux :** 395
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
 
-## Variables pertinentes (stats et refs)
+## Variables
 
 | Nom | Type | Categorie | Notes |
 |---|---|---|---|
-| AttributeSetRef | BP_AttributeSet_Base_C* | Stats\|Principals | Instance Editable -- cree dans InitAttributesFromDatatable |
-| StatsDataTable | DataTable* | Stats\|Principals | Reference vers DT_StatList |
+| AttributeSetRef | BP_AttributeSet_Base_C* | Stats\|Principals | Reference principale stats |
+| StatsDataTable | DataTable* | Stats\|Principals | DT source init stats |
+| CurrentWeapon | BP_Weapon_Base_C* | Weapons | Arme physique spawnee |
 | bIsDead | bool | Default | |
-| OnPlayerDeath | mcdelegate | Default | |
 | bIsInvincible | bool | Default | |
-| bRadialUnlocked | bool | Default | **ATTENTION : trailing space dans le nom de variable** |
-
----
+| OnPlayerDeath | Dispatcher | Default | Binde par PC.BeginPlay |
+| LastAxisX / LastAxisY | double | Default | Dernier input mouvement |
+| bRadialUnlocked | bool | Default | ⚠️ espace trailing dans le nom -- attention FName |
+| DashMontage | AnimMontage* | Dash | |
+| RollMontage | AnimMontage* | Dash | |
+| Has Dashed / Has Rolled / Has Jumped | bool | Dash/Jump | Runtime flags |
+| Is Dashing / Is Rolling | bool | Dash | Runtime flags |
+| bIsGrounded | bool | Dash | |
+| Wall Jump * (4 params) | double | Wall Jump | Params mecanique wall jump |
+| Trail Color | LinearColor | Jump Trail | |
 
 ## Fonctions
 
-| Nom | SetStatValue | Acces GET AttributeSet | Notes |
+| Nom | Inputs | Outputs | Notes |
 |---|---|---|---|
-| InitAttributesFromDatatable | 4 appels (voir detail) | HealthMax, StaminaMax, ManaMax | Cree aussi l'AttributeSet via Construct Object |
-| EquipWeapon | Aucun | Aucun | |
-| IsDead | Aucun | Aucun | Retourne bIsDead |
-| Add_Main_HUD | Non verifie | Probable (passe AttributeSetRef au widget) | |
+| Add_Main_HUD | -- | -- | Cree + ajoute UI_HUD_Main |
+| InitAttributesFromDatatable | -- | -- | Appelle AttributeSet.InitStats |
+| EquipWeapon | RowName:FName | -- | Spawn BP + InventoryComp.AddWeapon + ComboManager.EquipWeapon |
+| IsDead | -- | bool | Pure getter bIsDead |
+| Move | AxisX:double, AxisY:double | -- | |
+| Aim | AxisX:float, AxisY:double | -- | |
 
----
+**EventGraph :** 11 events, 287 noeuds
 
-## Detail InitAttributesFromDatatable
+## Composants
 
-**Construction de l'AttributeSet :** `Construct BP_AttributeSet_Base` (K2Node_GenericCreateObject) -> SET AttributeSetRef. L'objet est cree ici, pas en BeginPlay.
+- CapsuleComponent (root)
+- SkeletalMeshComponent (Mesh hero)
+- SpringArmComponent
+- CameraComponent
+- BP_CombatLockOnComponent
+- BP_ComboManagerComponent
+- BP_MagicComponent
+- BP_InventoryComponent
+- BP_CorruptionComponent
 
-**Appels SetStatValue (4) :**
+## Dependances
 
-| # | StatName | Valeur | Dynamique |
-|---|---|---|---|
-| 1 | StatID (depuis row DT) | BaseValue (depuis row DT) | **OUI** -- ForEach GetDataTableRowNames -> GetDataTableRow -> BreakStatStruct |
-| 2 | "HealthCurrent" | GET AttributeSetRef.HealthMax | Non -- initialise HP = MaxHP apres boucle DT |
-| 3 | "StaminaCurrent" | GET AttributeSetRef.StaminaMax | Non |
-| 4 | "ManaCurrent" | GET AttributeSetRef.ManaMax | Non |
+**Appelle :** BP_AttributeSet_Base, BP_ComboManagerComponent, BP_InventoryComponent, UI_HUD_Main
+**Appele par :** BP_SoM_PlayerController (BeginPlay Cast), BP_SoM_GameMode (OnHeroDied)
 
-**Note importante :** HC lit deja DT_StatList via GetDataTableRowNames. Apres SYS-StatSystem, InitStats() dans BP_AttributeSet_Base fera ce travail -- InitAttributesFromDatatable devra etre simplifie (appel InitStats() + init Current = Max).
+## Dettes actives
 
----
-
-## Acces GET AttributeSet dans EventGraph
-
-| Position Y | Variable lue | Usage |
-|---|---|---|
-| ~4880 | AttributeSetRef | Passage au composant |
-| ~4944 | EssenceValue (int64) | Lecture avant spawn BP_EssenceDrop |
-| ~-3760 | AttributeSetRef (2 conn.) | Contexte OnHeroDied -- lecture pour drop Essence |
-
----
-
-## Anomalies
-
-| Anomalie | Description |
-|---|---|
-| Trailing space sur bRadialUnlocked | Nom de variable avec espace invisible -- risque de bug sur comparaisons de nom |
-| InitAttributesFromDatatable cree l'AttributeSet | Apres SYS-StatSystem, InitStats() dans BP_AttributeSet_Base prend le relais pour peupler la TMap -- a refactoriser |
-
----
-
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- `bRadialUnlocked` espace trailing -> corriger FName avant tout usage conditionnel
+- `DiscoveredWeapons` par defaut via Details panel HC -> migrer vers BeginPlay C2
+- `EquipWeapon` spawn physique = point d'entree unique OK

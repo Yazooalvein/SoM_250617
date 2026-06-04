@@ -1,52 +1,39 @@
 # BP_SoM_GameMode -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Core/BP_SoM_GameMode`  
-**Type :** GameMode
+**Path UE5 :** `/Game/Core/BP_SoM_GameMode`
+**Parent :** GameModeBase
+**Noeuds totaux :** 44
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
 
 ## Variables
 
-| Nom | Type |
-|---|---|
-| CurrentSaveGame | BP_SaveGame_SoM_C* |
-| CurrentSlotName | FString |
-
----
+| Nom | Type | Notes |
+|---|---|---|
+| CurrentSaveGame | BP_SaveGame_SoM_C* | Instance save en cours |
+| CurrentSlotName | FString | Nom du slot |
 
 ## Fonctions
 
-| Nom | SetStatValue | Flow |
+| Nom | Inputs | Notes |
 |---|---|---|
-| OnFountainRest(FountainID) | Aucun direct | Appelle CollectSaveData + CollectFountainTransform + WriteSaveAndApplyFountainEffects |
-| CollectSaveData(FountainID) | Aucun | GetComponentsByInterface(BPI_Saveable) -> ForEach -> K2Node_Message(SaveData) |
-| CollectFountainTransform(FountainID) | Aucun | GetAllActorsOfClass(BP_Fountain_Actor)[0] -> GetTransform -> SET LastFountainTransform |
-| WriteSaveAndApplyFountainEffects | 2 directs + 1 indirect | Voir detail |
+| OnFountainRest | FountainID:FName | Point d'entree unique save/fontaine |
+| CollectSaveData | FountainID:FName | Collecte donnees via BPI_Saveable (GetComponentsByInterface) |
+| CollectFountainTransform | FountainID:FName | ⚠️ prend index 0 -- filtrage par FountainID -> C2 |
+| WriteSaveAndApplyFountainEffects | -- | Ecrit slot + soigne HP/ST/MP via SetStatValue |
 
----
+## Dependances
 
-## Detail WriteSaveAndApplyFountainEffects
+**Appelle :** BP_SaveGame_SoM, BPI_Saveable (GetComponentsByInterface), BP_AttributeSet_Base (SetStatValue)
+**Appele par :** BP_FountainComponent.OnPlayerInteract, BP_SoM_PlayerController.OnHeroDied
 
-**SetStatValue directs (2) :**
-- SetStatValue("HealthCurrent", GET AttributeSetRef.HealthMax)
-- SetStatValue("ManaCurrent", GET AttributeSetRef.ManaMax)
+## Dettes actives
 
-**SetStatValue indirect (1) :**
-- GetComponentByClass(BP_CorruptionComponent) -> PurgeCorruption(0) -> SetStatValue("Corruption", 0) dans CorruptionComponent
+- `CollectFountainTransform` prend index 0 -> filtrage par FountainID a faire C2
+- `WriteSaveAndApplyFountainEffects` SET HP/ST/MP = doublon avec AttributeSet.LoadData -> nettoyage C2
 
-**Acces GET AttributeSet :** AttributeSetRef (4 connexions) -- cible des 2 SetStatValue + source HealthMax/ManaMax + source GetComponentByClass.
+## Notes techniques
 
----
-
-## Anomalies
-
-| Anomalie | Description | Intentionnel ? |
-|---|---|---|
-| **StaminaCurrent NON restaure a la fontaine** | WriteSaveAndApplyFountainEffects restaure HP et Mana, mais pas Stamina | A confirmer avec Nico |
-| CollectFountainTransform prend index 0 | GetAllActorsOfClass[0] -- pas de filtrage par FountainID | Dette connue -> C2 |
-
----
-
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- PlayerControllerClass = BP_SoM_PlayerController (regle permanente)
+- OnFountainRest = UNIQUE point d'entree pour toute save -- ne jamais appeler SaveGameToSlot ailleurs

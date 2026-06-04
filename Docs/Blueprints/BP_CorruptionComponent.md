@@ -1,42 +1,35 @@
 # BP_CorruptionComponent -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Systems/Corruption/BP_CorruptionComponent`  
-**Type :** Actor Component
+**Path UE5 :** `/Game/Systems/Corruption/BP_CorruptionComponent`
+**Parent :** ActorComponent
+**Noeuds totaux :** 53
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
 
 ## Variables
 
-| Nom | Type | Statut |
+| Nom | Type | Notes |
 |---|---|---|
-| DeityUsageMap | TMap<Name, int32> | OK |
-| **OwnerAttributeSet** | BP_AttributeSet_Base_C* | **DETTE** -- stockage interdit par CLAUDE.md |
-
----
+| DeityUsageMap | TMap<FName,int32> | Usages par deite depuis derniere purge |
 
 ## Fonctions
 
-| Nom | SetStatValue | Flow |
-|---|---|---|
-| InitCorruption | Aucun | Re-fetch AttributeSet via GetOwner->Cast->GET AttributeSetRef -> SET OwnerAttributeSet |
-| TrackDeityUsage(DeityName) | "Corruption" | Re-fetch AttributeSetRef -> SET OwnerAttributeSet -> GET Corruption -> +5.0 -> Clamp(0,100) pre-SetStatValue -> SetStatValue("Corruption", clamped) |
-| PurgeCorruption(CostAmount) | "Corruption" | Re-fetch -> SetStatValue("Corruption", 0.0) + Map_Clear(DeityUsageMap) |
-| GetWeakDeity | Aucun | Retourne la deite la plus utilisee depuis la derniere purge |
+| Nom | Inputs | Outputs | Notes |
+|---|---|---|---|
+| InitCorruption | -- | -- | |
+| TrackDeityUsage | DeityName:FName | -- | Incremente Map + Corruption +5 via SetStatValue |
+| GetWeakDeity | -- | FName | Deite la plus utilisee depuis derniere purge |
+| PurgeCorruption | CostAmount:double | -- | SetStatValue(Corruption,0) + Map_Clear(DeityUsageMap) |
 
----
+## Dependances
 
-## Anomalies
+**Appelle :** BP_AttributeSet_Base (SetStatValue -- recup dynamique GetOwner->Cast, jamais variable stockee)
+**Appele par :** BP_MagicComponent (TrackDeityUsage apres CastSpell), BP_SoM_GameMode (PurgeCorruption via Se reposer fontaine)
 
-| Anomalie | Description | Impact |
-|---|---|---|
-| OwnerAttributeSet stocke en variable | Contradite par CLAUDE.md (ne pas stocker AttributeSetRef) | Attenué : re-fetch systématique avant chaque usage. Reste une dette. |
-| Clamp redondant dans TrackDeityUsage | Pre-clamp a (0,100) avant SetStatValue IGNORE la logique Phase1/Phase2 (bCorruptionUnlocked). Le bon clamp est dans SetStatValue.Switch uniquement. | Corruption peut atteindre 100 en Phase 1 via ce chemin |
+## Notes techniques
 
-**Clamp redondant -- detail :**
-TrackDeityUsage fait `Clamp(Corruption+5, 0, 100)` avant SetStatValue. Mais SetStatValue re-clamp selon `bCorruptionUnlocked` (0-50 ou 0-100). Le pre-clamp est donc au mieux redondant, au pire incorrect en Phase 1 (il laisse passer des valeurs > 50 que SetStatValue corrige ensuite). A supprimer dans SYS-StatSystem.
-
----
-
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner->Cast a chaque appel
+- Corruption faiblesse 75 = deite la plus utilisee DEPUIS LA DERNIERE PURGE (pas depuis debut partie)
+- Phase 1 plafond 50 (bCorruptionUnlocked=false) / Phase 2 plafond 100 (bCorruptionUnlocked=true)
+- +5 Corruption par sort = POC C1 -- calibrage SESSION-Economie

@@ -1,53 +1,53 @@
 # BP_MagicComponent -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Systems/Magic/Core/BP_MagicComponent`  
-**Type :** Actor Component  
-**Interfaces :** BPI_Saveable
+**Path UE5 :** `/Game/Systems/Magic/Core/BP_MagicComponent`
+**Parent :** ActorComponent
+**Noeuds totaux :** 187
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
 
 ## Variables
 
-| Nom | Type |
-|---|---|
-| bIsCasting | bool |
-| QuickslotSlots | Array<Name> |
-| SpellCooldowns | TMap<Name, double> |
-| UnlockedSpells | TMap<Name, FSoM_DeitySpells> |
-| OnSpellCast | mcdelegate (SpellID:Name) |
-| SpellUsageCounts | TMap<Name, int32> |
-| SpellLevels | TMap<Name, int32> |
-| TalentPoints | int32 |
-| LockedDeities | Array<Name> |
-| CategoryThresholdsConfig | BP_SpellCategoryThresholds_C* |
-
----
+| Nom | Type | Notes |
+|---|---|---|
+| bIsCasting | bool | |
+| QuickslotSlots | TArray<FName> | Sorts assignes slots rapides |
+| UnlockedSpells | TMap<FName,FSoM_DeitySpells> | Sorts accessibles |
+| LockedDeities | TArray<FName> | Deites verrouillees -- sauvegarde (delta) |
+| SpellCooldowns | TMap<FName,double> | |
+| SpellUsageCounts | TMap<FName,int32> | |
+| SpellLevels | TMap<FName,int32> | |
+| TalentPoints | int32 | |
+| OnSpellCast | Dispatcher | |
+| CategoryThresholdsConfig | BP_SpellCategoryThresholds_C* | |
 
 ## Fonctions
 
-| Nom | SetStatValue | Notes |
-|---|---|---|
-| CastSpell | Aucun direct | Appelle ConsumeMana (indirect) + IncrementSpellUsage (indirect) |
-| ConsumeMana | "ManaCurrent" | GetOwner -> Cast HC -> Get AttributeSetRef -> Get ManaCurrent -> subtract Amount -> SetStatValue |
-| IncrementSpellUsage | Aucun direct | GetComponentByClass -> TrackDeityUsage (indirect, SetStatValue("Corruption") dans CorruptionComponent) |
-| UnlockDeity | Aucun | Lit DT_Deities |
-| LockDeity | Aucun | |
-| IsDeityAccessible | Aucun | Contains(UnlockedSpells) AND NOT Contains(LockedDeities) |
-| LevelUpSpell | Aucun | |
-| SaveData (BPI_Saveable) | Aucun | |
-| LoadData (BPI_Saveable) | Aucun | SetStatValue pas utilise -- reconstruction via UnlockDeity |
+| Nom | Inputs | Outputs | Notes |
+|---|---|---|---|
+| CastSpell | SpellID:FName | -- | Point d'entree unique lancement sort |
+| CanCast | SpellID:FName | bool | |
+| ConsumeMana | Amount:double | -- | Via GetStatValue + SetStatValue |
+| IsDeityAccessible | DeityID:FName | bool | Contains(UnlockedSpells) AND NOT Contains(LockedDeities) |
+| IsSpellUnlocked | SpellID:FName | bool | |
+| UnlockDeity | DeityName:FName | -- | "Set Members in FSoM_DeitySpells" -- PAS Make |
+| LockDeity | DeityID:FName | -- | |
+| IncrementSpellUsage | SpellID:FName | -- | |
+| LevelUpSpell | SpellID:FName | -- | |
+| AddTalentPoint | -- | -- | |
 
----
+## Dependances
 
-## Anomalies
+**Appelle :** BP_AttributeSet_Base (ConsumeMana via GetStatValue/SetStatValue), DT_Deities, DT_Spells, BP_Spell_Base sous-classes
+**Appele par :** BP_SoM_PlayerController (CastSpell quickslot), UI_Radial_Main (ValidateRadial)
+**BPI_Saveable :** oui -- LockedDeities sauvegarde, UnlockedSpells reconstruit depuis DT_Deities au load
 
-| Anomalie | Description |
-|---|---|
-| Cast orphelin dans IncrementSpellUsage | K2Node_CastTo BP_CorruptionComponent (pos_x=4320) avec 0 connexions exec -- noeud mort a nettoyer |
-| Acces AttributeSet indirect | ConsumeMana : GetOwner -> Cast HC -> AttributeSetRef -> ManaCurrent. Pattern correct mais verbeux -- apres SYS-StatSystem, GetStatValue("ManaCurrent") sera disponible |
+## Notes techniques
 
----
-
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- UnlockDeity : "Set Members in FSoM_DeitySpells" NON "Make FSoM_DeitySpells" -- Make a bDefaultValueIsIgnored=True
+- UnlockDeity Map_Contains : TRUE = deja present -> return (guard)
+- IsDeityAccessible = Contains(UnlockedSpells) AND NOT Contains(LockedDeities)
+- DT_Deities BaseSpells : [0=Attack, 1=Heal, 2=Buff, 3=Debuff]
+- Deite C1 : Lumina uniquement
+- Sauvegarde : LockedDeities (delta) -- UnlockedSpells reconstruit depuis DT_Deities au load

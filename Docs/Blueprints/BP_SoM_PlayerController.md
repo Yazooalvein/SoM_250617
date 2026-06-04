@@ -1,60 +1,52 @@
 # BP_SoM_PlayerController -- Snapshot
 
-**Dernier snapshot :** 04/06/2026  
-**Jalon :** SYS-StatSystem pre-audit  
-**Path UE5 :** `Content/Characters/Players/Blueprint/BP_SoM_PlayerController`  
-**Type :** PlayerController  
-**EventGraph :** 214 nodes
+**Path UE5 :** `/Game/Characters/Players/Blueprint/BP_SoM_PlayerController`
+**Parent :** PlayerController
+**Noeuds totaux :** 402
+**Dernier snapshot :** 05/06/2026 -- Audit global
 
 ---
 
 ## Variables
 
-| Nom | Type | Notes |
-|---|---|---|
-| PlayerCharacterRef | BP_SoM_HeroCharacter_C* | |
-| RadialMainRef | UI_Radial_Main_C* | |
-| LockOnIndicatorWidgetRef | UI_LockOnIndicator_C* | |
-| bSwitchInProgress | bool | |
-| QuickslotUp / Left / Right | FName | |
-| bPlayerIsLooking | bool | Camera lock-on |
-| LockOnReturnSpeed | double | |
-
----
-
-## SetStatValue dans EventGraph (zone OnHeroDied)
-
-**IMPORTANT -- Recherche MCP :** `search_nodes("SetStatValue")` retourne 0 resultats. Utiliser `search_nodes("Set Stat Value")` (avec espaces) pour trouver ces nodes.
-
-| StatName | Valeur | Position Y |
-|---|---|---|
-| "EssenceValue" | **0.0 hardcode** (Value pin non connecte) | ~-4128 |
-| "HealthCurrent" | Valeur dynamique (Max) | ~-4080 |
-| "StaminaCurrent" | Valeur dynamique (Max) | ~-3968 |
-| "ManaCurrent" | Valeur dynamique (Max) | ~-3824 |
-
-**Acces GET AttributeSet :**
-- AttributeSetRef via Cast HC (Y~-3760, 2 conn.) -- cible des 4 SetStatValue
-- AttributeSetRef (Y~-3712, 6 conn.) -- lecture HealthMax, StaminaMax, ManaMax pour les valeurs Max
-
----
+| Nom | Type | Categorie | Notes |
+|---|---|---|---|
+| PlayerCharacterRef | BP_SoM_HeroCharacter_C* | Default | SET au BeginPlay |
+| RadialMainRef | UI_Radial_Main_C* | Default | |
+| LockOnIndicatorWidgetRef | UI_LockOnIndicator_C* | UI\|LockOn | |
+| QuickslotUp / QuickslotLeft / QuickslotRight | FName | Default | Sorts assignes aux slots rapides |
+| bPlayerIsLooking | bool | Default | |
+| LookIdleTime / LookReturnDelay | double | Default | |
+| LockOnReturnSpeed | double | Default | |
+| bSwitchInProgress | bool | UI\|LockOn | |
+| LastLockOnSwitchTime | double | UI\|LockOn | |
+| LockOnPitchMin / LockOnPitchMax | double | UI\|LockOn | |
 
 ## Fonctions
 
-| Nom | SetStatValue | Notes |
-|---|---|---|
-| InitializeSystems | Aucun | Cast HC -> GetComponentByClass(CombatLockOnComponent) -> Bind delegates |
-| OnHeroDied | 4 appels (voir ci-dessus) | Event bind depuis BeginPlay |
+| Nom | Inputs | Outputs | Notes |
+|---|---|---|---|
+| InitializeSystems | -- | -- | Appelle InitInputMapping + autres |
+| InitInputMapping | -- | -- | Add IMC_Gameplay |
+| GetBP_CombatLockOnComponent | -- | BP_CombatLockOnComponent_C* | Helper lookup |
+| GetCurrentLockOnTarget | -- | Actor* | |
+| ToggleRadial / OpenRadial / CloseRadial | -- | -- | Gestion UI radiale |
+| Handle_UI_Radial_Rotate | AxisValue:double | -- | |
+| ValidateRadial | -- | -- | |
+| UpdateLockOnRotation | -- | -- | Ticked |
+| UpdateLockOnUIIndicator | -- | -- | |
+| Aim | AxisX:float, AxisY:double | -- | IA_Look dans PC (pas HC) |
+| OnHeroDied | -- | -- | Binde sur OnPlayerDeath |
 
----
+**EventGraph :** 6 events, 209 noeuds
 
-## Anomalies
+## Dependances
 
-| Anomalie | Description |
-|---|---|
-| EssenceValue = 0 hardcode | Value pin non connecte sur le node SetStatValue -- bug silencieux si jamais le pin est connecte a autre chose |
-| search_nodes sensible aux espaces | "SetStatValue" -> 0 res. "Set Stat Value" -> resultats. Retenir pour audits futurs. |
+**Appelle :** BP_SoM_HeroCharacter, BP_CombatLockOnComponent, UI_Radial_Main, BP_SoM_GameMode
+**Appele par :** BeginPlay auto (GameMode)
 
----
+## Notes techniques
 
-*Snapshot produit par audit agent UnrealClaude -- session 04/06/2026*
+- IA_Look gere dans PC (pas dans HC) -- regle permanente
+- UpdateLockOnRotation V2 : bPlayerIsLooking + LookReturnDelay 1.5s + LockOnReturnSpeed 3.0
+- OnHeroDied : SpawnActor(BP_EssenceDrop) -> SetStatValue(EssenceValue,0) -> CameraFade -> respawn
