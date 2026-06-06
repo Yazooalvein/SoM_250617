@@ -25,11 +25,12 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | BP_MagicComponent | [BP_MagicComponent.md](BP_MagicComponent.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_InventoryComponent | [BP_InventoryComponent.md](BP_InventoryComponent.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_CorruptionComponent | [BP_CorruptionComponent.md](BP_CorruptionComponent.md) | 05/06/2026 | Audit global | A JOUR |
-| BP_EssenceDrop | [BP_EssenceDrop.md](BP_EssenceDrop.md) | 05/06/2026 | Audit global | A JOUR |
+| BP_EssenceDrop | [BP_EssenceDrop.md](BP_EssenceDrop.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
+| BP_EssenceOrb | [BP_EssenceOrb.md](BP_EssenceOrb.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
 | BP_SaveGame_SoM | [BP_SaveGame_SoM.md](BP_SaveGame_SoM.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_Fountain_Actor | [BP_Fountain_Actor.md](BP_Fountain_Actor.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_FountainComponent | [BP_FountainComponent.md](BP_FountainComponent.md) | 05/06/2026 | Audit global | A JOUR |
-| BP_Enemy_Base | [BP_Enemy_Base.md](BP_Enemy_Base.md) | 05/06/2026 | Audit global | A JOUR |
+| BP_Enemy_Base | [BP_Enemy_Base.md](BP_Enemy_Base.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
 | BP_Enemy_Knight | [BP_Enemy_Knight.md](BP_Enemy_Knight.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_AIController_Enemy_Base | [BP_AIController_Enemy_Base.md](BP_AIController_Enemy_Base.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_Weapon_Base | [BP_Weapon_Base.md](BP_Weapon_Base.md) | 05/06/2026 | Audit global | A JOUR |
@@ -50,6 +51,7 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | BP_Enemy_Sword01 | Arme physique ennemie -- pas de variables, overlap -> BPI_TakeDamage |
 | BP_Weapon_Sword / BP_Weapon_2HSword | Sous-classes BP_Weapon_Base, variable unique RowName |
 | BP_SpellCategoryThresholds | Objet data seul, TMap<E_SpellCategory,int32> |
+| BP_ItemDrop | Stub C1 -- overlap -> DestroyActor, pas de logique inventaire. Documenter a ENEMY-Types C2 |
 | BTTask_PerformAttack / BTService_CheckAggroDistance | BT Tasks -- documenter a ENEMY-Types C2 |
 | BP_enemyTest / BP_Enemy_TestBed | Assets de test -- hors scope doc |
 | BP_Debug_Fountain / BP_Debug_UnlockDeity | Assets debug -- hors scope doc |
@@ -97,4 +99,4 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 
 ---
 
-*Derniere mise a jour : 05/06/2026 -- Audit global UnrealClaude (61 assets, 27 BPs details)*
+*Derniere mise a jour : 06/06/2026 -- ENEMY-DropSystem*

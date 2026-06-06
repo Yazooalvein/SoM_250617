@@ -2,8 +2,7 @@
 
 **Path UE5 :** `/Game/Characters/Enemies/Blueprints/BP_Enemy_Base`
 **Parent :** Character
-**Noeuds totaux :** 154
-**Dernier snapshot :** 05/06/2026 -- Audit global
+**Dernier snapshot :** 06/06/2026 -- ENEMY-DropSystem
 
 ---
 
@@ -18,7 +17,7 @@
 | bIsAttacking | bool | |
 | bHasAlreadyHit | bool | Anti-multi-hit |
 | bForceHealthBarVisible | bool | |
-| OnDeath | Dispatcher | Point d'accroche ENEMY-DropSystem |
+| OnDeath | Dispatcher | Point d'accroche drops |
 | MaxHealth / CurrentHealth | double | ⚠️ pas sur BP_AttributeSet -- dette ENEMY-Base |
 | EnemyHealthBarRef | UI_Enemy_HealthBar_C* | |
 | HealthBarFadeDelay | double | |
@@ -32,17 +31,27 @@
 
 ## Fonctions
 
-| Nom | Inputs | Outputs | Notes |
-|---|---|---|---|
-| EquipWeapon | -- | -- | Spawn arme physique |
-| EnableWeaponCollision | -- | -- | |
-| DisableWeaponCollision | -- | -- | |
-| TriggerHitFlash | ScalarValue:double | -- | ⚠️ present malgre Hit Flash ABANDONNE -- code mort |
-| OnHealthBarFadeTimerExpired | -- | -- | |
+| Nom | Notes |
+|---|---|
+| EquipWeapon | Spawn arme physique |
+| EnableWeaponCollision | |
+| DisableWeaponCollision | |
+| KillMeNow | Custom Event : SET bIsDead=true -> Call OnDeath -> spawn drops -> destroy |
+| TriggerHitFlash | ⚠️ code mort -- Hit Flash ABANDONNE |
+| OnHealthBarFadeTimerExpired | |
+
+## Flow OnDeath (ENEMY-DropSystem)
+
+```
+KillMeNow -> SET bIsDead=true -> Call OnDeath
+  -> SpawnActor(BP_EssenceOrb, GetActorLocation) -> SET EssenceDropValue=15 (hardcode C1)
+  -> DestroyActor(self) + DestroyActor(SpawnedWeapon)
+  -> RandomFloatInRange(0,1) > 0.5 -> Branch true : SpawnActor(BP_ItemDrop) [stub C1]
+```
 
 ## Dependances
 
-**Appelle :** BP_Enemy_Sword01 (hardcode), UI_Enemy_HealthBar, BP_AIController_Enemy_Base
+**Appelle :** BP_Enemy_Sword01 (hardcode), UI_Enemy_HealthBar, BP_AIController_Enemy_Base, BP_EssenceOrb
 **Appele par :** BP_Enemy_Knight (heritage), BP_AIController_Enemy_Base
 **BPI_TakeDamage :** implemente
 
@@ -51,11 +60,7 @@
 - `MaxHealth` / `CurrentHealth` pas sur BP_AttributeSet -> migrer ENEMY-Base C1
 - `WeaponClass` hardcode BP_Enemy_Sword01_C* -> generaliser ENEMY-Types C2
 - `TriggerHitFlash` code mort -> supprimer nettoyage C2
-
-## Notes -- ENEMY-DropSystem (prochain jalon)
-
-`OnDeath` dispatcher est le point d'accroche naturel pour spawner BP_EssenceDrop :
-```
-OnDeath -> SpawnActor(BP_EssenceDrop) -> SET EssenceValue -> (chance objet simple)
-```
-EssenceValue configurable par instance (expose en Instance Editable).
+- EssenceDropValue hardcode 15 -> DT_Enemy C2
+- ItemDropChance hardcode 0.5 -> DT_Item C2
+- BP_ItemDrop stub (overlap -> DestroyActor) -> brancher InventoryComponent C2
+- DebugPrintVar a supprimer avant MAP-C1Level

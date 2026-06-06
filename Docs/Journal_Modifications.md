@@ -5,6 +5,53 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 06/06/2026 -- ENEMY-DropSystem -- VALIDE PIE
+
+#### Architecture drops -- decisions de design
+- Essence ennemi : comportement actif DS-like (vole vers le hero automatiquement) -- distinct de BP_EssenceDrop (passif, mort hero)
+- BP_EssenceDrop : inchange -- drop passif au sol, mort hero uniquement, overlap joueur
+- BP_EssenceOrb : nouvel Actor -- drop actif, mort ennemi, vol automatique vers hero via VInterpTo
+- BP_ItemDrop : stub visuel C1, x% chance, overlap -> DestroyActor uniquement (pas d'inventaire)
+- Separation explicite : deux Actors distincts plutot qu'un bool bAutoFly -> architecture propre
+- Calibrage C2 : DataTable drops (type ennemi) + multiplicateur Corruption + lien InventoryComponent
+
+#### BP_EssenceOrb -- VALIDE PIE
+- Composants : SphereComponent (root), StaticMesh (NoCollision), PointLight
+- Variables : EssenceDropValue (int64), TargetCharacter (HC ref), FlySpeed (float), ArrivalThreshold (float)
+- BeginPlay : GetPlayerCharacter -> Cast HC -> SET TargetCharacter
+- Tick : IsValid(TargetCharacter) -> VInterpTo(SelfPos, TargetPos, DeltaSeconds, FlySpeed) -> SetActorLocation
+- VSize(Target - Self) < ArrivalThreshold -> OnArrival
+- OnArrival : GetStatValue(EssenceValue) + EssenceDropValue -> Conv_Int64ToDouble -> SetStatValue(EssenceValue) -> DestroyActor
+- Path UE5 : /Game/Systems/Essence/BP_EssenceOrb
+
+#### BP_Enemy_Base -- modifications VALIDE PIE
+- OnDeath -> SpawnActor(BP_EssenceOrb, GetActorLocation) -> SET EssenceDropValue (hardcode 15 en C1)
+- RandomFloatInRange(0,1) > 0.5 -> Branch true : SpawnActor(BP_ItemDrop) -- stub, branche non connectee en C1
+- EssenceDropValue hardcode C1 -- migrer vers DT_Enemy en C2
+- ItemDropChance hardcode 0.5 C1 -- migrer vers DT_Item en C2
+
+#### UI_HUD_Main -- fix affichage Essence
+- Bug : EssenceValue affichait des decimales
+- Cause : UpdateStatText utilisait Conv_DoubleToString au lieu de Conv_DoubleToInt64 -> Conv_Int64ToString
+- Fix : correction dans UpdateStatText + ajout call UpdateStatText dans HUD_OnStatChanged
+- Bug 2 : HUD_OnStatChanged n'appelait pas UpdateStatText -> Essence jamais rafraichi au pickup
+- Fix 2 : ajout call UpdateStatText apres RefreshAllStats dans HUD_OnStatChanged
+
+#### Bugs resolus pendant la session
+- BP_EssenceOrb condition arrivee inversee (> au lieu de <) -> Orb disparaissait au spawn
+- VLerp alpha = DeltaSeconds * FlySpeed > 1 -> Orb depassait la cible et oscillait -- remplace par VInterpTo
+- FlySpeed default 0.0 -> Orb immobile -- valeur a regler dans Details panel
+
+#### Dettes C1 restantes
+- BP_ItemDrop stub : brancher sur InventoryComponent quand ENEMY-Types C2
+- EssenceDropValue et ItemDropChance hardcodes -> DT_Enemy + DT_Item en C2
+- DebugPrintVar a supprimer dans BP_EssenceOrb et BP_Enemy_Base avant MAP-C1Level
+
+#### Etat final
+ENEMY-DropSystem VALIDE PIE. Tuer un ennemi spawne un BP_EssenceOrb qui vole vers le hero, credite l'Essence et met a jour le HUD.
+
+---
+
 ### 05/06/2026 -- DESIGN-ReplanificationC1 -- session design
 
 #### Replanification jalons C1
@@ -177,4 +224,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 05/06/2026
+- Derniere mise a jour : 06/06/2026

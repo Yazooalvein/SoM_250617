@@ -2,10 +2,14 @@
 
 **Path UE5 :** `/Game/Systems/Essence/BP_EssenceDrop`
 **Parent :** Actor
-**Noeuds totaux :** 22
-**Dernier snapshot :** 05/06/2026 -- Audit global
+**Dernier snapshot :** 06/06/2026 -- ENEMY-DropSystem
 
 ---
+
+## Role
+
+Drop passif au sol spawne a la mort du HERO. Le joueur doit se deplacer pour le recuperer.
+Distinct de BP_EssenceOrb (actif, mort ennemi).
 
 ## Composants
 
@@ -28,10 +32,11 @@
 ## Dependances
 
 **Appelle :** BP_AttributeSet_Base (GetStatValue + SetStatValue)
-**Spawn par :** BP_SoM_PlayerController (OnHeroDied), BP_Enemy_Base.OnDeath (a implementer -- ENEMY-DropSystem)
+**Spawn par :** BP_SoM_PlayerController (OnHeroDied)
 
 ## Notes techniques
 
 - StaticMesh NoCollision OBLIGATOIRE (sinon bloque le joueur)
 - bCanBePickedUp + Delay 1.5s OBLIGATOIRE (sinon pickup immediat avant que le drop soit visible)
 - EssenceValue configurable a la creation (SpawnActor -> SET EssenceValue)
+- MORT HERO UNIQUEMENT -- ne pas utiliser pour les drops ennemis (utiliser BP_EssenceOrb)

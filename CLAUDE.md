@@ -116,6 +116,7 @@ Docs/
     BP_InventoryComponent.md
     BP_CorruptionComponent.md
     BP_EssenceDrop.md
+    BP_EssenceOrb.md
     BP_SoM_GameMode.md
     UI_HUD_Main.md
     UI_Radial_Main.md
@@ -208,7 +209,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - Valeurs par defaut renseignees en Details panel instance HC (dette -> BeginPlay a terme)
 - Radial lit GetWeapons() pour peupler les slots armes
 
-### BP_CorruptionComponent -- VALIDE PIE (31/05/2026) -- MIS A JOUR SYS-StatSystem
+### BP_CorruptionComponent -- VALIDE PIE (31/05/2026)
 - Variables : DeityUsageMap (TMap<Name, int32>)
 - Fonctions : InitCorruption, TrackDeityUsage(DeityName), GetWeakDeity()->Name, PurgeCorruption(CostAmount)
 - TrackDeityUsage : incremente DeityUsageMap + Corruption +5.0 par sort via SetStatValue
@@ -216,12 +217,23 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - GetWeakDeity : retourne la deite la plus utilisee depuis la derniere purge
 - GOTCHA : NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner->Cast
 
-### BP_EssenceDrop -- VALIDE PIE (02/06/2026)
+### BP_EssenceDrop -- VALIDE PIE (02/06/2026) -- mort hero uniquement
 - Composants : SphereComponent (root, OverlapAllDynamic), StaticMesh (NoCollision), PointLight
 - Variables : EssenceValue (Int64), bCanBePickedUp (Bool, default false)
 - BeginPlay : Delay(1.5s) -> SET bCanBePickedUp = true
 - ActorBeginOverlap : Branch(bCanBePickedUp) -> Cast HC -> AttributeSetRef -> GetStatValue(EssenceValue) + valeur drop -> SetStatValue(EssenceValue) -> DestroyActor
 - Gotcha : StaticMesh NoCollision obligatoire + bCanBePickedUp obligatoire
+- ROLE : drop passif au sol, recuperable par le joueur -- MORT HERO UNIQUEMENT
+
+### BP_EssenceOrb -- VALIDE PIE (06/06/2026) -- mort ennemi uniquement
+- Composants : SphereComponent (root), StaticMesh (NoCollision), PointLight
+- Variables : EssenceDropValue (int64), TargetCharacter (HC), FlySpeed (float), ArrivalThreshold (float)
+- BeginPlay : GetPlayerCharacter -> Cast HC -> SET TargetCharacter
+- Tick : VInterpTo(SelfPos, TargetPos, DeltaSeconds, FlySpeed) -> SetActorLocation. VSize < ArrivalThreshold -> OnArrival
+- OnArrival : GetStatValue(EssenceValue) + EssenceDropValue -> Conv_Int64ToDouble -> SetStatValue(EssenceValue) -> DestroyActor
+- Path UE5 : /Game/Systems/Essence/BP_EssenceOrb
+- ROLE : drop actif DS-like, vole automatiquement vers le hero -- MORT ENNEMI UNIQUEMENT
+- GOTCHA : VLerp avec alpha > 1 = depasse la cible -> utiliser VInterpTo obligatoirement
 
 ### Save System -- VALIDE PIE (03/06/2026)
 - BPI_Saveable : interface SaveData(SaveGame) + LoadData(SaveGame) -- Content/Systems/Save/
@@ -237,7 +249,6 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - UI_FountainMenu -- Se reposer : regen HP/ST/MP + save + respawn ennemis zone + PurgeCorruption + restock objets
 - UI_FountainMenu -- Menu Inventaire : quickslots + upgrade magie/deites + level up hero (depense Essence)
 - Essence = monnaie unique pour tout (level up + magie + purge Corruption) -> tension intentionnelle
-- Visuel C1 : changement couleur/materiau sur bIsActivated. Vision ART future : racines Mana poussant a l'activation (Fee), Fee se reposant dans la Fontaine lors des interactions. A elaborer en ART-Fontaine.
 - A IMPLEMENTER : UI-FountainMenu (C1) -- refacto BP_FountainComponent overlap -> interaction volontaire
 
 ### Flux mort / respawn -- VALIDE PIE (03/06/2026)
@@ -253,7 +264,6 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - SetStatValue : guards EssenceValue + Corruption + HealthMax + Default (FClamp via Maps) + 6 CallDelegate
 - ConsumeStamina / HandleStaminaRegen / StartStaminaRegen : passent par GetStatValue + SetStatValue
 - UI_HUD_Main : RefreshAllStats + InitHUD(AttributeSetRef) -- tout passe par GetStatValue
-- Validation PIE complete : stats + HUD + fontaine + mort/respawn/essence + magie + attaques
 - Voir Docs/Blueprints/BP_AttributeSet_Base.md
 - Voir Docs/Architecture/Stats_Progression.md
 
@@ -287,14 +297,13 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - ConsumeMana : GetStatValue(ManaCurrent) - cout -> SetStatValue(ManaCurrent)
 - Deite C1 : Lumina
 
-### UI / HUD -- VALIDE PIE (04/06/2026)
+### UI / HUD -- VALIDE PIE (06/06/2026)
 - UI_HUD_Main : event-driven, HP/ST/MP/Essence/Corruption VALIDE PIE
 - RefreshAllStats : recalcule tous les pourcentages via GetStatValue
 - InitHUD(AttributeSetRef) : SET HUD.AttributeSetRef -> RefreshAllStats -> UpdateStatText
-- UpdateStatText : GetStatValue pour les 6 stats texte (Current/Max x3) + EssenceValue
-- HUD_OnStatChanged -> RefreshAllStats (switch supprime)
+- UpdateStatText : GetStatValue -> Conv_DoubleToInt64 -> Conv_Int64ToString pour EssenceValue (affichage entier)
+- HUD_OnStatChanged -> RefreshAllStats + UpdateStatText
 - CorruptionPercent : GetStatValue("Corruption") / 100
-- EssenceValue : GetStatValue -> Conv_DoubleToString
 
 ### Inputs -- VALIDE PIE (23/05/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
@@ -318,7 +327,8 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - [x] SYS-EssenceMana VALIDE PIE (02/06/2026)
 - [x] SYS-SaveGame VALIDE PIE (03/06/2026)
 - [x] INFRA-BlueprintSnapshotLayer (04/06/2026)
-- [x] **SYS-StatSystem VALIDE PIE (04/06/2026)**
+- [x] SYS-StatSystem VALIDE PIE (04/06/2026)
+- [x] **ENEMY-DropSystem VALIDE PIE (06/06/2026)**
 
 ## Jalon en cours
 
@@ -326,11 +336,10 @@ Aucun -- prochain jalon a definir.
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **ENEMY-DropSystem** : mort ennemi -> spawn Essence + chance objet
-2. **UI-FountainMenu** : refacto BP_FountainComponent + mini-menu deux interactions
-3. **ENEMY-Base** : stats sur BP_Enemy_Base
-4. **ENEMY-Boss1** : 1 boss, 1-2 patterns
-5. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+1. **UI-FountainMenu** : refacto BP_FountainComponent + mini-menu deux interactions
+2. **ENEMY-Base** : stats sur BP_Enemy_Base
+3. **ENEMY-Boss1** : 1 boss, 1-2 patterns
+4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
 
 ## Dettes techniques
 
@@ -352,21 +361,27 @@ Aucun -- prochain jalon a definir.
 - **BP_FountainComponent trigger overlap -> interaction volontaire** -> UI-FountainMenu (C1)
 - **Cout Essence Se reposer en Fontaine** -> a calibrer SESSION-Economie
 - **MAGIC-TreeModule** -> reporte C2
+- **BP_EssenceOrb EssenceDropValue hardcode 15** -> DT_Enemy C2
+- **BP_EssenceOrb ItemDropChance hardcode 0.5** -> DT_Item C2
+- **BP_EssenceOrb + BP_Enemy_Base : DebugPrintVar a supprimer** -> avant MAP-C1Level
 
 ---
 
 ## Notes techniques importantes
 
 - SetStatValue = UNIQUE point de modification stats
-- GetStatValue(Name) -> double (Pure) = UNIQUE point de lecture stats (Option B -- depuis SYS-StatSystem)
+- GetStatValue(Name) -> double (Pure) = UNIQUE point de lecture stats
 - Variables natives BP_AttributeSet_Base : HealthMax, StaminaMax, ManaMax UNIQUEMENT
-- HealthCurrent/StaminaCurrent/ManaCurrent vivent UNIQUEMENT dans StatValues (TMap) -- pas de variable native
-- Guard HealthMax dans SetStatValue : Value -> SET HealthMax natif DIRECTEMENT, sans FMin ni GetStatValue(HealthCurrent)
-- GOTCHA CRITIQUE : FMin(Value, GetStatValue("HealthCurrent")) dans guard HealthMax -> HealthMax = 0 si HealthCurrent absente de la Map au moment du ForEach
+- HealthCurrent/StaminaCurrent/ManaCurrent vivent UNIQUEMENT dans StatValues (TMap)
+- Guard HealthMax dans SetStatValue : Value -> SET HealthMax natif DIRECTEMENT, sans FMin
+- GOTCHA CRITIQUE : FMin(Value, GetStatValue("HealthCurrent")) dans guard HealthMax -> HealthMax = 0
 - InitHUD doit recevoir AttributeSetRef en parametre et SET HUD.AttributeSetRef AVANT RefreshAllStats
-- HUD_OnStatChanged simplifie : appel direct RefreshAllStats (plus de Switch)
-- EssenceValue dans UpdateStatText : Conv_DoubleToString (pas Conv_Int64ToString)
+- HUD_OnStatChanged : appel RefreshAllStats + UpdateStatText
+- EssenceValue dans UpdateStatText : Conv_DoubleToInt64 -> Conv_Int64ToString (affichage entier sans decimales)
 - CorruptionPercent = GetStatValue("Corruption") / 100 (ProgressBar attend 0..1)
+- BP_EssenceDrop = drop passif sol, mort hero. BP_EssenceOrb = drop actif vol, mort ennemi. NE PAS confondre.
+- BP_EssenceOrb : utiliser VInterpTo (pas VLerp -- alpha > 1 depasse la cible)
+- BP_EssenceOrb : condition arrivee = VSize < ArrivalThreshold (pas >)
 - ABP_Manny_Platforming = ABP du HERO (pas ABP_Unarmed)
 - SwitchCooldown = dans BP_CombatLockOnComponent UNIQUEMENT
 - T3D export = meilleur outil d'audit Blueprint
@@ -410,4 +425,4 @@ Aucun -- prochain jalon a definir.
 
 ---
 
-*Derniere mise a jour : 05/06/2026*
+*Derniere mise a jour : 06/06/2026*
