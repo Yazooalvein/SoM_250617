@@ -215,7 +215,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - TrackDeityUsage : incremente DeityUsageMap + Corruption +5.0 par sort via SetStatValue
 - PurgeCorruption : SetStatValue(Corruption, 0) + Map_Clear(DeityUsageMap)
 - GetWeakDeity : retourne la deite la plus utilisee depuis la derniere purge
-- GOTCHA : NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner->Cast
+- GOTCHA : NE PAS stocker AttributeSetRef en variable -- recup dynamiquement GetOwner/Cast
 
 ### BP_EssenceDrop -- VALIDE PIE (02/06/2026) -- mort hero uniquement
 - Composants : SphereComponent (root, OverlapAllDynamic), StaticMesh (NoCollision), PointLight
@@ -237,19 +237,28 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 ### Save System -- VALIDE PIE (03/06/2026)
 - BPI_Saveable : interface SaveData(SaveGame) + LoadData(SaveGame) -- Content/Systems/Save/
-- BP_SaveGame_SoM : conteneur pur, extends SaveGame
-- BPI_Saveable sur : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
+- BP_SaveGame_SoM : conteneur pur, extends SaveGame. Variables : ActivatedFountains (TArray<FName>) ajoutee UI-FountainMenu
+- BPI_Saveable sur : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base, BP_FountainComponent
 - HP/ST/MP non persistees -- restaurees a max au load via GetStatValue(Max)
 - Voir Docs/Architecture/SaveSystem.md
 
-### Fontaine de Fee -- DESIGN VALIDE (05/06/2026)
-- BP_FountainComponent : bIsActivated (Bool, default false)
-- 1ere interaction (bIsActivated=false) : animation activation + SET bIsActivated=true + regen HP/ST/MP + save spawn. PAS de menu, PAS de respawn ennemis.
-- Interactions suivantes (bIsActivated=true) : ouvre UI_FountainMenu (mini-menu)
-- UI_FountainMenu -- Se reposer : regen HP/ST/MP + save + respawn ennemis zone + PurgeCorruption + restock objets
-- UI_FountainMenu -- Menu Inventaire : quickslots + upgrade magie/deites + level up hero (depense Essence)
-- Essence = monnaie unique pour tout (level up + magie + purge Corruption) -> tension intentionnelle
-- A IMPLEMENTER : UI-FountainMenu (C1) -- refacto BP_FountainComponent overlap -> interaction volontaire
+### Interaction -- BPI_Interactable -- VALIDE PIE (07/06/2026)
+- BPI_Interactable : interface Interact(Instigator: BP_SoM_PlayerController) -- Content/Systems/
+- PC.OnInteract (IA_Interact Triggered) : GetOverlappingActors(HC) -> ForEachLoop -> DoesImplementInterface -> Message Interact(Target=Element, Instigator=Self)
+- BP_Fountain_Actor implemente BPI_Interactable
+- Interfaces futures : BPI_Damageable, BPI_StatusEffectable (C2/C3)
+- GOTCHA : ne jamais caster sur un type concret dans le PC pour gerer les interactables -- toujours passer par l'interface
+
+### Fontaine de Fee -- VALIDE PIE (07/06/2026)
+- BP_FountainComponent : bIsActivated (Bool, default false), FountainID (FName)
+- 1ere interaction (bIsActivated=false) : SET bIsActivated=true + FountainLight couleur chaude + save (GameMode.OnFountainRest). PAS de menu.
+- Interactions suivantes (bIsActivated=true) : CreateWidget(UI_FountainMenu) + AddToViewport + SetInputModeUIOnly + swap IMC
+- UI_FountainMenu -- Se reposer : OnFountainRest + fermer menu + SetInputModeGameOnly + swap IMC
+- UI_FountainMenu -- Menu Inventaire : stub WIP C1
+- BPI_Saveable sur BP_FountainComponent : SaveData -> ActivatedFountains.Add(FountainID) / LoadData -> Contains -> SET bIsActivated
+- FountainID doit etre renseigne dans le Details panel de chaque instance en niveau
+- GOTCHA : SetInputModeUIOnly + SetShowMouseCursor obligatoires -- swap IMC seul ne bloque pas le mouvement
+- GOTCHA : feedback PointLight doit etre pousse directement depuis FountainComponent a l'activation (pas seulement via BeginOverlap)
 
 ### Flux mort / respawn -- VALIDE PIE (03/06/2026)
 - HC : bIsDead=true -> DisableInput -> PlayAnimMontage(AM_Death) -> Delay(0.2s) -> Call OnPlayerDeath
@@ -297,16 +306,15 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - ConsumeMana : GetStatValue(ManaCurrent) - cout -> SetStatValue(ManaCurrent)
 - Deite C1 : Lumina
 
-### UI / HUD -- VALIDE PIE (06/06/2026)
+### UI / HUD -- VALIDE PIE (07/06/2026)
 - UI_HUD_Main : event-driven, HP/ST/MP/Essence/Corruption VALIDE PIE
-- RefreshAllStats : recalcule tous les pourcentages via GetStatValue
-- InitHUD(AttributeSetRef) : SET HUD.AttributeSetRef -> RefreshAllStats -> UpdateStatText
-- UpdateStatText : GetStatValue -> Conv_DoubleToInt64 -> Conv_Int64ToString pour EssenceValue (affichage entier)
-- HUD_OnStatChanged -> RefreshAllStats + UpdateStatText
-- CorruptionPercent : GetStatValue("Corruption") / 100
+- UI_FountainMenu : /Game/UI/Widgets/FountainMenu/UI_FountainMenu -- deux boutons (Se reposer / Menu Inventaire stub)
+- Ouverture UI_FountainMenu : CreateWidget depuis BP_FountainComponent + SetInputModeUIOnly + SetShowMouseCursor=true
+- Fermeture : RemoveFromParent + SetInputModeGameOnly + SetShowMouseCursor=false
 
-### Inputs -- VALIDE PIE (23/05/2026)
+### Inputs -- VALIDE PIE (07/06/2026)
 - IMC_Gameplay, IMC_Radial, IMC_Menu, IMC_Dialogue, IMC_Cutscene
+- IA_Interact (Digital) : touche E / Gamepad Face Button Bottom -- ajout UI-FountainMenu
 
 ---
 
@@ -328,7 +336,8 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - [x] SYS-SaveGame VALIDE PIE (03/06/2026)
 - [x] INFRA-BlueprintSnapshotLayer (04/06/2026)
 - [x] SYS-StatSystem VALIDE PIE (04/06/2026)
-- [x] **ENEMY-DropSystem VALIDE PIE (06/06/2026)**
+- [x] ENEMY-DropSystem VALIDE PIE (06/06/2026)
+- [x] **UI-FountainMenu VALIDE PIE (07/06/2026)**
 
 ## Jalon en cours
 
@@ -336,10 +345,9 @@ Aucun -- prochain jalon a definir.
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **UI-FountainMenu** : refacto BP_FountainComponent + mini-menu deux interactions
-2. **ENEMY-Base** : stats sur BP_Enemy_Base
-3. **ENEMY-Boss1** : 1 boss, 1-2 patterns
-4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+1. **ENEMY-Base** : stats sur BP_Enemy_Base
+2. **ENEMY-Boss1** : 1 boss, 1-2 patterns
+3. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
 
 ## Dettes techniques
 
@@ -358,12 +366,15 @@ Aucun -- prochain jalon a definir.
 - **Mob porteur Essence** -> C2
 - **SetStatValue HP/ST/MP dans OnHeroDied ET dans AttributeSet.LoadData** -- doublon a nettoyer
 - **CollectFountainTransform prend index 0** -- filtrage par FountainID -> C2
-- **BP_FountainComponent trigger overlap -> interaction volontaire** -> UI-FountainMenu (C1)
-- **Cout Essence Se reposer en Fontaine** -> a calibrer SESSION-Economie
 - **MAGIC-TreeModule** -> reporte C2
 - **BP_EssenceOrb EssenceDropValue hardcode 15** -> DT_Enemy C2
 - **BP_EssenceOrb ItemDropChance hardcode 0.5** -> DT_Item C2
 - **BP_EssenceOrb + BP_Enemy_Base : DebugPrintVar a supprimer** -> avant MAP-C1Level
+- **UI_FountainMenu FountainID hardcode None** -> passer via variable widget C2
+- **UI_FountainMenu Se reposer : PurgeCorruption non branche** -> corriger avant ENEMY-Base
+- **UI_FountainMenu Se reposer : respawn ennemis stub** -> MAP-C1Level
+- **UI_FountainMenu Menu Inventaire stub vide** -> jalon dedie C2
+- **BPI_Interactable : priorite entre interactables superposees** -> UI-InteractPriority C2
 
 ---
 
@@ -407,6 +418,10 @@ Aucun -- prochain jalon a definir.
 - Git : si conflit LFS -> git checkout origin/main -- Docs/ + commit + push --force-with-lease
 - Fontaine : bIsActivated=false -> 1ere interaction = regen/save SANS menu. bIsActivated=true -> mini-menu
 - Essence = monnaie unique (level up + upgrade magie + purge Corruption) -- tension intentionnelle
+- GOTCHA UI Fontaine : SetInputModeUIOnly + SetShowMouseCursor=true OBLIGATOIRES a l'ouverture menu
+- GOTCHA UI Fontaine : feedback PointLight doit etre pousse depuis FountainComponent directement a l'activation
+- BPI_Interactable : PC.OnInteract utilise GetOverlappingActors(HC) + DoesImplementInterface -- NE PAS caster sur types concrets
+- FountainID doit etre renseigne manuellement dans le Details panel de chaque instance BP_Fountain_Actor en niveau
 
 ---
 
@@ -425,4 +440,4 @@ Aucun -- prochain jalon a definir.
 
 ---
 
-*Derniere mise a jour : 06/06/2026*
+*Derniere mise a jour : 07/06/2026*

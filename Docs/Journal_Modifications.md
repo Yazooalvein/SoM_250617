@@ -5,6 +5,58 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 07/06/2026 -- UI-FountainMenu -- VALIDE PIE
+
+#### Architecture interaction -- BPI_Interactable
+- Creation de BPI_Interactable (Interact(Instigator: BP_SoM_PlayerController)) -- Content/Systems/
+- PC.OnInteract : GetOverlappingActors(HC) -> ForEachLoop -> DoesImplementInterface(BPI_Interactable) -> Message Interact(Target=ArrayElement, Instigator=Self)
+- Architecture extensible : vendeurs, PNJ, leviers implementeront BPI_Interactable en C2/C3 sans modifier le PC
+- BP_Fountain_Actor implemente BPI_Interactable -- Interact() -> GetComponentByClass(BP_FountainComponent) -> OnPlayerInteract
+
+#### IA_Interact -- nouvel input
+- Creation IA_Interact (Digital/bool) dans Content/Input/InputActions/
+- Ajout dans IMC_Gameplay : touche E (clavier) + Gamepad Face Button Bottom
+
+#### BP_Fountain_Actor -- refacto
+- InteractionZone : remplacement StaticMesh sphere par SphereComponent (radius 150, OverlapAllDynamic)
+- Ajout FountainLight (PointLight) : feedback visuel etat fontaine
+- OnBeginOverlap : Cast HC -> Branch(bIsActivated) -> True : couleur chaude (R=1.0,G=0.8,B=0.3, intensite 2000) / False : couleur froide (R=0.3,G=0.5,B=1.0, intensite 500)
+- OnEndOverlap : retour couleur froide dans tous les cas
+- Feedback activation immediate : BP_FountainComponent pousse SetIntensity+SetLightColor sur FountainLight a l'activation (sans attendre EndOverlap/BeginOverlap)
+
+#### BP_FountainComponent -- refacto majeure -- VALIDE PIE
+- Suppression overlap automatique -- interaction volontaire via BPI_Interactable.Interact
+- OnPlayerInteract : Branch(bIsActivated)
+  - False (1ere activation) : SET bIsActivated=true -> GetOwner -> FountainLight couleur chaude -> Cast GameMode -> OnFountainRest(FountainID)
+  - True (suivantes) : GetPlayerController -> Cast PC -> CreateWidget(UI_FountainMenu, OwningPlayer=PC) -> AddToViewport -> GetSubsystem -> RemoveIMC(IMC_Gameplay) -> AddIMC(IMC_Menu) + SetShowMouseCursor=true + SetInputModeUIOnly
+- BPI_Saveable implemente : SaveData -> Array_Add(FountainID) dans SaveGame.ActivatedFountains / LoadData -> Array_Contains(FountainID) -> SET bIsActivated
+
+#### BP_SaveGame_SoM -- ajout variable
+- Ajout ActivatedFountains (TArray<FName>) -- liste des fontaines activees entre sessions
+
+#### UI_FountainMenu -- VALIDE PIE
+- Path UE5 : /Game/UI/Widgets/FountainMenu/UI_FountainMenu
+- Structure : Canvas Panel -> Vertical Box -> Text "FONTAINE DE FEE" + Btn_SeReposer + Btn_MenuInventaire
+- Btn_SeReposer : GetOwningPlayer -> Cast PC -> GetGameMode -> Cast GameMode -> OnFountainRest(FountainID=None C1) -> Print stub -> RemoveFromParent -> SetInputModeGameOnly + SetShowMouseCursor=false -> RemoveIMC(IMC_Menu) -> AddIMC(IMC_Gameplay)
+- Btn_MenuInventaire : Print "WIP" -> RemoveFromParent -> swap IMC identique
+- FountainID stub (None) en C1 -- passer le vrai FountainID via variable sur le widget en C2
+
+#### Bugs resolus
+- IMC swap seul insuffisant pour bloquer le mouvement : remplacement par SetInputModeUIOnly/SetInputModeGameOnly + SetShowMouseCursor
+- Feedback visuel PointLight ne se mettait pas a jour si activation en restant dans la zone d'overlap : ajout notification directe FountainComponent -> FountainLight au moment SET bIsActivated=true
+
+#### Dettes C1 restantes
+- UI_FountainMenu.FountainID hardcode None -- passer le vrai ID via variable widget en C2
+- Btn_MenuInventaire stub vide -- contenu a ENEMY-Base + jalon dedie
+- Se reposer : respawn ennemis zone non implemente (stub log) -- a MAP-C1Level
+- Se reposer : PurgeCorruption non branche -- a connecter (oubli C1, corriger avant ENEMY-Base)
+- BPI_Interactable : priorite entre interactables superposees non geree -- a UI-InteractPriority C2
+
+#### Etat final
+UI-FountainMenu VALIDE PIE. Interaction volontaire fontaine, feedback PointLight bIsActivated, menu deux boutons fonctionnel, persistance bIsActivated via BPI_Saveable.
+
+---
+
 ### 06/06/2026 -- ENEMY-DropSystem -- VALIDE PIE
 
 #### Architecture drops -- decisions de design
@@ -91,34 +143,6 @@ Session design pure. Aucun Blueprint modifie. Roadmap, CLAUDE.md et Decisions.md
 - Mort/respawn : drop Essence + fade + reset stats + respawn Fontaine/PlayerStart OK
 - Magie : ConsumeMana via GetStatValue OK, sorts Lumina operationnels
 - Attaques : equip armes + combo Light/Heavy OK
-
-#### Session 2 -- HUD + migration Option B
-- Migration Option B complete : tous les lecteurs passent par GetStatValue -- plus aucun GET variable native hors BP_AttributeSet_Base
-- UI_HUD_Main : RefreshAllStats creee, HUD_OnStatChanged simplifie (switch supprime -> appel direct RefreshAllStats)
-- InitHUD(AttributeSetRef) : SET HUD.AttributeSetRef en premier noeud avant RefreshAllStats
-- UpdateStatText : 6 GetStatValue (HealthCurrent/Max, StaminaCurrent/Max, ManaCurrent/Max)
-- Migres vers GetStatValue : BP_MagicComponent.ConsumeMana, BP_SoM_PlayerController.OnHeroDied, BP_SoM_GameMode.WriteSaveAndApplyFountainEffects, BP_Spell_Heal.ApplyEffect, ConsumeStamina, HandleStaminaRegen, StartStaminaRegen
-- BP_CorruptionComponent.TrackDeityUsage : pre-clamp redondant (0,100) supprime
-
-#### Bug critique resolu : HealthMax = 0
-- Cause : guard HealthMax contenait FMin(Value, GetStatValue("HealthCurrent")) -- HealthCurrent absente de la Map au moment du ForEach -> FMin(100, 0) = 0
-- Fix : Value connecte directement au SET HealthMax natif -- FMin supprime
-
-#### Bug resolu : AttributeSetRef null dans UI_HUD_Main
-- Cause : InitHUD appelait RefreshAllStats sans avoir SET HUD.AttributeSetRef
-- Fix : ajout input pin AttributeSetRef sur InitHUD + SET en premier noeud
-
-#### Session 1 -- Architecture TMap
-- BP_AttributeSet_Base : TMap StatValues + StatMinValues + StatMaxValues
-- InitStats() : ForEach DT_StatList -> Map_Add x3
-- GetStatValue(Name) : Pure, Map_Find + debug
-- SetStatValue : guards EssenceValue + Corruption + HealthMax + Default (FClamp) + 6 CallDelegate OnStatChanged
-- BP_CorruptionComponent : OwnerAttributeSet supprimee -> variables locales dynamiques
-
-#### Architecture post-jalon
-- Variables natives BP_AttributeSet_Base : HealthMax, StaminaMax, ManaMax UNIQUEMENT
-- HealthCurrent/StaminaCurrent/ManaCurrent : StatValues uniquement -- pas de native
-- DT_StatList : 14 rows, pas de rows Current (initialisees post-ForEach via SetStatValue(Current=Max))
 
 #### Etat final
 SYS-StatSystem VALIDE PIE complet. Tous les systemes C1 core valides.
@@ -224,4 +248,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 06/06/2026
+- Derniere mise a jour : 07/06/2026

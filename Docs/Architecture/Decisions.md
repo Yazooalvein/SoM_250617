@@ -16,7 +16,7 @@ Ces regles s'appliquent a TOUT nouveau systeme. Les lire avant de concevoir quoi
 SaveData() ecrit dans BP_SaveGame_SoM. LoadData() reconstruit l'etat depuis les donnees sauvegardees.
 Le GameMode itere sur GetComponentsByInterface(BPI_Saveable) -- il ne connait pas les details.
 **Raison** : Decouplage total. Ajouter un nouveau systeme = implementer l'interface, zero modification du GameMode.
-**Systemes actuels** : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base
+**Systemes actuels** : BP_InventoryComponent, BP_ComboManagerComponent, BP_MagicComponent, BP_AttributeSet_Base, BP_FountainComponent
 **Systemes futurs** : BP_QuestComponent (C4), BP_ForgeComponent (C3), BP_CorruptionComponent si etat persistant
 **Ne pas faire** : Collecter les donnees directement dans GameMode.OnFountainRest par type concret.
 
@@ -52,8 +52,8 @@ BP_MagicComponent (sorts+deites), BP_CorruptionComponent (corruption), BP_Combat
 **Regle** : Des qu'un comportement va concerner plusieurs systemes heterogenes, creer une interface Blueprint.
 Ne pas brancher en dur sur des types concrets quand une interface suffit.
 **Raison** : Un nouveau systeme = implementer l'interface, pas modifier tous les appelants.
-**Interfaces actuelles** : BPI_Saveable
-**Interfaces futures probables** : BPI_Damageable, BPI_Interactable, BPI_StatusEffectable
+**Interfaces actuelles** : BPI_Saveable, BPI_Interactable
+**Interfaces futures probables** : BPI_Damageable, BPI_StatusEffectable
 **Ne pas faire** : Switch sur des types concrets pour appeler des comportements communs.
 
 ### [PERMANENT] Points d'entree uniques
@@ -66,6 +66,7 @@ Ne jamais contourner ces points d'entree, meme "pour aller plus vite".
 | Declencher une save | GameMode.OnFountainRest(FountainID) |
 | Lancer un sort | MagicComponent.CastSpell(SpellID) |
 | Ajouter une arme connue | InventoryComponent.AddWeapon(WeaponID) |
+| Interagir avec un Actor | BPI_Interactable.Interact(Instigator) |
 **Ne pas faire** : Appeler SaveGameToSlot directement depuis un Blueprint quelconque.
 
 ### [PERMANENT] Sauvegarde -- sauvegarder le delta, pas l'etat derive
@@ -78,6 +79,31 @@ Au load : reconstruction depuis DT_Deities via UnlockDeity() pour chaque deite n
 
 ---
 
+## INTERACTION -- BPI_Interactable (07/06/2026)
+
+### [07/06/2026] BPI_Interactable -- interface d'interaction universelle
+**Contexte** : Refacto BP_FountainComponent -- besoin d'un systeme d'interaction volontaire extensible (fontaines, vendeurs, PNJ, leviers...).
+**Decision** : Creer BPI_Interactable avec une seule fonction Interact(Instigator: BP_SoM_PlayerController).
+PC.OnInteract (IA_Interact) : GetOverlappingActors(HC) -> ForEachLoop -> DoesImplementInterface(BPI_Interactable) -> Message Interact.
+**Raison** : Le PC ne connait jamais les types concrets des interactables. Ajouter un vendeur = implementer l'interface, zero modification du PC.
+**Consequences** :
+- BP_Fountain_Actor implemente BPI_Interactable des C1
+- Vendeurs, PNJ, leviers implementeront BPI_Interactable en C2/C3
+- Priorite entre interactables superposees -> UI-InteractPriority C2
+
+### [07/06/2026] Input mode UI -- SetInputModeUIOnly obligatoire
+**Contexte** : Swap IMC seul (RemoveIMC/AddIMC) ne bloque pas le mouvement du personnage a l'ouverture d'un menu UMG.
+**Decision** : Toute ouverture de menu UMG doit utiliser SetInputModeUIOnly + SetShowMouseCursor=true. Fermeture : SetInputModeGameOnly + SetShowMouseCursor=false.
+**Raison** : SetInputModeUIOnly capture la souris et bloque les inputs gameplay. Swap IMC seul est insuffisant.
+**Consequences** : Pattern a appliquer a tous les futurs menus UMG (inventaire, forge, dialogue...).
+
+### [07/06/2026] Feedback visuel Fontaine -- notification directe Component -> Actor
+**Contexte** : Le PointLight ne se mettait pas a jour si le joueur restait dans la zone d'overlap lors de l'activation.
+**Decision** : BP_FountainComponent pousse directement la mise a jour visuelle (SetIntensity + SetLightColor) sur FountainLight de BP_Fountain_Actor au moment de SET bIsActivated=true. Le BeginOverlap gere uniquement l'affichage a l'approche.
+**Raison** : BeginOverlap ne se retrigger pas si le joueur ne quitte pas la zone. La notification directe garantit l'immediacy du feedback.
+
+---
+
 ## FONTAINE DE FEE -- DESIGN (05/06/2026)
 
 ### [05/06/2026] Interaction Fontaine -- deux etats, un seul type d'interaction
@@ -87,7 +113,7 @@ Au load : reconstruction depuis DT_Deities via UnlockDeity() pour chaque deite n
 - bIsActivated=false (1ere fois) : animation activation + SET bIsActivated=true + regen HP/ST/MP + save spawn. Pas de menu, pas de respawn ennemis. Identique a l'allumage d'un feu de camp DS.
 - bIsActivated=true (fois suivantes) : ouvre UI_FountainMenu.
 **Raison** : Reproduire la tension DS -- la 1ere activation est gratuite, les suivantes ont un cout (respawn ennemis). Coherence avec l'identite du jeu.
-**Consequences** : Refacto BP_FountainComponent -- supprimer le trigger overlap actuel, ajouter logique interaction + bIsActivated. A faire dans UI-FountainMenu (C1).
+**Consequences** : Refacto BP_FountainComponent -- supprimer le trigger overlap actuel, ajouter logique interaction + bIsActivated. Fait dans UI-FountainMenu (C1).
 
 ### [05/06/2026] UI_FountainMenu -- deux actions
 **Decision** :
@@ -108,7 +134,7 @@ Au load : reconstruction depuis DT_Deities via UnlockDeity() pour chaque deite n
 ### [05/06/2026] Vision ART Fontaine -- note de maturation
 **Idee** : Racines de l'arbre Mana poussant a l'activation (animees par la Fee). Fee se reposant dans la Fontaine lors des interactions.
 **Statut** : En maturation. Pas de pipeline ART confirme. Session ART-Fontaine a planifier quand Nico est pret.
-**C1** : Changement couleur/materiau sur bIsActivated suffit.
+**C1** : Changement couleur PointLight sur bIsActivated.
 
 ---
 
@@ -241,10 +267,14 @@ Branch(IsRolling) en guard : si rolling, pas de SetControlRotation.
 
 ## INPUTS
 
+### [07/06/2026] IA_Interact -- ajout UI-FountainMenu
+**Decision** : Nouvelle InputAction IA_Interact (Digital/bool), binding touche E + Gamepad Face Button Bottom dans IMC_Gameplay.
+**Raison** : Interaction volontaire avec les interactables (fontaines, vendeurs, PNJ...). Un seul input pour tous les interactables via BPI_Interactable.
+
 ### [23/05/2026] Architecture IMC -- 5 IMC distincts
 | IMC | Contenu | Mode |
 |---|---|---|
-| IMC_Gameplay | Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialOpen, Quickslots | Exclusif |
+| IMC_Gameplay | Move, Look, Jump, Dodge, Sprint, LockOn, Attack, Block, RadialOpen, Quickslots, Interact | Exclusif |
 | IMC_Radial | Rotate, Validate, Cancel, ChangeCat | Exclusif |
 | IMC_Menu | Navigate, Confirm, Back | Exclusif |
 | IMC_Dialogue | Confirm/Avance, Choix | Cumulatif avec Gameplay |
@@ -321,3 +351,5 @@ Condition N1/N2 sur CurrentCategory (ERadialMode), pas CurrentMagicSchool.
 - 03/06/2026 : decisions SYS-SaveGame : BPI_Saveable, LockedDeities vs UnlockedSpells, HP/ST/MP non persistees
 - 05/06/2026 : section FONTAINE DE FEE -- design deux interactions, UI_FountainMenu, Essence monnaie unique, vision ART
 - 05/06/2026 : section REPLANIFICATION C1 -- MAGIC-TreeModule et ANIM-Pass1 reportes C2, ENEMY-DropSystem et UI-FountainMenu ajoutes C1
+- 07/06/2026 : section INTERACTION -- BPI_Interactable, SetInputModeUIOnly pattern, feedback PointLight notification directe
+- 07/06/2026 : IA_Interact ajoute dans INPUTS, BPI_Interactable dans PATTERNS ETABLIS interfaces actuelles
