@@ -17,7 +17,7 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | Blueprint | Fichier | Dernier snapshot | Jalon | Statut |
 |---|---|---|---|---|
 | BP_SoM_HeroCharacter | [BP_SoM_HeroCharacter.md](BP_SoM_HeroCharacter.md) | 05/06/2026 | Audit global | PERIME |
-| BP_SoM_PlayerController | [BP_SoM_PlayerController.md](BP_SoM_PlayerController.md) | 05/06/2026 | Audit global | PERIME |
+| BP_SoM_PlayerController | [BP_SoM_PlayerController.md](BP_SoM_PlayerController.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 | BP_SoM_GameMode | [BP_SoM_GameMode.md](BP_SoM_GameMode.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_AttributeSet_Base | [BP_AttributeSet_Base.md](BP_AttributeSet_Base.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_ComboManagerComponent | [BP_ComboManagerComponent.md](BP_ComboManagerComponent.md) | 05/06/2026 | Audit global | A JOUR |
@@ -27,8 +27,8 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | BP_CorruptionComponent | [BP_CorruptionComponent.md](BP_CorruptionComponent.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_EssenceDrop | [BP_EssenceDrop.md](BP_EssenceDrop.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
 | BP_EssenceOrb | [BP_EssenceOrb.md](BP_EssenceOrb.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
-| BP_SaveGame_SoM | [BP_SaveGame_SoM.md](BP_SaveGame_SoM.md) | 05/06/2026 | Audit global | PERIME |
-| BP_Fountain_Actor | [BP_Fountain_Actor.md](BP_Fountain_Actor.md) | 05/06/2026 | Audit global | PERIME |
+| BP_SaveGame_SoM | [BP_SaveGame_SoM.md](BP_SaveGame_SoM.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
+| BP_Fountain_Actor | [BP_Fountain_Actor.md](BP_Fountain_Actor.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 | BP_FountainComponent | [BP_FountainComponent.md](BP_FountainComponent.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 | BP_Enemy_Base | [BP_Enemy_Base.md](BP_Enemy_Base.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
 | BP_Enemy_Knight | [BP_Enemy_Knight.md](BP_Enemy_Knight.md) | 05/06/2026 | Audit global | A JOUR |
@@ -41,15 +41,16 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | BP_Spell_Debuff | [BP_Spell_Debuff.md](BP_Spell_Debuff.md) | 05/06/2026 | Audit global | A JOUR |
 | UI_HUD_Main | [UI_HUD_Main.md](UI_HUD_Main.md) | 05/06/2026 | Audit global | A JOUR |
 | UI_Radial_Main | [UI_Radial_Main.md](UI_Radial_Main.md) | 05/06/2026 | Audit global | A JOUR |
+| UI_FountainMenu | [UI_FountainMenu.md](UI_FountainMenu.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 
 ---
 
-## Nouveaux assets UI-FountainMenu (pas encore snapshotes -- audit requis avant prochain jalon)
+## Interfaces non documentees (pas de variables/fonctions MCP-accessibles)
 
 | Asset | Type | Path UE5 |
 |---|---|---|
 | BPI_Interactable | Blueprint Interface | /Game/Systems/BPI_Interactable |
-| UI_FountainMenu | UserWidget | /Game/UI/Widgets/FountainMenu/UI_FountainMenu |
+| BPI_Saveable | Blueprint Interface | /Game/Systems/Save/BPI_Saveable |
 
 ---
 
@@ -105,7 +106,10 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | 6 | BP_Enemy_Knight | `EnableWeaponCollision_0` et `EnableWeaponCollision` coexistent | Moyen | ENEMY-Types C2 |
 | 7 | BP_SaveGame_SoM | Variable `CurrentSaveGame` auto-referentielle dans le SaveGame | A verifier | Avant prochain SYS-Save |
 | 8 | UI_HUD_Main | `PlayerCharacterRef` de type vide (vestige debug) | Faible | UI-HUDPolish C4 |
+| 9 | BP_SaveGame_SoM | `SpellUsageCounters` type FName au lieu de TMap\<FName,int32\> -- probablement vide/inutilise | Moyen | Avant MAGIC-TreeModule C2 |
+| 10 | BP_Fountain_Actor | Event Tick : dead code (GetComponentByClass orphelin deconnecte) | Faible | Nettoyage C2 |
+| 11 | BP_SoM_PlayerController | InitializeSystems contient DebugPrintVar (macro debug) | Faible | Avant MAP-C1Level |
 
 ---
 
-*Derniere mise a jour : 07/06/2026 -- UI-FountainMenu*
+*Derniere mise a jour : 07/06/2026 -- UI-FountainMenu (audit snapshots post-jalon)*
