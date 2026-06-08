@@ -5,6 +5,30 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 08/06/2026 -- COMBAT-LockOnRefacto -- DEBUGGING (PIE en cours)
+
+#### BPI_Lockable + BP_CombatLockOnComponent + BP_Enemy_Base -- refacto lock-on
+- Creation BPI_Lockable (GetLockSocketName, IsDeadOrDestroyed, OnLockableTargetDied) -- Content/Systems/BPI/
+- BP_CombatLockOnComponent : refacto complete (nettoyage code mort, DetectAvailableTargets via BPI_Lockable, SelectInitialTarget, SwitchLockOnTarget, ActivateLockOn, DeactivateLockOn, Tick distance)
+- BP_Enemy_Base : implémente BPI_Lockable, BeginPlay bind OnLockOnActivated->OnSelfLocked + OnLockOnDeactivated->OnSelfUnlocked
+- BP_SoM_PlayerController : UpdateLockOnUIIndicator via Message GetLockSocketName, UpdateLockOnRotation via DoesImplementInterface
+
+#### Bugs resolus pendant la session
+- Bug 1 : GetComponentByClass(BP_CombatLockOnComponent) appele sur GetPlayerController au lieu de GetPlayerCharacter -> Accessed None -> correction GetPlayerCharacter(0)
+- Bug 2 : SelectInitialTarget -- bIsDead non inverse dans AND Boolean -> ennemi mort selectionnable, vivant ignore -> insertion NOT Boolean
+- Bug 3 : HandleTargetDeath appele inconditionnellement apres ForEachLoop.Completed dans SelectInitialTarget -> infinite loop -> suppression appel inconditionnel
+- Diagnostic bugs 2+3 par audit agent UnrealClaude (blueprint_query, 67+142 noeuds analyses)
+
+#### Dettes restantes COMBAT-LockOnRefacto
+- OnLockableTargetDied binding HandleTargetDeath : a implementer proprement (callback mort cible, actuellement non branche)
+- Cast BP_Enemy_Base dans UpdateLockOnUIIndicator pour GET SkeletalMesh : reste en C1, migrer vers GetLockMesh() dans BPI_Lockable en C2
+- DebugPrintVar a supprimer dans BP_CombatLockOnComponent avant MAP-C1Level
+
+#### Etat final
+COMBAT-LockOnRefacto : lock-on refonctionne en PIE apres Fix 2+3. Checklist PIE complete en cours dans session suivante.
+
+---
+
 ### 07/06/2026 -- UI-FountainMenu -- VALIDE PIE
 
 #### Architecture interaction -- BPI_Interactable
@@ -94,11 +118,6 @@ UI-FountainMenu VALIDE PIE. Interaction volontaire fontaine, feedback PointLight
 - VLerp alpha = DeltaSeconds * FlySpeed > 1 -> Orb depassait la cible et oscillait -- remplace par VInterpTo
 - FlySpeed default 0.0 -> Orb immobile -- valeur a regler dans Details panel
 
-#### Dettes C1 restantes
-- BP_ItemDrop stub : brancher sur InventoryComponent quand ENEMY-Types C2
-- EssenceDropValue et ItemDropChance hardcodes -> DT_Enemy + DT_Item en C2
-- DebugPrintVar a supprimer dans BP_EssenceOrb et BP_Enemy_Base avant MAP-C1Level
-
 #### Etat final
 ENEMY-DropSystem VALIDE PIE. Tuer un ennemi spawne un BP_EssenceOrb qui vole vers le hero, credite l'Essence et met a jour le HUD.
 
@@ -106,43 +125,12 @@ ENEMY-DropSystem VALIDE PIE. Tuer un ennemi spawne un BP_EssenceOrb qui vole ver
 
 ### 05/06/2026 -- DESIGN-ReplanificationC1 -- session design
 
-#### Replanification jalons C1
-- MAGIC-TreeModule reporte C2 : Lumina 4 sorts suffit pour POC C1, arbre talents = contenu pas mecanique bloquante
-- ANIM-Pass1 reporte C2 : dette technique, ABP_Manny_Platforming fonctionnel meme mal nomme
-- ENEMY-DropSystem ajoute C1 : mort ennemi -> spawn BP_EssenceDrop + chance objet -- retour tangible indispensable
-- UI-FountainMenu ajoute C1 : refacto BP_FountainComponent + mini-menu deux interactions
-
-#### Design Fontaine de Fee -- VALIDE
-- Interaction volontaire (pas overlap automatique) -- refacto BP_FountainComponent a prevoir
-- bIsActivated=false (1ere fois) : animation + regen HP/ST/MP + save spawn -- pas de menu, pas de respawn
-- bIsActivated=true (suivantes) : ouvre UI_FountainMenu
-- UI_FountainMenu.Se reposer : regen + save + respawn ennemis zone + PurgeCorruption + restock objets
-- UI_FountainMenu.Menu Inventaire : quickslots + upgrade magie/deites + level up hero (Essence)
-- Essence = monnaie unique (level + magie + purge) -- tension intentionnelle style DS
-- Acces menu gestion : Fontaine uniquement (pas de menu pause global pour ces fonctions)
-- Visuel C1 : changement couleur/materiau sur bIsActivated
-- Vision ART future : racines arbre Mana poussant a l'activation (Fee), Fee se reposant dans la Fontaine -- note en maturation, session ART-Fontaine a planifier
-
-#### Nouvel ordre jalons C1 restants
-1. ENEMY-DropSystem
-2. UI-FountainMenu (+ refacto BP_FountainComponent)
-3. ENEMY-Base
-4. ENEMY-Boss1
-5. MAP-C1Level
-
 #### Etat final
 Session design pure. Aucun Blueprint modifie. Roadmap, CLAUDE.md et Decisions.md mis a jour.
 
 ---
 
 ### 04/06/2026 -- SYS-StatSystem -- VALIDE PIE
-
-#### SYS-StatSystem CLOS -- validation PIE complete
-- Stats (HP/ST/MP/Essence/Corruption) : affichage HUD correct
-- Fontaine : save + restauration HP/ST/MP + PurgeCorruption OK
-- Mort/respawn : drop Essence + fade + reset stats + respawn Fontaine/PlayerStart OK
-- Magie : ConsumeMana via GetStatValue OK, sorts Lumina operationnels
-- Attaques : equip armes + combo Light/Heavy OK
 
 #### Etat final
 SYS-StatSystem VALIDE PIE complet. Tous les systemes C1 core valides.
@@ -178,9 +166,6 @@ Combo epee fonctionnel (Light x2 + Heavy x1). TenaciteEtat dans AttributeSet (ba
 ---
 
 ### 31/05/2026 -- SaveDesign + C1-HUDCore -- VALIDE
-
-#### Etat final
-DESIGN-SaveDesign + HUD-Core valides.
 
 ---
 
@@ -248,4 +233,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 07/06/2026
+- Derniere mise a jour : 08/06/2026
