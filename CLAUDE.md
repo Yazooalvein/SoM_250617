@@ -118,6 +118,9 @@ Docs/
     BP_EssenceDrop.md
     BP_EssenceOrb.md
     BP_SoM_GameMode.md
+    BP_CombatLockOnComponent.md
+    BP_Enemy_Base.md
+    BPI_Lockable.md
     UI_HUD_Main.md
     UI_Radial_Main.md
   DataTables/
@@ -235,6 +238,15 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - ROLE : drop actif DS-like, vole automatiquement vers le hero -- MORT ENNEMI UNIQUEMENT
 - GOTCHA : VLerp avec alpha > 1 = depasse la cible -> utiliser VInterpTo obligatoirement
 
+### Lock-On -- BPI_Lockable -- VALIDE PIE partiel (08/06/2026)
+- BPI_Lockable : interface de ciblage (GetLockSocketName, IsDeadOrDestroyed, OnLockableTargetDied) -- Content/Systems/BPI/
+- BP_CombatLockOnComponent : refacto complete -- DetectAvailableTargets via DoesImplementInterface(BPI_Lockable) + Message IsDeadOrDestroyed
+- BP_Enemy_Base : implemente BPI_Lockable -- GetLockSocketName retourne "HeadLock", IsDeadOrDestroyed retourne (bIsDead OR IsActorBeingDestroyed)
+- GOTCHA : GetComponentByClass(BP_CombatLockOnComponent) -> cible = GetPlayerCharacter(0), PAS GetPlayerController(0)
+- GOTCHA SelectInitialTarget : bIsDead output -> NOT Boolean -> AND.B (vivants seulement)
+- GOTCHA : HandleTargetDeath NE DOIT PAS etre appele depuis SelectInitialTarget directement -- uniquement depuis OnLockableTargetDied
+- Dette C2 : GetLockMesh() a ajouter dans BPI_Lockable pour eliminer le Cast BP_Enemy_Base dans UpdateLockOnUIIndicator
+
 ### Save System -- VALIDE PIE (03/06/2026)
 - BPI_Saveable : interface SaveData(SaveGame) + LoadData(SaveGame) -- Content/Systems/Save/
 - BP_SaveGame_SoM : conteneur pur, extends SaveGame. Variables : ActivatedFountains (TArray<FName>) ajoutee UI-FountainMenu
@@ -289,9 +301,6 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 ### Camera -- VALIDE PIE (17/05/2026)
 - SpringArm : 350, Z 60, Lag 8 -- IA_Look dans PC -- UpdateLockOnRotation V2
 
-### Lock-On -- VALIDE PIE (15/05/2026)
-- BP_CombatLockOnComponent sur Character -- SwitchCooldown source unique
-
 ### Combat -- VALIDE PIE (29/05/2026)
 - BP_ComboManagerComponent : TMap<Name, FComboStep>, InitComboTree, HandleAttack, EquipWeapon
 - CanAttack : source unique ComboManager
@@ -337,17 +346,18 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - [x] INFRA-BlueprintSnapshotLayer (04/06/2026)
 - [x] SYS-StatSystem VALIDE PIE (04/06/2026)
 - [x] ENEMY-DropSystem VALIDE PIE (06/06/2026)
-- [x] **UI-FountainMenu VALIDE PIE (07/06/2026)**
+- [x] UI-FountainMenu VALIDE PIE (07/06/2026)
 
 ## Jalon en cours
 
-Aucun -- prochain jalon a definir.
+**COMBAT-LockOnRefacto** -- lock-on refonctionne PIE, checklist complete en cours
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. **ENEMY-Base** : stats sur BP_Enemy_Base
-2. **ENEMY-Boss1** : 1 boss, 1-2 patterns
-3. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+1. ~~COMBAT-LockOnRefacto~~ (en cours, validation PIE)
+2. **ENEMY-Base** : stats sur BP_Enemy_Base
+3. **ENEMY-Boss1** : 1 boss, 1-2 patterns
+4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
 
 ## Dettes techniques
 
@@ -369,12 +379,14 @@ Aucun -- prochain jalon a definir.
 - **MAGIC-TreeModule** -> reporte C2
 - **BP_EssenceOrb EssenceDropValue hardcode 15** -> DT_Enemy C2
 - **BP_EssenceOrb ItemDropChance hardcode 0.5** -> DT_Item C2
-- **BP_EssenceOrb + BP_Enemy_Base : DebugPrintVar a supprimer** -> avant MAP-C1Level
+- **BP_EssenceOrb + BP_Enemy_Base + BP_CombatLockOnComponent : DebugPrintVar a supprimer** -> avant MAP-C1Level
 - **UI_FountainMenu FountainID hardcode None** -> passer via variable widget C2
 - **UI_FountainMenu Se reposer : PurgeCorruption non branche** -> corriger avant ENEMY-Base
 - **UI_FountainMenu Se reposer : respawn ennemis stub** -> MAP-C1Level
 - **UI_FountainMenu Menu Inventaire stub vide** -> jalon dedie C2
 - **BPI_Interactable : priorite entre interactables superposees** -> UI-InteractPriority C2
+- **BPI_Lockable GetLockMesh()** : eliminer Cast BP_Enemy_Base dans UpdateLockOnUIIndicator -> C2
+- **OnLockableTargetDied binding HandleTargetDeath** : implementer proprement le callback mort cible -> ENEMY-Base
 
 ---
 
@@ -422,6 +434,9 @@ Aucun -- prochain jalon a definir.
 - GOTCHA UI Fontaine : feedback PointLight doit etre pousse depuis FountainComponent directement a l'activation
 - BPI_Interactable : PC.OnInteract utilise GetOverlappingActors(HC) + DoesImplementInterface -- NE PAS caster sur types concrets
 - FountainID doit etre renseigne manuellement dans le Details panel de chaque instance BP_Fountain_Actor en niveau
+- GOTCHA Lock-On : GetComponentByClass(BP_CombatLockOnComponent) -> sur GetPlayerCharacter(0), PAS GetPlayerController(0)
+- GOTCHA Lock-On SelectInitialTarget : bIsDead -> NOT Boolean -> AND.B (filtre vivants uniquement)
+- GOTCHA Lock-On : HandleTargetDeath appele uniquement depuis OnLockableTargetDied, jamais depuis SelectInitialTarget
 
 ---
 
@@ -440,4 +455,4 @@ Aucun -- prochain jalon a definir.
 
 ---
 
-*Derniere mise a jour : 07/06/2026*
+*Derniere mise a jour : 08/06/2026*
