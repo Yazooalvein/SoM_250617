@@ -238,13 +238,17 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - ROLE : drop actif DS-like, vole automatiquement vers le hero -- MORT ENNEMI UNIQUEMENT
 - GOTCHA : VLerp avec alpha > 1 = depasse la cible -> utiliser VInterpTo obligatoirement
 
-### Lock-On -- BPI_Lockable -- VALIDE PIE partiel (08/06/2026)
+### Lock-On -- BPI_Lockable -- VALIDE PIE (09/06/2026)
 - BPI_Lockable : interface de ciblage (GetLockSocketName, IsDeadOrDestroyed, OnLockableTargetDied) -- Content/Systems/BPI/
 - BP_CombatLockOnComponent : refacto complete -- DetectAvailableTargets via DoesImplementInterface(BPI_Lockable) + Message IsDeadOrDestroyed
 - BP_Enemy_Base : implemente BPI_Lockable -- GetLockSocketName retourne "HeadLock", IsDeadOrDestroyed retourne (bIsDead OR IsActorBeingDestroyed)
+- SwitchLockOnTarget : OnLockOnDeactivated appele AVANT Set CurrentTarget, puis OnLockOnActivated apres
+- BP_Enemy_Base.BeginPlay : OnSelfLocked ET OnSelfUnlocked bindes en serie dans .then (IsValid(LockOnComp))
 - GOTCHA : GetComponentByClass(BP_CombatLockOnComponent) -> cible = GetPlayerCharacter(0), PAS GetPlayerController(0)
 - GOTCHA SelectInitialTarget : bIsDead output -> NOT Boolean -> AND.B (vivants seulement)
 - GOTCHA : HandleTargetDeath NE DOIT PAS etre appele depuis SelectInitialTarget directement -- uniquement depuis OnLockableTargetDied
+- GOTCHA : OnSelfUnlocked DOIT etre binde dans .then de Branch(IsValid(LockOnComp)), en serie avec OnSelfLocked -- jamais dans .else
+- GOTCHA : SwitchLockOnTarget -- OnLockOnDeactivated DOIT etre appele AVANT Set CurrentTarget sinon l'ancienne cible ne recoit pas l'event
 - Dette C2 : GetLockMesh() a ajouter dans BPI_Lockable pour eliminer le Cast BP_Enemy_Base dans UpdateLockOnUIIndicator
 
 ### Save System -- VALIDE PIE (03/06/2026)
@@ -347,17 +351,17 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - [x] SYS-StatSystem VALIDE PIE (04/06/2026)
 - [x] ENEMY-DropSystem VALIDE PIE (06/06/2026)
 - [x] UI-FountainMenu VALIDE PIE (07/06/2026)
+- [x] COMBAT-LockOnRefacto VALIDE PIE (09/06/2026)
 
 ## Jalon en cours
 
-**COMBAT-LockOnRefacto** -- lock-on refonctionne PIE, checklist complete en cours
+**ENEMY-Base** : stats sur BP_Enemy_Base, HandleTargetDeath, OnLockableTargetDied
 
 ## Prochains jalons C1 (dans l'ordre recommande)
 
-1. ~~COMBAT-LockOnRefacto~~ (en cours, validation PIE)
-2. **ENEMY-Base** : stats sur BP_Enemy_Base
-3. **ENEMY-Boss1** : 1 boss, 1-2 patterns
-4. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
+1. **ENEMY-Base** : stats sur BP_Enemy_Base
+2. **ENEMY-Boss1** : 1 boss, 1-2 patterns
+3. **MAP-C1Level** : couloir -> mobs -> fontaine -> arene boss
 
 ## Dettes techniques
 
@@ -387,6 +391,7 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - **BPI_Interactable : priorite entre interactables superposees** -> UI-InteractPriority C2
 - **BPI_Lockable GetLockMesh()** : eliminer Cast BP_Enemy_Base dans UpdateLockOnUIIndicator -> C2
 - **OnLockableTargetDied binding HandleTargetDeath** : implementer proprement le callback mort cible -> ENEMY-Base
+- **ObjectTypeQuery3 (PhysicsBody) dans DetectAvailableTargets** : peut rater des ennemis -> ENEMY-Base
 
 ---
 
@@ -437,6 +442,8 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 - GOTCHA Lock-On : GetComponentByClass(BP_CombatLockOnComponent) -> sur GetPlayerCharacter(0), PAS GetPlayerController(0)
 - GOTCHA Lock-On SelectInitialTarget : bIsDead -> NOT Boolean -> AND.B (filtre vivants uniquement)
 - GOTCHA Lock-On : HandleTargetDeath appele uniquement depuis OnLockableTargetDied, jamais depuis SelectInitialTarget
+- GOTCHA Lock-On : OnSelfUnlocked DOIT etre binde dans .then de Branch(IsValid(LockOnComp)), en serie avec OnSelfLocked -- jamais dans .else
+- GOTCHA Lock-On : SwitchLockOnTarget -- OnLockOnDeactivated AVANT Set CurrentTarget, OnLockOnActivated APRES
 
 ---
 
@@ -455,4 +462,4 @@ CONTEXTE : Tu es l'assistant UnrealClaude lance dans UE5.7 depuis "Tools => Clau
 
 ---
 
-*Derniere mise a jour : 08/06/2026*
+*Derniere mise a jour : 09/06/2026*

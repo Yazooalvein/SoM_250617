@@ -5,12 +5,36 @@ Suivi precis de toutes les evolutions majeures du projet.
 
 ## Entrees
 
+### 09/06/2026 -- COMBAT-LockOnRefacto -- VALIDE PIE
+
+#### BP_CombatLockOnComponent + BP_Enemy_Base -- lock-on PIE complet
+- SwitchLockOnTarget : suppression doublon K2Node_CallDelegate_2 (OnLockOnDeactivated x2)
+- SwitchLockOnTarget : ajout K2Node_CallDelegate_3 (OnLockOnActivated) apres OnLockOnDeactivated
+- SwitchLockOnTarget : reordonnancement -- OnLockOnDeactivated desormais AVANT Set CurrentTarget = BestTargetTemp
+- BP_Enemy_Base.BeginPlay : OnSelfUnlocked bind sur OnLockOnDeactivated mis en serie avec OnSelfLocked dans branche .then (etait dans .else -> jamais execute)
+
+#### Bugs resolus
+- Bug 1 : doublon OnLockOnDeactivated dans SwitchLockOnTarget -> ancienne cible recevait OnSelfUnlocked x2, nouvelle jamais OnSelfLocked -> HP bar ne s'affichait pas au switch
+- Bug 2 : OnLockOnDeactivated appele apres Set CurrentTarget -> l'ancienne cible recevait OnSelfUnlocked alors que CurrentTarget pointait deja sur la nouvelle -> HP bar ancienne cible ne disparaissait pas
+- Bug 3 : OnSelfUnlocked bind dans .else de Branch(IsValid(LockOnComp)) -> jamais execute si le composant est valide -> HP bar ne disparaissait jamais a l'unlock ni au switch
+
+#### Dettes restantes COMBAT-LockOnRefacto -> ENEMY-Base
+- OnLockableTargetDied binding HandleTargetDeath : callback mort cible non implemente -> ENEMY-Base
+- Cast BP_Enemy_Base dans UpdateLockOnUIIndicator pour SkeletalMesh -> migrer vers GetLockMesh() dans BPI_Lockable -> C2
+- DebugPrintVar actifs dans BP_CombatLockOnComponent -> supprimer avant MAP-C1Level
+- ObjectTypeQuery3 (PhysicsBody) dans DetectAvailableTargets -> peut rater des ennemis
+
+#### Etat final
+COMBAT-LockOnRefacto VALIDE PIE complet. Lock, switch, unlock, HP bars hide/show, plus d'erreurs pending kill.
+
+---
+
 ### 08/06/2026 -- COMBAT-LockOnRefacto -- DEBUGGING (PIE en cours)
 
 #### BPI_Lockable + BP_CombatLockOnComponent + BP_Enemy_Base -- refacto lock-on
 - Creation BPI_Lockable (GetLockSocketName, IsDeadOrDestroyed, OnLockableTargetDied) -- Content/Systems/BPI/
 - BP_CombatLockOnComponent : refacto complete (nettoyage code mort, DetectAvailableTargets via BPI_Lockable, SelectInitialTarget, SwitchLockOnTarget, ActivateLockOn, DeactivateLockOn, Tick distance)
-- BP_Enemy_Base : implémente BPI_Lockable, BeginPlay bind OnLockOnActivated->OnSelfLocked + OnLockOnDeactivated->OnSelfUnlocked
+- BP_Enemy_Base : implemente BPI_Lockable, BeginPlay bind OnLockOnActivated->OnSelfLocked + OnLockOnDeactivated->OnSelfUnlocked
 - BP_SoM_PlayerController : UpdateLockOnUIIndicator via Message GetLockSocketName, UpdateLockOnRotation via DoesImplementInterface
 
 #### Bugs resolus pendant la session
@@ -233,4 +257,4 @@ Pour le systeme de save : voir Docs/Architecture/SaveSystem.md
 
 ## Historique
 - Creation : 17/06/2025
-- Derniere mise a jour : 08/06/2026
+- Derniere mise a jour : 09/06/2026
