@@ -17,11 +17,11 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | Blueprint | Fichier | Dernier snapshot | Jalon | Statut |
 |---|---|---|---|---|
 | BP_SoM_HeroCharacter | [BP_SoM_HeroCharacter.md](BP_SoM_HeroCharacter.md) | 05/06/2026 | Audit global | PERIME |
-| BP_SoM_PlayerController | [BP_SoM_PlayerController.md](BP_SoM_PlayerController.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
+| BP_SoM_PlayerController | [BP_SoM_PlayerController.md](BP_SoM_PlayerController.md) | 08/06/2026 | COMBAT-LockOnRefacto | A JOUR |
 | BP_SoM_GameMode | [BP_SoM_GameMode.md](BP_SoM_GameMode.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_AttributeSet_Base | [BP_AttributeSet_Base.md](BP_AttributeSet_Base.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_ComboManagerComponent | [BP_ComboManagerComponent.md](BP_ComboManagerComponent.md) | 05/06/2026 | Audit global | A JOUR |
-| BP_CombatLockOnComponent | [BP_CombatLockOnComponent.md](BP_CombatLockOnComponent.md) | 05/06/2026 | Audit global | A JOUR |
+| BP_CombatLockOnComponent | [BP_CombatLockOnComponent.md](BP_CombatLockOnComponent.md) | 08/06/2026 | COMBAT-LockOnRefacto | A JOUR |
 | BP_MagicComponent | [BP_MagicComponent.md](BP_MagicComponent.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_InventoryComponent | [BP_InventoryComponent.md](BP_InventoryComponent.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_CorruptionComponent | [BP_CorruptionComponent.md](BP_CorruptionComponent.md) | 05/06/2026 | Audit global | A JOUR |
@@ -30,7 +30,7 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | BP_SaveGame_SoM | [BP_SaveGame_SoM.md](BP_SaveGame_SoM.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 | BP_Fountain_Actor | [BP_Fountain_Actor.md](BP_Fountain_Actor.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
 | BP_FountainComponent | [BP_FountainComponent.md](BP_FountainComponent.md) | 07/06/2026 | UI-FountainMenu | A JOUR |
-| BP_Enemy_Base | [BP_Enemy_Base.md](BP_Enemy_Base.md) | 06/06/2026 | ENEMY-DropSystem | A JOUR |
+| BP_Enemy_Base | [BP_Enemy_Base.md](BP_Enemy_Base.md) | 08/06/2026 | COMBAT-LockOnRefacto | A JOUR |
 | BP_Enemy_Knight | [BP_Enemy_Knight.md](BP_Enemy_Knight.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_AIController_Enemy_Base | [BP_AIController_Enemy_Base.md](BP_AIController_Enemy_Base.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_Weapon_Base | [BP_Weapon_Base.md](BP_Weapon_Base.md) | 05/06/2026 | Audit global | A JOUR |
@@ -45,12 +45,13 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 
 ---
 
-## Interfaces non documentees (pas de variables/fonctions MCP-accessibles)
+## Interfaces documentees
 
-| Asset | Type | Path UE5 |
-|---|---|---|
-| BPI_Interactable | Blueprint Interface | /Game/Systems/BPI_Interactable |
-| BPI_Saveable | Blueprint Interface | /Game/Systems/Save/BPI_Saveable |
+| Asset | Fichier | Dernier snapshot | Jalon | Statut |
+|---|---|---|---|---|
+| BPI_Lockable | [BPI_Lockable.md](BPI_Lockable.md) | 08/06/2026 | COMBAT-LockOnRefacto | A JOUR |
+| BPI_Interactable | *(snapshot a creer)* | -- | UI-FountainMenu | MANQUANT |
+| BPI_Saveable | *(snapshot a creer)* | -- | SYS-SaveGame | MANQUANT |
 
 ---
 
@@ -106,10 +107,10 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 | 6 | BP_Enemy_Knight | `EnableWeaponCollision_0` et `EnableWeaponCollision` coexistent | Moyen | ENEMY-Types C2 |
 | 7 | BP_SaveGame_SoM | Variable `CurrentSaveGame` auto-referentielle dans le SaveGame | A verifier | Avant prochain SYS-Save |
 | 8 | UI_HUD_Main | `PlayerCharacterRef` de type vide (vestige debug) | Faible | UI-HUDPolish C4 |
-| 9 | BP_SaveGame_SoM | `SpellUsageCounters` type FName au lieu de TMap\<FName,int32\> -- probablement vide/inutilise | Moyen | Avant MAGIC-TreeModule C2 |
+| 9 | BP_SaveGame_SoM | `SpellUsageCounters` type FName au lieu de TMap<FName,int32> -- probablement vide/inutilise | Moyen | Avant MAGIC-TreeModule C2 |
 | 10 | BP_Fountain_Actor | Event Tick : dead code (GetComponentByClass orphelin deconnecte) | Faible | Nettoyage C2 |
 | 11 | BP_SoM_PlayerController | InitializeSystems contient DebugPrintVar (macro debug) | Faible | Avant MAP-C1Level |
 
 ---
 
-*Derniere mise a jour : 07/06/2026 -- UI-FountainMenu (audit snapshots post-jalon)*
+*Derniere mise a jour : 08/06/2026 -- COMBAT-LockOnRefacto*
