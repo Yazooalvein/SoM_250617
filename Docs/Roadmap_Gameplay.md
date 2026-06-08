@@ -31,7 +31,7 @@ C4 — Alpha Test
 
 ---
 
-## Modules existants (etat au 05/06/2026)
+## Modules existants (etat au 09/06/2026)
 
 | Module | Etat | Notes |
 |--------|------|-------|
@@ -41,7 +41,8 @@ C4 — Alpha Test
 | Mort du joueur | ✅ Stable | bIsDead + OnPlayerDeath dispatcher |
 | Flux mort/respawn | ✅ VALIDE PIE (C1 POC) | Fade + reset stats + TeleportTo PlayerStart -- LastFountainTransform en SYS-SaveGame |
 | BP_EssenceDrop | ✅ VALIDE PIE (C1 POC) | Drop au sol uniquement -- mob porteur C2, destruction 2eme mort C2 |
-| Lock-On | ✅ VALIDE PIE | J-LockOn + J-LockMove complets |
+| BP_EssenceOrb | ✅ VALIDE PIE (C1 POC) | Drop actif mort ennemi, vol automatique vers hero via VInterpTo |
+| Lock-On | ✅ VALIDE PIE | COMBAT-LockOnRefacto complet 09/06/2026 |
 | Strafe lock-on | ✅ VALIDE PIE | ABP_Manny_Platforming + BS_Unarmed_Strafe (placeholder) |
 | Deplacement en lock-on | ✅ VALIDE PIE | Move() via CameraRotation, Rotation Rate -1 |
 | Camera | ✅ VALIDE PIE | SpringArm regle, IA_Look dans PC, UpdateLockOnRotation V2 |
@@ -68,6 +69,10 @@ C4 — Alpha Test
 | Lore & Cast | ✅ DESIGN VALIDE enrichi | Structure actes, Armes Mana, Hub, Corruption heros -- Lore_ShadowOfMana.md |
 | Archi armes/combo/inventaire | ✅ VALIDE PIE | ComboManager source verite, InventoryComponent, EquipWeapon refacto -- 29/05/2026 |
 | Save System | ✅ VALIDE PIE | BPI_Saveable, BP_SaveGame_SoM, flux fontaine/respawn -- 03/06/2026 |
+| SYS-StatSystem | ✅ VALIDE PIE | TMap stats, Option B GetStatValue -- 04/06/2026 |
+| ENEMY-DropSystem | ✅ VALIDE PIE | BP_EssenceOrb vol auto + BP_ItemDrop stub -- 06/06/2026 |
+| UI-FountainMenu | ✅ VALIDE PIE | BPI_Interactable, mini-menu fontaine, SetInputModeUIOnly -- 07/06/2026 |
+| COMBAT-LockOnRefacto | ✅ VALIDE PIE | BPI_Lockable, refacto complete, HP bars hide/show -- 09/06/2026 |
 
 ---
 
@@ -106,19 +111,20 @@ C4 — Alpha Test
 | COMBAT-SwordMoveset | ✅ VALIDE PIE | 31/05/2026 | -- |
 | SYS-CorruptionSystem | ✅ VALIDE PIE | 31/05/2026 | Calibrage +5/sort = POC, affinage SESSION-Economie |
 | SYS-EssenceMana | ✅ VALIDE PIE | 02/06/2026 | POC : drop au sol uniquement, respawn PlayerStart, drop indefini |
+| SYS-SaveGame | ✅ VALIDE PIE | 03/06/2026 | BPI_Saveable, BP_FountainComponent, flux save/load/respawn |
 | INFRA-BlueprintSnapshotLayer | ✅ COMPLET | 04/06/2026 | -- |
 | SYS-StatSystem | ✅ VALIDE PIE | 04/06/2026 | TMap stats, Option B GetStatValue, validation complete |
-| SYS-SaveGame | ✅ VALIDE PIE | 03/06/2026 | BPI_Saveable, BP_FountainComponent, flux save/load/respawn |
+| ENEMY-DropSystem | ✅ VALIDE PIE | 06/06/2026 | BP_EssenceOrb vol auto + BP_ItemDrop stub C1 |
+| UI-FountainMenu | ✅ VALIDE PIE | 07/06/2026 | BPI_Interactable, mini-menu, SetInputModeUIOnly |
+| COMBAT-LockOnRefacto | ✅ VALIDE PIE | 09/06/2026 | BPI_Lockable, HP bars hide/show, plus d'erreurs pending kill |
 
 ### Jalons restants C1
 
 | Jalon | Prefixe | Contenu | Mode POC C1 | Dependances |
 |---|---|---|---|---|
-| ENEMY-DropSystem | ENEMY | Mort ennemi -> spawn BP_EssenceDrop + chance objet simple. Table de drop basique sur BP_Enemy_Base. | POC : valeurs hardcodees, 1 type d'objet max -- calibrage C2 | SYS-EssenceMana ✅ |
-| UI-FountainMenu | UI | Refacto BP_FountainComponent : bIsActivated + interaction volontaire. 1ere activation : regen/save sans menu. Activations suivantes : mini-menu (Se reposer / Menu Inventaire). Se reposer = regen HP/ST/MP + save + respawn ennemis + PurgeCorruption + restock. Menu Inventaire = quickslots + upgrade magie/deites + level up hero (Essence). | POC : UI liste sommaire, pas d'icones -- polish C2 | SYS-SaveGame ✅, SYS-CorruptionSystem ✅ |
-| ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire | POC : valeurs hardcodees -- calibrage et types C2 | DESIGN-StatsProgression ✅ |
+| ENEMY-Base | ENEMY | Stats sur BP_Enemy_Base, ResistanceElementaire, HandleTargetDeath | POC : valeurs hardcodees, callback mort cible -- calibrage et types C2 | DESIGN-StatsProgression ✅, COMBAT-LockOnRefacto ✅ |
 | ENEMY-Boss1 | ENEMY | 1 boss, 1-2 patterns simples | POC : gros mob avec saut + magie placeholder -- patterns enrichis C2 | ENEMY-Base |
-| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | POC : geometrie BSP ou kit, assets placeholder -- vraie zone C2 | UI-FountainMenu, ENEMY-Boss1 |
+| MAP-C1Level | MAP | Mini map couloir : spawn → mobs → fontaine → arene boss | POC : geometrie BSP ou kit, assets placeholder -- vraie zone C2 | UI-FountainMenu ✅, ENEMY-Boss1 |
 
 **Critere de completion C1 :** la MAP-C1Level est jouable de bout en bout -- spawn, combattre, mourir, respawn a la fontaine, tuer le boss. Tout en placeholder, tout fonctionnel.
 
@@ -259,10 +265,11 @@ C4 — Alpha Test
 - Creation : 11/05/2026
 - Refonte complete : 14/05/2026
 - Resynchro complete : 18/05/2026
-- MAJ 28/05/2026 : session design complete -- Stats, Effets statut, Corruption Phase 1/2, Economie, Lore/Cast
-- MAJ 29/05/2026 : C1-WeaponArchitecture COMPLET VALIDE PIE, DESIGN-Lore enrichi, 5 points ouverts resolus
-- MAJ 31/05/2026 : refonte complete -- cycles milestones jouables (C1/C2/C3/C4), renommage jalons thematiques
-- MAJ 31/05/2026 : COMBAT-SwordMoveset CLOS VALIDE PIE, TenaciteEtat resolu, module Sword_01 ajoute
-- MAJ 31/05/2026 : SYS-CorruptionSystem VALIDE PIE -- BP_CorruptionComponent, tracking deites, purge HUD operationnels
-- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE -- BP_EssenceDrop, flux mort/respawn PC, mode POC C1 documente sur tous les jalons restants
-- MAJ 05/06/2026 : replanification C1 -- ENEMY-DropSystem et UI-FountainMenu ajoutes, MAGIC-TreeModule et ANIM-Pass1 reportes C2, spec Fontaine completee (deux interactions, mini-menu, Essence monnaie unique)
+- MAJ 28/05/2026 : session design complete
+- MAJ 29/05/2026 : C1-WeaponArchitecture COMPLET VALIDE PIE
+- MAJ 31/05/2026 : refonte complete -- cycles milestones jouables
+- MAJ 31/05/2026 : COMBAT-SwordMoveset + SYS-CorruptionSystem VALIDE PIE
+- MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE
+- MAJ 05/06/2026 : replanification C1 -- ENEMY-DropSystem + UI-FountainMenu ajoutes
+- MAJ 07/06/2026 : ENEMY-DropSystem + UI-FountainMenu VALIDE PIE
+- MAJ 09/06/2026 : COMBAT-LockOnRefacto VALIDE PIE -- 3 jalons restants C1

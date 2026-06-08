@@ -16,7 +16,7 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 
 | Blueprint | Fichier | Dernier snapshot | Jalon | Statut |
 |---|---|---|---|---|
-| BP_SoM_HeroCharacter | [BP_SoM_HeroCharacter.md](BP_SoM_HeroCharacter.md) | 05/06/2026 | Audit global | PERIME |
+| BP_SoM_HeroCharacter | [BP_SoM_HeroCharacter.md](BP_SoM_HeroCharacter.md) | 05/06/2026 | Audit global | PERIME -- audit requis avant ENEMY-Base |
 | BP_SoM_PlayerController | [BP_SoM_PlayerController.md](BP_SoM_PlayerController.md) | 08/06/2026 | COMBAT-LockOnRefacto | A JOUR |
 | BP_SoM_GameMode | [BP_SoM_GameMode.md](BP_SoM_GameMode.md) | 05/06/2026 | Audit global | A JOUR |
 | BP_AttributeSet_Base | [BP_AttributeSet_Base.md](BP_AttributeSet_Base.md) | 05/06/2026 | Audit global | A JOUR |
@@ -113,4 +113,4 @@ Si absent ou marque PERIME : lancer un audit UnrealClaude avant de continuer.
 
 ---
 
-*Derniere mise a jour : 08/06/2026 -- COMBAT-LockOnRefacto*
+*Derniere mise a jour : 09/06/2026 -- COMBAT-LockOnRefacto VALIDE PIE*

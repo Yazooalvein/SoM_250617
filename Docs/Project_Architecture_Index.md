@@ -13,11 +13,11 @@ A mettre a jour a chaque creation ou modification de document.
 
 | Systeme / Module | Document | Statut |
 |---|---|---|
-| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 03/06/2026 |
+| Contexte IA / session | CLAUDE.md (racine) | Mis a jour 09/06/2026 |
 | Presentation generale | Docs/Presentation_Generale_du_Projet.md | A verifier |
-| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 03/06/2026 |
-| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 03/06/2026 |
-| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 02/06/2026 |
+| Index architecture (ce doc) | Docs/Project_Architecture_Index.md | Mis a jour 09/06/2026 |
+| Journal des modifications | Docs/Journal_Modifications.md | Mis a jour 09/06/2026 |
+| Roadmap gameplay | Docs/Roadmap_Gameplay.md | Mis a jour 09/06/2026 |
 | Planning sessions | Docs/Planning_Sessions.md | A verifier |
 | Lore | Docs/Lore_ShadowOfMana.md | Mis a jour 30/05/2026 |
 | Sessions UnrealClaude | Docs/Session_UnrealClaude.md | Log continu |
@@ -60,7 +60,7 @@ A mettre a jour a chaque creation ou modification de document.
 
 ---
 
-## Jalons Cycle 1 -- etat synthetique (03/06/2026)
+## Jalons Cycle 1 -- etat synthetique (09/06/2026)
 
 | Jalon | Statut | Notes C1 |
 |---|---|---|
@@ -88,11 +88,14 @@ A mettre a jour a chaque creation ou modification de document.
 | SYS-CorruptionSystem | ✅ VALIDE PIE (31/05/2026) | calibrage +5/sort -> SESSION-Economie |
 | SYS-EssenceMana | ✅ VALIDE PIE (02/06/2026) | drop au sol C1, mob porteur C2 |
 | SYS-SaveGame | ✅ VALIDE PIE (03/06/2026) | BPI_Saveable, LastFountainTransform, overlap auto C1 |
-| MAGIC-TreeModule | A faire | effets placeholder/print C1 |
-| ENEMY-Base | A faire | valeurs hardcodees C1 |
+| INFRA-BlueprintSnapshotLayer | ✅ COMPLET (04/06/2026) | -- |
+| SYS-StatSystem | ✅ VALIDE PIE (04/06/2026) | TMap stats, Option B GetStatValue |
+| ENEMY-DropSystem | ✅ VALIDE PIE (06/06/2026) | BP_EssenceOrb vol auto + BP_ItemDrop stub |
+| UI-FountainMenu | ✅ VALIDE PIE (07/06/2026) | BPI_Interactable, mini-menu, SetInputModeUIOnly |
+| COMBAT-LockOnRefacto | ✅ VALIDE PIE (09/06/2026) | BPI_Lockable, HP bars hide/show, SwitchLockOnTarget corrige |
+| ENEMY-Base | A faire | stats BP_Enemy_Base, HandleTargetDeath |
 | ENEMY-Boss1 | A faire | saut + magie placeholder C1 |
 | MAP-C1Level | A faire | geometrie BSP/kit C1 |
-| ANIM-Pass1 | A faire | roll fonctionnel C1 |
 
 ---
 
@@ -114,4 +117,5 @@ A mettre a jour a chaque creation ou modification de document.
 - MAJ 30/05/2026 : ajout Weapons_Progression.md
 - MAJ 31/05/2026 : ajout SaveSystem.md, DESIGN-SaveDesign valide, HUD-Core complet
 - MAJ 02/06/2026 : SYS-EssenceMana VALIDE PIE
-- MAJ 03/06/2026 : SYS-SaveGame VALIDE PIE, SaveSystem.md mis a jour, Decisions.md enrichi (Patterns Etablis + BPI_Saveable)
+- MAJ 03/06/2026 : SYS-SaveGame VALIDE PIE, SaveSystem.md mis a jour
+- MAJ 09/06/2026 : SYS-StatSystem, INFRA-BlueprintSnapshotLayer, ENEMY-DropSystem, UI-FountainMenu, COMBAT-LockOnRefacto VALIDE PIE
